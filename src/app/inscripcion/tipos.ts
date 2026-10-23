@@ -1,3 +1,4 @@
+import { CLASES_ACENTO, ORDEN_ACENTOS } from "@/components/marca/acentos";
 import type { MODALIDADES, TURNOS } from "@/lib/validacion/inscripcion";
 
 // Estado del formulario tal como lo edita la persona (todo texto, sin normalizar).
@@ -28,12 +29,7 @@ export interface NinoForm {
 export type ErrorDe = (path: string) => string | undefined;
 
 /** Acentos de color que rotan entre las tarjetas de cada niño/a. */
-export const ACENTOS = [
-  { borde: "border-t-naranja", punto: "bg-naranja" },
-  { borde: "border-t-azul", punto: "bg-azul" },
-  { borde: "border-t-verde", punto: "bg-verde" },
-  { borde: "border-t-violeta", punto: "bg-violeta" },
-  { borde: "border-t-amarillo", punto: "bg-amarillo" },
-  { borde: "border-t-petroleo", punto: "bg-petroleo" },
-  { borde: "border-t-rojo", punto: "bg-rojo" },
-] as const;
+export const ACENTOS = ORDEN_ACENTOS.map((color) => ({
+  borde: CLASES_ACENTO[color].bordeSuperior,
+  punto: CLASES_ACENTO[color].punto,
+}));

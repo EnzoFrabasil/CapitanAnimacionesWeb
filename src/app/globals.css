@@ -22,6 +22,17 @@
 
   --animate-aparecer: aparecer 0.4s ease-out both;
   --animate-balanceo: balanceo 3s ease-in-out infinite;
+  --animate-flotar: flotar 5s ease-in-out infinite;
+
+  @keyframes flotar {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -8px;
+    }
+  }
 
   @keyframes aparecer {
     from {
@@ -45,9 +56,28 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-crema);
   color: var(--color-texto);
+}
+
+/* Aparición al hacer scroll (componente Aparecer). Solo se oculta si hay JavaScript. */
+@media (scripting: enabled) {
+  [data-aparecer] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.6s ease-out,
+      transform 0.6s ease-out;
+  }
+  [data-aparecer][data-visible] {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -18,6 +18,16 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: sitio.nombre,
   description: sitio.descripcion,
+  icons: { icon: sitio.logos.circular, apple: sitio.logos.circular },
+  openGraph: {
+    title: sitio.nombre,
+    description: sitio.descripcion,
+    siteName: sitio.nombre,
+    locale: "es_AR",
+    type: "website",
+    images: [{ url: sitio.logos.circular, width: 512, height: 512, alt: sitio.nombre }],
+  },
+  twitter: { card: "summary", images: [sitio.logos.circular] },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
