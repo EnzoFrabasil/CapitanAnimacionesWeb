@@ -1,5 +1,5 @@
 import { parsePhoneNumberFromString } from "libphonenumber-js/mobile";
-import { fechaDesdeIso } from "@/lib/dominio/fechas";
+import { ZONA_HORARIA, fechaDesdeIso } from "@/lib/dominio/fechas";
 
 // Formatos para mostrar en pantalla (sirven en cliente y servidor).
 
@@ -19,6 +19,21 @@ export function formatearDiaCorto(iso: string): string {
 export function formatearFecha(iso: string): string {
   const [anio, mes, dia] = iso.split("-");
   return `${dia}/${mes}/${anio}`;
+}
+
+const fechaHora = new Intl.DateTimeFormat("es-AR", {
+  timeZone: ZONA_HORARIA,
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+/** Momento -> "04/01/2027 14:05" (hora de Argentina) */
+export function formatearFechaHora(fecha: Date): string {
+  return fechaHora.format(fecha).replace(",", "");
 }
 
 /** "+5491123456789" -> "+54 9 11 2345 6789" */
