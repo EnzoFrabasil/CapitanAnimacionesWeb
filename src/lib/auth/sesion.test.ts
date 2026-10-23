@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accesoPermitido, crearTokenSesion, estadoAuth, passwordCorrecta, tokenValido } from "./sesion";
+import { DURACION_SESION_SEGUNDOS, accesoPermitido, crearTokenSesion, estadoAuth, passwordCorrecta, tokenValido } from "./sesion";
 
 const SECRETO = "x".repeat(32);
 const env = (extra: Record<string, string | undefined>) => ({ NODE_ENV: "production", ...extra }) as NodeJS.ProcessEnv;
@@ -35,7 +35,7 @@ describe("token de sesión", () => {
     const ahora = 1_000_000;
     const token = crearTokenSesion(ahora, activo);
     expect(tokenValido(token, ahora + 1000, activo)).toBe(true);
-    expect(tokenValido(token, ahora + 13 * 3600 * 1000, activo)).toBe(false);
+    expect(tokenValido(token, ahora + (DURACION_SESION_SEGUNDOS + 1) * 1000, activo)).toBe(false);
   });
 
   it("rechaza tokens alterados o firmados con otro secreto", () => {

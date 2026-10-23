@@ -9,6 +9,21 @@ export function FormularioLogin({ desde }: { desde?: string }) {
   return (
     <form action={accion} className="space-y-4">
       <input type="hidden" name="desde" value={desde ?? ""} />
+      {/* TODO: por ahora el email no se valida; se va a usar cuando haya usuarios. */}
+      <div>
+        <label htmlFor="email" className="mb-1 block font-medium text-marino">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoFocus
+          autoComplete="username"
+          className="w-full rounded-xl border-2 border-marino/20 px-4 py-3 focus:border-azul focus:ring-4 focus:ring-azul/20 focus:outline-none"
+        />
+      </div>
       <div>
         <label htmlFor="password" className="mb-1 block font-medium text-marino">
           Contraseña
@@ -18,7 +33,6 @@ export function FormularioLogin({ desde }: { desde?: string }) {
           name="password"
           type="password"
           required
-          autoFocus
           autoComplete="current-password"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}

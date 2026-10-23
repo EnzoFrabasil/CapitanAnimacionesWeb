@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 // contiene solo la fecha de vencimiento. Se usa desde el proxy y desde el servidor.
 
 export const COOKIE_SESION = "capitan_admin";
-export const DURACION_SESION_SEGUNDOS = 12 * 60 * 60;
+export const DURACION_SESION_SEGUNDOS = 30 * 24 * 60 * 60;
 const LARGO_MINIMO_SECRETO = 32;
 
 /**
