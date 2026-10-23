@@ -67,8 +67,8 @@ export default function Inicio() {
               <Image
                 src={sitio.logos.capitanBarco}
                 alt="El capitán en su barco mirando con el catalejo"
-                width={800}
-                height={600}
+                width={2909}
+                height={2719}
                 priority
                 className="mx-auto w-full max-w-md animate-flotar md:max-w-none"
               />

@@ -12,6 +12,9 @@ import { normalizarWhatsapp } from "@/lib/dominio/telefono";
 export const TURNOS = ["MANANA", "TARDE"] as const;
 export const MODALIDADES = ["SEMANAS", "POR_DIA"] as const;
 
+/** Error de la casilla de aceptación (va aparte del schema: no es un dato de la inscripción). */
+export const MENSAJE_FALTA_ACEPTAR = "Marcá esta casilla para poder enviar la inscripción.";
+
 export interface ContextoInscripcion {
   semanas: { id: number; numero: number; fechaInicio: string; fechaFin: string }[];
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
@@ -36,7 +39,7 @@ const textoOpcional = (max: number) =>
 const whatsapp = z
   .string()
   .trim()
-  .min(1, "Ingresá un número de WhatsApp.")
+  .min(1, "Ingresá un número de teléfono.")
   .transform((valor, ctx) => {
     const normalizado = normalizarWhatsapp(valor);
     if (!normalizado) {
@@ -74,7 +77,7 @@ const emailOpcional = z
 export const contactoSchema = z.object({
   nombre: texto(LARGO_MAXIMO.nombre, "Ingresá el nombre."),
   apellido: texto(LARGO_MAXIMO.nombre, "Ingresá el apellido."),
-  parentesco: texto(LARGO_MAXIMO.parentesco, "Contanos qué relación tiene con los chicos (por ejemplo: madre)."),
+  parentesco: z.string().trim().max(LARGO_MAXIMO.parentesco, `Puede tener hasta ${LARGO_MAXIMO.parentesco} caracteres.`).default(""),
   whatsapp,
   whatsappAlt: whatsappOpcional,
   email: emailOpcional,
@@ -170,7 +173,7 @@ export function crearInscripcionSchema(contexto: ContextoInscripcion) {
             ctx.addIssue({
               code: "custom",
               path: ["contactos", i, "whatsapp"],
-              message: `Este WhatsApp ya está cargado en el contacto ${anterior + 1}.`,
+              message: `Este número ya está cargado en el contacto ${anterior + 1}.`,
             });
           } else {
             vistos.set(c.whatsapp, i);

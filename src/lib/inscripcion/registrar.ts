@@ -1,4 +1,5 @@
 import "server-only";
+import { VERSION_PRIVACIDAD } from "@/config/inscripcion";
 import { asignarGrupo, calcularEdad } from "@/lib/dominio/edad";
 import { elegirFamilia, type ContactoExistente } from "@/lib/dominio/familia";
 import { fechaDesdeIso } from "@/lib/dominio/fechas";
@@ -59,6 +60,9 @@ export async function registrarInscripcion(
           temporadaId: temporada.id,
           familiaId,
           responsablePrincipalId: responsableIds[0],
+          // La API solo llega hasta acá si la casilla de privacidad está marcada.
+          privacidadAceptadaEn: new Date(),
+          privacidadVersion: VERSION_PRIVACIDAD,
         },
         select: { id: true, numero: true },
       });

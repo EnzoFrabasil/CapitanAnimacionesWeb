@@ -136,6 +136,11 @@ model Inscripcion {
   familiaId              Int
   responsablePrincipalId Int
   fechaAlta              DateTime @default(now())
+  // Constancia de que el responsable aceptó las condiciones y la política de
+  // privacidad (Ley 25.326), y qué versión del texto aceptó. Null en las
+  // inscripciones anteriores a que existiera la casilla.
+  privacidadAceptadaEn   DateTime?
+  privacidadVersion      String?
 
   temporada            Temporada         @relation(fields: [temporadaId], references: [id])
   familia              Familia           @relation(fields: [familiaId], references: [id])

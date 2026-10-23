@@ -43,12 +43,12 @@ export function PasoRevision({ datos, contexto, irAPaso }: Props) {
           {datos.contactos.map((c, i) => (
             <li key={c.whatsapp} className={i > 0 ? "border-t border-marino/10 pt-4" : ""}>
               <p className="font-semibold">
-                {c.nombre} {c.apellido} <span className="font-normal">({c.parentesco})</span>
+                {c.nombre} {c.apellido} {c.parentesco && <span className="font-normal">({c.parentesco})</span>}
                 {i === 0 && <span className="ml-2 rounded-full bg-amarillo px-2 py-0.5 text-xs text-marino">Principal</span>}
               </p>
               <dl className="mt-1 space-y-1 text-sm">
-                <Dato etiqueta="WhatsApp">{formatearWhatsapp(c.whatsapp)}</Dato>
-                {c.whatsappAlt && <Dato etiqueta="Otro WhatsApp">{formatearWhatsapp(c.whatsappAlt)}</Dato>}
+                <Dato etiqueta="Teléfono / WhatsApp">{formatearWhatsapp(c.whatsapp)}</Dato>
+                {c.whatsappAlt && <Dato etiqueta="Otro teléfono">{formatearWhatsapp(c.whatsappAlt)}</Dato>}
                 {c.email && <Dato etiqueta="Email">{c.email}</Dato>}
               </dl>
             </li>

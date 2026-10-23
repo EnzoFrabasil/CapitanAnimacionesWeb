@@ -414,8 +414,7 @@ export function planificarImportacion(archivo: ArchivoLeido, ctx: ContextoImport
       }
       if (hay("contacto_parentesco")) {
         const nuevo = v.contacto_parentesco;
-        if (!nuevo) errores.push("contacto_parentesco está vacío.");
-        else if (nuevo.length > LARGO_MAXIMO.parentesco) errores.push(`contacto_parentesco: hasta ${LARGO_MAXIMO.parentesco} caracteres.`);
+        if (nuevo.length > LARGO_MAXIMO.parentesco) errores.push(`contacto_parentesco: hasta ${LARGO_MAXIMO.parentesco} caracteres.`);
         else if (nuevo !== c.parentesco) {
           datos.parentesco = nuevo;
           registrar("contacto_parentesco", c.parentesco, nuevo, null, "");

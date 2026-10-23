@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { crearInscripcionSchema, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
+import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
+import { CasillaPrivacidad } from "./CasillaPrivacidad";
 import { Exito } from "./Exito";
 import { PasoContactos } from "./PasoContactos";
 import { PasoNinos } from "./PasoNinos";
@@ -33,7 +34,7 @@ const ninoVacio = (clave: number, apellido = ""): NinoForm => ({
 });
 
 /** Paso del formulario al que pertenece el error de un campo. */
-const pasoDe = (path: string) => (path.startsWith("contactos") ? 0 : 1);
+const pasoDe = (path: string) => (path.startsWith("contactos") ? 0 : path === "aceptaPrivacidad" ? 2 : 1);
 
 interface Props {
   temporadaId: number;
@@ -49,6 +50,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
   const [contactos, setContactos] = useState<ContactoForm[]>([contactoVacio()]);
   const [ninos, setNinos] = useState<NinoForm[]>([ninoVacio(0)]);
   const [sitioWeb, setSitioWeb] = useState(""); // honeypot
+  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   const [pasosIntentados, setPasosIntentados] = useState<Set<number>>(new Set());
   const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({});
@@ -66,6 +68,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
       errores[path] ??= issue.message;
     }
   }
+  if (!aceptaPrivacidad) errores.aceptaPrivacidad = MENSAJE_FALTA_ACEPTAR;
 
   // Los errores se muestran al salir del campo o al intentar avanzar de paso.
   const errorDe = (path: string) =>
@@ -106,6 +109,11 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
   };
 
   const enviar = async () => {
+    if (!aceptaPrivacidad) {
+      setPasosIntentados((p) => new Set(p).add(2));
+      enfocarPrimerError();
+      return;
+    }
     if (!resultado.success || enviando) return;
     setEnviando(true);
     setErrorGeneral(null);
@@ -113,7 +121,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
       const respuesta = await fetch("/api/inscripciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...datos, temporadaId, sitioWeb }),
+        body: JSON.stringify({ ...datos, temporadaId, sitioWeb, aceptaPrivacidad }),
       });
       const cuerpo = (await respuesta.json().catch(() => null)) as {
         ok?: boolean;
@@ -133,7 +141,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
         const mapa: Record<string, string> = {};
         for (const c of cuerpo.campos) mapa[c.path] ??= c.mensaje;
         setErroresServidor(mapa);
-        setPasosIntentados(new Set([0, 1]));
+        setPasosIntentados(new Set([0, 1, 2]));
         setPaso(pasoDe(cuerpo.campos[0].path));
         enfocarPrimerError();
       }
@@ -221,7 +229,17 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
         )}
 
         {paso === 2 && resultado.success && (
-          <PasoRevision datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
+          <>
+            <PasoRevision datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
+            <CasillaPrivacidad
+              marcada={aceptaPrivacidad}
+              error={errorDe("aceptaPrivacidad")}
+              cambiar={(valor) => {
+                alEditar();
+                setAceptaPrivacidad(valor);
+              }}
+            />
+          </>
         )}
 
         {errorGeneral && (

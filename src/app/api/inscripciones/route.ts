@@ -3,7 +3,7 @@ import { hoyEnArgentina, fechaAIso } from "@/lib/dominio/fechas";
 import { registrarInscripcion } from "@/lib/inscripcion/registrar";
 import { crearRateLimit, ipDeRequest } from "@/lib/rate-limit";
 import { buscarTemporadaAbierta } from "@/lib/temporada";
-import { crearInscripcionSchema } from "@/lib/validacion/inscripcion";
+import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema } from "@/lib/validacion/inscripcion";
 
 // Respuestas posibles (nunca incluyen datos de otras inscripciones):
 //   200 { ok: true, numero }
@@ -32,11 +32,22 @@ export async function POST(request: Request) {
     return error(400, "No pudimos leer el formulario.");
   }
   if (typeof cuerpo !== "object" || cuerpo === null) return error(400, "No pudimos leer el formulario.");
-  const { sitioWeb, temporadaId, ...datos } = cuerpo as Record<string, unknown>;
+  const { sitioWeb, temporadaId, aceptaPrivacidad, ...datos } = cuerpo as Record<string, unknown>;
 
   // Honeypot: un humano no ve este campo. A un bot le respondemos como si nada.
   if (typeof sitioWeb === "string" && sitioWeb.trim() !== "") {
     return Response.json({ ok: true, numero: 0 });
+  }
+
+  if (aceptaPrivacidad !== true) {
+    return Response.json(
+      {
+        ok: false,
+        error: "Falta marcar la casilla de aceptación.",
+        campos: [{ path: "aceptaPrivacidad", mensaje: MENSAJE_FALTA_ACEPTAR }],
+      },
+      { status: 400 },
+    );
   }
 
   const temporada = await buscarTemporadaAbierta();

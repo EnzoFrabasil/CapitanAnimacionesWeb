@@ -107,6 +107,11 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
           Inscripción N.º {inscripcion.numero} · alta {formatearFechaHora(inscripcion.fechaAlta)} · {temporada.nombre} ·{" "}
           {f.edadAlInscribir} años al inscribirse · familia #{nino.familiaId}
         </p>
+        <p className="mt-1 text-sm">
+          {inscripcion.privacidadAceptadaEn
+            ? `Aceptó el uso de datos el ${formatearFechaHora(inscripcion.privacidadAceptadaEn)} (versión ${inscripcion.privacidadVersion})`
+            : "Inscripción anterior a la casilla de aceptación de datos"}
+        </p>
         {nino.inscripciones.length > 0 && (
           <p className="mt-1 text-sm">
             Otras inscripciones de este niño/a:{" "}
@@ -237,7 +242,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Campo nombre="nombre" etiqueta="Nombre" valor={r.nombre} requerido idPrefijo={prefijo} />
                     <Campo nombre="apellido" etiqueta="Apellido" valor={r.apellido} requerido idPrefijo={prefijo} />
-                    <Campo nombre="parentesco" etiqueta="Parentesco con este niño/a" valor={v.parentesco} requerido idPrefijo={prefijo} />
+                    <Campo nombre="parentesco" etiqueta="Vínculo con este niño/a (opcional)" valor={v.parentesco} idPrefijo={prefijo} />
                     <Campo nombre="whatsapp" etiqueta="WhatsApp" tipo="tel" valor={r.whatsapp} requerido idPrefijo={prefijo} />
                     <Campo nombre="whatsappAlt" etiqueta="WhatsApp alternativo" tipo="tel" valor={r.whatsappAlt} idPrefijo={prefijo} />
                     <Campo nombre="email" etiqueta="Email" tipo="email" valor={r.email} idPrefijo={prefijo} />
@@ -264,7 +269,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
             <div className="grid gap-3 sm:grid-cols-3">
               <Campo nombre="nombre" etiqueta="Nombre" requerido idPrefijo="nuevo" />
               <Campo nombre="apellido" etiqueta="Apellido" requerido idPrefijo="nuevo" />
-              <Campo nombre="parentesco" etiqueta="Parentesco" requerido idPrefijo="nuevo" />
+              <Campo nombre="parentesco" etiqueta="Vínculo (opcional)" idPrefijo="nuevo" />
               <Campo nombre="whatsapp" etiqueta="WhatsApp" tipo="tel" requerido idPrefijo="nuevo" />
               <Campo nombre="whatsappAlt" etiqueta="WhatsApp alternativo" tipo="tel" idPrefijo="nuevo" />
               <Campo nombre="email" etiqueta="Email" tipo="email" idPrefijo="nuevo" />

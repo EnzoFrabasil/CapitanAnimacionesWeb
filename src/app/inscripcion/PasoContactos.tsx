@@ -16,8 +16,8 @@ export function PasoContactos({ contactos, cambiar, tocar, agregar, quitar, erro
   return (
     <div className="space-y-6">
       <p>
-        ¿Con quién hablamos? Te vamos a escribir por WhatsApp para confirmar la inscripción. Podés sumar a otras
-        personas (por ejemplo, el otro papá o mamá, o quien busca a los chicos).
+        Dejanos un contacto y te escribimos por WhatsApp (o te llamamos) para confirmar la inscripción. Si querés, podés sumar
+        más contactos.
       </p>
 
       {contactos.map((c, i) => {
@@ -60,15 +60,11 @@ export function PasoContactos({ contactos, cambiar, tocar, agregar, quitar, erro
               <CampoTexto {...props("nombre")} etiqueta="Nombre" autoComplete={i === 0 ? "given-name" : "off"} />
               <CampoTexto {...props("apellido")} etiqueta="Apellido" autoComplete={i === 0 ? "family-name" : "off"} />
               <div className="sm:col-span-2">
-                <CampoTexto
-                  {...props("parentesco")}
-                  etiqueta="Parentesco con los chicos"
-                  placeholder="Madre, padre, abuela, tío…"
-                />
+                <CampoTexto {...props("parentesco")} etiqueta="Descripción" opcional placeholder="Por ejemplo: mamá" />
               </div>
               <CampoTexto
                 {...props("whatsapp")}
-                etiqueta="WhatsApp"
+                etiqueta="Teléfono / WhatsApp"
                 tipo="tel"
                 inputMode="tel"
                 autoComplete={i === 0 ? "tel-national" : "off"}
@@ -77,7 +73,7 @@ export function PasoContactos({ contactos, cambiar, tocar, agregar, quitar, erro
               />
               <CampoTexto
                 {...props("whatsappAlt")}
-                etiqueta="Otro WhatsApp"
+                etiqueta="Otro teléfono"
                 opcional
                 tipo="tel"
                 inputMode="tel"

@@ -165,7 +165,7 @@ function Fila({ fila: f, totalSemanas }: { fila: FilaInscripto; totalSemanas: nu
             <div>
               {contacto.responsable.nombre} {contacto.responsable.apellido}
               <div className="text-xs text-texto/80">
-                {contacto.parentesco} · {formatearWhatsapp(contacto.responsable.whatsapp)}
+                {contacto.parentesco && `${contacto.parentesco} · `}{formatearWhatsapp(contacto.responsable.whatsapp)}
               </div>
             </div>
             <a

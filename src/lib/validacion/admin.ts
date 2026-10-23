@@ -110,7 +110,7 @@ export const responsableAdminSchema = z.object({
   whatsappAlt: whatsappOpcional,
   email: emailOpcional,
   dni: dniOpcional,
-  parentesco: texto(LARGO_MAXIMO.parentesco, "Falta el parentesco."),
+  parentesco: z.string().trim().max(LARGO_MAXIMO.parentesco, `Hasta ${LARGO_MAXIMO.parentesco} caracteres.`).default(""),
 });
 
 export const temporadaSchema = z.object({

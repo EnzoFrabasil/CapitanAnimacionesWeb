@@ -17,8 +17,8 @@ export function Encabezado({
           <Image
             src={sitio.logos.texto}
             alt={sitio.nombre}
-            width={600}
-            height={160}
+            width={1488}
+            height={554}
             priority
             className="h-12 w-auto sm:h-14"
           />

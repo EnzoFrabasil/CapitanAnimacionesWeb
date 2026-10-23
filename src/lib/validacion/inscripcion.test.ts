@@ -88,7 +88,7 @@ describe("crearInscripcionSchema", () => {
       contactos: [contacto, { ...contacto, nombre: "Diego", whatsapp: "+54 9 11 2345 6789" }],
       ninos: [nino],
     });
-    expect(e).toEqual(["contactos.1.whatsapp: Este WhatsApp ya está cargado en el contacto 1."]);
+    expect(e).toEqual(["contactos.1.whatsapp: Este número ya está cargado en el contacto 1."]);
   });
 
   it("valida WhatsApp, email, DNI, fecha de nacimiento y campos obligatorios", () => {
@@ -117,7 +117,7 @@ describe("crearInscripcionSchema", () => {
     expect(e).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^contactos\.1\.nombre:/),
-        expect.stringMatching(/^contactos\.1\.whatsapp: Este WhatsApp ya está cargado/),
+        expect.stringMatching(/^contactos\.1\.whatsapp: Este número ya está cargado/),
         expect.stringMatching(/^ninos\.0\.nombre:/),
         expect.stringMatching(/^ninos\.0\.semanas: Elegí al menos una semana/),
       ]),
