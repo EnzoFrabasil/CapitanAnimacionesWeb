@@ -19,6 +19,30 @@
 
   --font-titulo: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-aparecer: aparecer 0.4s ease-out both;
+  --animate-balanceo: balanceo 3s ease-in-out infinite;
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes balanceo {
+    0%,
+    100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
 }
 
 body {

@@ -109,6 +109,21 @@ describe("crearInscripcionSchema", () => {
     );
   });
 
+  it("muestra los errores de asistencia y de WhatsApp repetido aunque haya otros errores", () => {
+    const e = errores({
+      contactos: [contacto, { ...contacto, nombre: "", whatsapp: "1123456789" }],
+      ninos: [{ ...nino, nombre: "", semanas: [] }],
+    });
+    expect(e).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^contactos\.1\.nombre:/),
+        expect.stringMatching(/^contactos\.1\.whatsapp: Este WhatsApp ya está cargado/),
+        expect.stringMatching(/^ninos\.0\.nombre:/),
+        expect.stringMatching(/^ninos\.0\.semanas: Elegí al menos una semana/),
+      ]),
+    );
+  });
+
   it("rechaza edades fuera del rango", () => {
     expect(errores({ contactos: [contacto], ninos: [{ ...nino, fechaNacimiento: "2025-01-01" }] })[0]).toMatch(/edad/);
   });

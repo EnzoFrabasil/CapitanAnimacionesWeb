@@ -80,6 +80,8 @@ export const contactoSchema = z.object({
   email: emailOpcional,
 });
 
+const CAMPOS_ASISTENCIA = new Set(["modalidad", "semanas", "dias"]);
+
 export function crearNinoSchema(contexto: ContextoInscripcion) {
   const hoy = fechaDesdeIso(contexto.hoy);
   const semanaIds = new Set(contexto.semanas.map((s) => s.id));
@@ -115,25 +117,30 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
       semanas: z.array(z.number().int()).default([]),
       dias: z.array(z.string()).default([]),
     })
-    .superRefine((nino, ctx) => {
-      if (nino.modalidad === "SEMANAS") {
-        if (nino.semanas.length === 0) {
-          ctx.addIssue({ code: "custom", path: ["semanas"], message: "Elegí al menos una semana." });
-        } else if (nino.semanas.some((id) => !semanaIds.has(id))) {
-          ctx.addIssue({ code: "custom", path: ["semanas"], message: "Alguna de las semanas elegidas no es válida." });
+    .superRefine(
+      (nino, ctx) => {
+        if (nino.modalidad === "SEMANAS") {
+          if (nino.semanas.length === 0) {
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Elegí al menos una semana." });
+          } else if (nino.semanas.some((id) => !semanaIds.has(id))) {
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Alguna de las semanas elegidas no es válida." });
+          }
+        } else {
+          if (nino.dias.length === 0) {
+            ctx.addIssue({ code: "custom", path: ["dias"], message: "Elegí al menos un día." });
+          } else if (nino.dias.some((d) => !diasValidos.has(d))) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["dias"],
+              message: "Solo se pueden elegir días de lunes a viernes dentro de las semanas de la colonia.",
+            });
+          }
         }
-      } else {
-        if (nino.dias.length === 0) {
-          ctx.addIssue({ code: "custom", path: ["dias"], message: "Elegí al menos un día." });
-        } else if (nino.dias.some((d) => !diasValidos.has(d))) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["dias"],
-            message: "Solo se pueden elegir días de lunes a viernes dentro de las semanas de la colonia.",
-          });
-        }
-      }
-    })
+      },
+      // Se valida la asistencia aunque otros campos del niño tengan errores,
+      // así el formulario muestra todos los errores juntos.
+      { when: (payload) => !payload.issues.some((i) => CAMPOS_ASISTENCIA.has(String(i.path?.[0]))) },
+    )
     .transform((nino) => ({
       ...nino,
       // Solo se guarda la asistencia de la modalidad elegida, sin repetidos.
@@ -151,21 +158,27 @@ export function crearInscripcionSchema(contexto: ContextoInscripcion) {
         .min(1, "Agregá al menos un niño o niña.")
         .max(MAX_NINOS_POR_INSCRIPCION, `Se pueden inscribir hasta ${MAX_NINOS_POR_INSCRIPCION} chicos por formulario.`),
     })
-    .superRefine((datos, ctx) => {
-      const vistos = new Map<string, number>();
-      datos.contactos.forEach((c, i) => {
-        const anterior = vistos.get(c.whatsapp);
-        if (anterior !== undefined) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["contactos", i, "whatsapp"],
-            message: `Este WhatsApp ya está cargado en el contacto ${anterior + 1}.`,
-          });
-        } else {
-          vistos.set(c.whatsapp, i);
-        }
-      });
-    });
+    .superRefine(
+      (datos, ctx) => {
+        if (!Array.isArray(datos.contactos)) return;
+        const vistos = new Map<string, number>();
+        datos.contactos.forEach((c, i) => {
+          // Si otros campos fallaron, solo se comparan los WhatsApp que ya se normalizaron bien.
+          if (typeof c?.whatsapp !== "string" || !c.whatsapp.startsWith("+")) return;
+          const anterior = vistos.get(c.whatsapp);
+          if (anterior !== undefined) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["contactos", i, "whatsapp"],
+              message: `Este WhatsApp ya está cargado en el contacto ${anterior + 1}.`,
+            });
+          } else {
+            vistos.set(c.whatsapp, i);
+          }
+        });
+      },
+      { when: () => true },
+    );
 }
 
 export type InscripcionEntrada = z.input<ReturnType<typeof crearInscripcionSchema>>;
