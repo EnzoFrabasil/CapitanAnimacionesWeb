@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { asignarSinGrupo } from "@/app/admin/(panel)/configuracion/acciones";
-import { claseTarjeta } from "@/components/admin/estilos";
+import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
 import { IconoWhatsapp } from "@/components/marca/iconos";
 import { contarSinGrupo, listarInscriptos, listarTemporadas, temporadaParaListado, type FilaInscripto } from "@/lib/admin/consultas";
-import { leerFiltros } from "@/lib/admin/filtros";
+import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { FiltrosListado } from "./FiltrosListado";
 import { fechaAIso } from "@/lib/dominio/fechas";
@@ -49,6 +49,15 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
             {temporada.nombre} · inscripción {temporada.inscripcionAbierta ? "abierta" : "cerrada"} · ordenados por
             fecha de alta (lista de espera)
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/importar" className={claseBoton.secundario}>
+            Importar CSV
+          </Link>
+          {/* Descarga con los filtros activos. */}
+          <a href={`/api/admin/csv?${filtrosAQuery({ ...filtros, temporada: temporada.id })}`} className={claseBoton.destacado} download>
+            Descargar CSV
+          </a>
         </div>
       </div>
 
