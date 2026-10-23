@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/*
+ * Tema de la marca Capitán Animaciones.
+ * Colores y tipografías se definen solo acá; las clases de Tailwind
+ * (bg-naranja, text-marino, font-titulo, etc.) salen de estos tokens.
+ */
+@theme {
+  --color-naranja: #f15a23;
+  --color-azul: #1d8fce;
+  --color-amarillo: #fba445;
+  --color-petroleo: #0d89a2;
+  --color-verde: #10a689;
+  --color-rojo: #d93520;
+  --color-violeta: #7d3766;
+  --color-marino: #093651;
+  --color-crema: #fff4db;
+  --color-texto: #3d3d3d;
+
+  --font-titulo: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-crema);
+  color: var(--color-texto);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

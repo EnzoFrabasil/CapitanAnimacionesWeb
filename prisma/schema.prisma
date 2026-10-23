@@ -1,0 +1,10 @@
+// Esquema de la base de datos. Los modelos se definen en la etapa 2.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
