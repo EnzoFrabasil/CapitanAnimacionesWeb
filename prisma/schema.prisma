@@ -1,4 +1,9 @@
-// Esquema de la base de datos. Los modelos se definen en la etapa 2.
+// Esquema de la base de datos de inscripciones de la colonia.
+//
+// A futuro se van a agregar Pase, Pago, Descuento, Comprobante y Tarifa.
+// Esas tablas solo van a sumar relaciones nuevas a las de acá (por ejemplo
+// Pago -> Familia, Pase -> InscripcionNino, Tarifa -> Temporada), sin
+// modificar las columnas existentes.
 
 generator client {
   provider = "prisma-client"
@@ -7,4 +12,185 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Turno {
+  MANANA
+  TARDE
+}
+
+enum Modalidad {
+  SEMANAS
+  POR_DIA
+}
+
+enum EstadoInscripcion {
+  EN_ESPERA
+  CONFIRMADO
+  CANCELADO
+}
+
+// Agrupa hermanos (para el futuro descuento por hermanos).
+model Familia {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  ninos         Nino[]
+  inscripciones Inscripcion[]
+}
+
+model Nino {
+  id              Int      @id @default(autoincrement())
+  familiaId       Int
+  nombre          String
+  apellido        String
+  // Solo dígitos. No es único: los duplicados se marcan, no se rechazan.
+  dni             String
+  fechaNacimiento DateTime @db.Date
+  infoAdicional   String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  familia       Familia           @relation(fields: [familiaId], references: [id])
+  responsables  NinoResponsable[]
+  inscripciones InscripcionNino[]
+
+  @@index([familiaId])
+  @@index([dni])
+}
+
+model Responsable {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  apellido    String
+  // Formato E.164 de móvil argentino (+549...).
+  whatsapp    String   @unique
+  whatsappAlt String?
+  email       String?
+  // Existe en la base pero no se pide en el formulario por ahora.
+  dni         String?
+  createdAt   DateTime @default(now())
+
+  ninos                  NinoResponsable[]
+  inscripcionesPrincipal Inscripcion[]
+}
+
+model NinoResponsable {
+  ninoId        Int
+  responsableId Int
+  parentesco    String
+  esPrincipal   Boolean @default(false)
+  orden         Int     @default(0)
+
+  nino        Nino        @relation(fields: [ninoId], references: [id], onDelete: Cascade)
+  responsable Responsable @relation(fields: [responsableId], references: [id], onDelete: Cascade)
+
+  @@id([ninoId, responsableId])
+  @@index([responsableId])
+}
+
+model Temporada {
+  id                 Int      @id @default(autoincrement())
+  nombre             String
+  anio               Int
+  inscripcionAbierta Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  semanas       Semana[]
+  gruposEdad    GrupoEdad[]
+  inscripciones Inscripcion[]
+}
+
+model Semana {
+  id          Int      @id @default(autoincrement())
+  temporadaId Int
+  numero      Int
+  fechaInicio DateTime @db.Date
+  fechaFin    DateTime @db.Date
+
+  temporada     Temporada           @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
+  inscripciones InscripcionSemana[]
+
+  @@unique([temporadaId, numero])
+}
+
+// Rangos de edad inclusivos. La no superposición se valida en la aplicación.
+model GrupoEdad {
+  id          Int    @id @default(autoincrement())
+  temporadaId Int
+  nombre      String
+  edadMin     Int
+  edadMax     Int
+
+  temporada Temporada         @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
+  ninos     InscripcionNino[]
+
+  @@unique([temporadaId, nombre])
+}
+
+// Un formulario enviado (de 1 a 10 niños).
+model Inscripcion {
+  id                     Int      @id @default(autoincrement())
+  // Correlativo visible para humanos (se muestra en la pantalla de éxito).
+  numero                 Int      @unique @default(autoincrement())
+  temporadaId            Int
+  familiaId              Int
+  responsablePrincipalId Int
+  fechaAlta              DateTime @default(now())
+
+  temporada            Temporada         @relation(fields: [temporadaId], references: [id])
+  familia              Familia           @relation(fields: [familiaId], references: [id])
+  responsablePrincipal Responsable       @relation(fields: [responsablePrincipalId], references: [id])
+  ninos                InscripcionNino[]
+
+  @@index([temporadaId, fechaAlta])
+  @@index([familiaId])
+  @@index([responsablePrincipalId])
+}
+
+model InscripcionNino {
+  id               Int               @id @default(autoincrement())
+  inscripcionId    Int
+  ninoId           Int
+  // null = "sin grupo" (se asigna a mano o con el botón del panel).
+  grupoEdadId      Int?
+  edadAlInscribir  Int
+  turno            Turno
+  modalidad        Modalidad
+  estado           EstadoInscripcion @default(EN_ESPERA)
+  posibleDuplicado Boolean           @default(false)
+  notasAdmin       String?           @db.Text
+
+  inscripcion Inscripcion         @relation(fields: [inscripcionId], references: [id], onDelete: Cascade)
+  nino        Nino                @relation(fields: [ninoId], references: [id])
+  grupoEdad   GrupoEdad?          @relation(fields: [grupoEdadId], references: [id], onDelete: SetNull)
+  semanas     InscripcionSemana[]
+  dias        InscripcionDia[]
+
+  @@unique([inscripcionId, ninoId])
+  @@index([ninoId])
+  @@index([grupoEdadId])
+  @@index([estado])
+}
+
+// Se usa si la modalidad es SEMANAS ("todas las semanas" = una fila por semana).
+model InscripcionSemana {
+  inscripcionNinoId Int
+  semanaId          Int
+
+  inscripcionNino InscripcionNino @relation(fields: [inscripcionNinoId], references: [id], onDelete: Cascade)
+  semana          Semana          @relation(fields: [semanaId], references: [id], onDelete: Restrict)
+
+  @@id([inscripcionNinoId, semanaId])
+  @@index([semanaId])
+}
+
+// Se usa si la modalidad es POR_DIA.
+model InscripcionDia {
+  inscripcionNinoId Int
+  fecha             DateTime @db.Date
+
+  inscripcionNino InscripcionNino @relation(fields: [inscripcionNinoId], references: [id], onDelete: Cascade)
+
+  @@id([inscripcionNinoId, fecha])
+  @@index([fecha])
 }
