@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
 import { IconoWhatsapp } from "@/components/marca/iconos";
+import { LARGO_MAXIMO } from "@/config/inscripcion";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { fechaAIso } from "@/lib/dominio/fechas";
 import { describirAsistencia, formatearPrecio, type Opcion } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { ESTADOS } from "@/lib/validacion/admin";
-import { eliminarInscripto, guardarEdicionRapida } from "./acciones";
+import { eliminarInscripto, guardarEdicionRapida, guardarInfoAdicional } from "./acciones";
 
 const claseCampo = "w-full min-w-0 rounded-lg border-2 border-marino/20 bg-white px-2 py-1 text-sm focus:border-azul focus:outline-none";
 const claseBotonChico = "rounded-lg px-3 py-1.5 text-sm font-semibold transition disabled:opacity-50";
@@ -66,6 +67,8 @@ export function FilaInscripto({
   });
   const [editando, setEditando] = useState(false);
   const [abierta, setAbierta] = useState(false);
+  const [editandoInfo, setEditandoInfo] = useState(false);
+  const [textoInfo, setTextoInfo] = useState("");
   const [valores, setValores] = useState(inicial);
   const [resultado, setResultado] = useState<ResultadoAccion | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -90,6 +93,13 @@ export function FilaInscripto({
       });
       setResultado(r);
       if (r.ok) setEditando(false);
+    });
+
+  const guardarInfo = () =>
+    iniciar(async () => {
+      const r = await guardarInfoAdicional(f.id, textoInfo);
+      setResultado(r);
+      if (r.ok) setEditandoInfo(false);
     });
 
   const eliminar = () => {
@@ -292,12 +302,55 @@ export function FilaInscripto({
                 aria-label="Información adicional"
                 className={`rounded-xl border p-3 ${info ? "border-rojo/30 bg-rojo/5" : "border-marino/10 bg-white"}`}
               >
-                <h3 className={`mb-1 text-xs font-semibold tracking-wide uppercase ${info ? "text-rojo" : "text-marino"}`}>
-                  Información adicional
-                </h3>
-                <p className={`text-sm whitespace-pre-line ${info ? "font-medium text-rojo" : "text-texto/70"}`}>
-                  {info || "No cargaron nada."}
-                </p>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <h3 className={`text-xs font-semibold tracking-wide uppercase ${info ? "text-rojo" : "text-marino"}`}>
+                    Información adicional
+                  </h3>
+                  {!editandoInfo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTextoInfo(f.nino.infoAdicional ?? "");
+                        setResultado(null);
+                        setEditandoInfo(true);
+                      }}
+                      className="rounded-md px-1.5 text-xs font-semibold text-marino underline-offset-2 hover:underline"
+                    >
+                      {info ? "Editar" : "Agregar"}
+                    </button>
+                  )}
+                </div>
+                {editandoInfo ? (
+                  <div className="space-y-2">
+                    <textarea
+                      aria-label={`Información adicional de ${nombreCompleto}`}
+                      value={textoInfo}
+                      onChange={(e) => setTextoInfo(e.target.value)}
+                      rows={4}
+                      maxLength={LARGO_MAXIMO.infoAdicional}
+                      autoFocus
+                      placeholder="Alergias, medicación, cuidados…"
+                      className="w-full rounded-lg border-2 border-marino/20 bg-white px-2 py-1 text-sm focus:border-azul focus:outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={guardarInfo} disabled={pendiente} className={`${claseBotonChico} bg-marino text-white hover:bg-marino/90`}>
+                        {pendiente ? "Guardando…" : "Guardar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditandoInfo(false)}
+                        disabled={pendiente}
+                        className={`${claseBotonChico} border-2 border-marino/20 text-marino hover:border-marino`}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className={`text-sm whitespace-pre-line ${info ? "font-medium text-rojo" : "text-texto/70"}`}>
+                    {info || "No cargaron nada."}
+                  </p>
+                )}
                 {f.notasAdmin && (
                   <>
                     <h3 className="mt-3 mb-1 text-xs font-semibold tracking-wide text-marino uppercase">Notas internas</h3>

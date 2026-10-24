@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { prisma } from "@/lib/prisma";
-import { edicionRapidaSchema, mensajesDeError, type EdicionRapida } from "@/lib/validacion/admin";
+import { edicionRapidaSchema, mensajesDeError, ninoAdminSchema, type EdicionRapida } from "@/lib/validacion/admin";
 
 // Acciones del listado de inscriptos (edición rápida desde la tabla).
 
@@ -50,6 +50,22 @@ export async function guardarEdicionRapida(inscripcionNinoId: number, datos: Edi
   }
   refresh();
   return exito("Cambios guardados.");
+}
+
+/** Cambia la información adicional (alergias, medicación, etc.) desde la ficha rápida. Vacío la borra. */
+export async function guardarInfoAdicional(inscripcionNinoId: number, texto: string): Promise<ResultadoAccion> {
+  await exigirAdmin();
+  const r = ninoAdminSchema.shape.infoAdicional.safeParse(texto);
+  if (!r.success) return fallo(...mensajesDeError(r.error));
+  try {
+    const fila = await prisma.inscripcionNino.findUnique({ where: { id: inscripcionNinoId }, select: { ninoId: true } });
+    if (!fila) return fallo("El inscripto ya no existe. Recargá la página.");
+    await prisma.nino.update({ where: { id: fila.ninoId }, data: { infoAdicional: r.data } });
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  refresh();
+  return exito("Información adicional guardada.");
 }
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
