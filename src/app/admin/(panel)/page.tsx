@@ -6,7 +6,7 @@ import { FormAccion } from "@/components/admin/FormAccion";
 import { contarSinGrupo, listarInscriptos, listarTemporadas, temporadaParaListado } from "@/lib/admin/consultas";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirAdmin } from "@/lib/auth/admin";
-import { FilaInscripto } from "./FilaInscripto";
+import { TablaInscriptos } from "./TablaInscriptos";
 import { FiltrosListado } from "./FiltrosListado";
 
 export default function PaginaListado({ searchParams }: PageProps<"/admin">) {
@@ -90,36 +90,11 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
       </p>
 
       {filas.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-marino/10">
-          <table className="w-full min-w-[1080px] text-left text-sm">
-            <thead className="bg-marino/5 text-xs tracking-wide text-marino uppercase">
-              <tr>
-                <th scope="col" className="px-3 py-3">Alta</th>
-                <th scope="col" className="px-3 py-3">Niño/a</th>
-                <th scope="col" className="px-3 py-3">Documento</th>
-                <th scope="col" className="px-3 py-3">Edad</th>
-                <th scope="col" className="px-3 py-3">Grupo</th>
-                <th scope="col" className="px-3 py-3">Turno</th>
-                <th scope="col" className="px-3 py-3">Asistencia</th>
-                <th scope="col" className="px-3 py-3">Estado</th>
-                <th scope="col" className="px-3 py-3">Contacto principal</th>
-                <th scope="col" className="px-3 py-3">
-                  <span className="sr-only">Editar</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-marino/10">
-              {filas.map((f) => (
-                <FilaInscripto
-                  key={f.id}
-                  fila={f}
-                  totalSemanas={temporada.semanas.length}
-                  grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TablaInscriptos
+          filas={filas}
+          totalSemanas={temporada.semanas.length}
+          grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
+        />
       )}
     </div>
   );

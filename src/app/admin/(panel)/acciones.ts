@@ -52,48 +52,66 @@ export async function guardarEdicionRapida(inscripcionNinoId: number, datos: Edi
   return exito("Cambios guardados.");
 }
 
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 /**
- * Elimina un inscripto de la temporada. Si el niño/a no tiene otras
- * inscripciones se borran también sus datos, y se borran la inscripción, la
- * familia y los contactos que quedan sin uso (son datos personales).
+ * Borra inscriptos dentro de una transacción, con una cantidad fija de
+ * consultas sin importar cuántos sean. Los niños/as sin otras inscripciones se
+ * borran también, y además la inscripción, la familia y los contactos que
+ * quedan sin uso (son datos personales). Devuelve cuántos se borraron.
  */
+async function borrarInscriptos(tx: Tx, ids: number[]): Promise<number> {
+  const filas = await tx.inscripcionNino.findMany({
+    where: { id: { in: ids } },
+    select: {
+      inscripcionId: true,
+      nino: { select: { id: true, familiaId: true, responsables: { select: { responsableId: true } } } },
+    },
+  });
+  if (filas.length === 0) return 0;
+  const unicos = (valores: number[]) => [...new Set(valores)];
+  const ninos = unicos(filas.map((f) => f.nino.id));
+  const inscripciones = unicos(filas.map((f) => f.inscripcionId));
+  const familias = unicos(filas.map((f) => f.nino.familiaId));
+  const responsables = unicos(filas.flatMap((f) => f.nino.responsables.map((r) => r.responsableId)));
+
+  const { count } = await tx.inscripcionNino.deleteMany({ where: { id: { in: ids } } });
+  // Los vínculos niño-contacto se borran solos con el niño.
+  await tx.nino.deleteMany({ where: { id: { in: ninos }, inscripciones: { none: {} } } });
+  await tx.inscripcion.deleteMany({ where: { id: { in: inscripciones }, ninos: { none: {} } } });
+  await tx.responsable.deleteMany({
+    where: { id: { in: responsables }, ninos: { none: {} }, inscripcionesPrincipal: { none: {} } },
+  });
+  await tx.familia.deleteMany({ where: { id: { in: familias }, ninos: { none: {} }, inscripciones: { none: {} } } });
+  return count;
+}
+
+const OPCIONES_BORRADO = { maxWait: 10_000, timeout: 60_000 };
+
 export async function eliminarInscripto(inscripcionNinoId: number): Promise<ResultadoAccion> {
   await exigirAdmin();
+  let borrados = 0;
   try {
-    await prisma.$transaction(async (tx) => {
-      const fila = await tx.inscripcionNino.findUnique({
-        where: { id: inscripcionNinoId },
-        select: {
-          inscripcionId: true,
-          nino: { select: { id: true, familiaId: true, responsables: { select: { responsableId: true } } } },
-        },
-      });
-      if (!fila) throw new Error("NO_EXISTE");
-      const { nino } = fila;
-
-      await tx.inscripcionNino.delete({ where: { id: inscripcionNinoId } });
-
-      if ((await tx.inscripcionNino.count({ where: { ninoId: nino.id } })) === 0) {
-        await tx.nino.delete({ where: { id: nino.id } }); // borra también sus vínculos con contactos
-      }
-      if ((await tx.inscripcionNino.count({ where: { inscripcionId: fila.inscripcionId } })) === 0) {
-        await tx.inscripcion.delete({ where: { id: fila.inscripcionId } });
-      }
-      for (const { responsableId } of nino.responsables) {
-        const enUso =
-          (await tx.ninoResponsable.count({ where: { responsableId } })) +
-          (await tx.inscripcion.count({ where: { responsablePrincipalId: responsableId } }));
-        if (enUso === 0) await tx.responsable.delete({ where: { id: responsableId } });
-      }
-      const familiaEnUso =
-        (await tx.nino.count({ where: { familiaId: nino.familiaId } })) +
-        (await tx.inscripcion.count({ where: { familiaId: nino.familiaId } }));
-      if (familiaEnUso === 0) await tx.familia.delete({ where: { id: nino.familiaId } });
-    });
+    borrados = await prisma.$transaction((tx) => borrarInscriptos(tx, [inscripcionNinoId]), OPCIONES_BORRADO);
   } catch (e) {
-    if (e instanceof Error && e.message === "NO_EXISTE") return fallo("El inscripto ya no existe. Recargá la página.");
+    return falloPorExcepcion(e);
+  }
+  if (borrados === 0) return fallo("El inscripto ya no existe. Recargá la página.");
+  refresh();
+  return exito("Inscripto eliminado.");
+}
+
+/** Elimina varios inscriptos juntos (selección múltiple del listado). Todo o nada. */
+export async function eliminarInscriptos(ids: number[]): Promise<ResultadoAccion> {
+  await exigirAdmin();
+  const validos = [...new Set(ids)].filter((id) => Number.isInteger(id) && id > 0);
+  if (validos.length === 0) return fallo("No hay inscriptos seleccionados.");
+  let borrados = 0;
+  try {
+    borrados = await prisma.$transaction((tx) => borrarInscriptos(tx, validos), OPCIONES_BORRADO);
+  } catch (e) {
     return falloPorExcepcion(e);
   }
   refresh();
-  return exito("Inscripto eliminado.");
+  return exito(`Se ${borrados === 1 ? "eliminó 1 inscripto" : `eliminaron ${borrados} inscriptos`}.`);
 }

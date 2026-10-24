@@ -33,10 +33,14 @@ export function FilaInscripto({
   fila: f,
   totalSemanas,
   grupos,
+  seleccionada,
+  alternarSeleccion,
 }: {
   fila: Fila;
   totalSemanas: number;
   grupos: { id: number; nombre: string }[];
+  seleccionada: boolean;
+  alternarSeleccion: (marcada: boolean) => void;
 }) {
   const contacto = f.nino.responsables[0];
   const inicial = () => ({
@@ -103,7 +107,16 @@ export function FilaInscripto({
 
   return (
     <>
-      <tr className={`align-top ${editando ? "bg-amarillo/10" : "hover:bg-crema/50"}`}>
+      <tr className={`align-top ${editando ? "bg-amarillo/10" : seleccionada ? "bg-rojo/5" : "hover:bg-crema/50"}`}>
+        <td className="py-3 pl-3">
+          <input
+            type="checkbox"
+            checked={seleccionada}
+            onChange={(e) => alternarSeleccion(e.target.checked)}
+            aria-label={`Seleccionar a ${f.nino.nombre} ${f.nino.apellido}`}
+            className="mt-1 size-4 accent-marino"
+          />
+        </td>
         <td className="px-3 py-3 whitespace-nowrap">
           {formatearFechaHora(f.inscripcion.fechaAlta)}
           <div className="text-xs text-texto/80">Insc. N.º {f.inscripcion.numero}</div>
@@ -245,7 +258,7 @@ export function FilaInscripto({
       </tr>
       {resultado && (
         <tr>
-          <td colSpan={10} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
+          <td colSpan={11} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
             {resultado.ok ? `${nombreCompleto}: ${resultado.mensaje}` : resultado.errores.join(" ")}
           </td>
         </tr>
