@@ -10,4 +10,4 @@ export function normalizarDni(entrada: string): string | null {
 }
 
 /** Mensaje para un documento inválido. */
-export const MENSAJE_DNI_INVALIDO = "Revisá el documento: DNI o, si no es argentino, el número de documento o pasaporte.";
+export const MENSAJE_DNI_INVALIDO = "Revisá el número de documento.";

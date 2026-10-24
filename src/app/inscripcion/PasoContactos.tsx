@@ -64,7 +64,7 @@ export function PasoContactos({ intro, contactos, cambiar, tocar, agregar, quita
                 {...props("whatsapp")}
                 etiqueta="Teléfono / WhatsApp"
                 autoComplete={i === 0 ? "tel-national" : "off"}
-                ayuda="Con código de área. Si no es de Argentina, cambiá el 54 por el código de tu país."
+                ayuda="Código de país y número con código de área."
               />
               <CampoTelefono {...props("whatsappAlt")} etiqueta="Otro teléfono" opcional autoComplete="off" />
               <div className="sm:col-span-2">

@@ -41,7 +41,7 @@ export const fechaSchema = (mensaje = "Fecha inválida.") =>
 const whatsapp = z.string().transform((v, ctx) => {
   const n = normalizarWhatsapp(v);
   if (!n) {
-    ctx.addIssue({ code: "custom", message: "El WhatsApp no es un celular válido (con código de área, y +código de país si no es de Argentina)." });
+    ctx.addIssue({ code: "custom", message: "El WhatsApp no es un celular válido. Revisá el código de país y el código de área." });
     return z.NEVER;
   }
   return n;

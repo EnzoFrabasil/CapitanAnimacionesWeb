@@ -75,7 +75,7 @@ export const contenidoSchema = z.object({
     numero: z.string().transform((v, ctx) => {
       const e164 = normalizarWhatsapp(v);
       if (!e164) {
-        ctx.addIssue({ code: "custom", message: "Ingresá un celular válido (por ejemplo 11 2345-6789, o con +código si no es de Argentina)." });
+        ctx.addIssue({ code: "custom", message: "Ingresá un celular válido, con código de área (y +código de país si corresponde)." });
         return z.NEVER;
       }
       return e164.replace("+", "");

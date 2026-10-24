@@ -133,7 +133,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo nombre="nombre" etiqueta="Nombre" valor={nino.nombre} requerido idPrefijo="nino" />
               <Campo nombre="apellido" etiqueta="Apellido" valor={nino.apellido} requerido idPrefijo="nino" />
-              <Campo nombre="dni" etiqueta="DNI o documento" valor={nino.dni} requerido idPrefijo="nino" />
+              <Campo nombre="dni" etiqueta="Documento" valor={nino.dni} requerido idPrefijo="nino" />
               <Campo
                 nombre="fechaNacimiento"
                 etiqueta="Fecha de nacimiento"
@@ -246,7 +246,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                     <Campo nombre="whatsapp" etiqueta="WhatsApp" tipo="tel" valor={r.whatsapp} requerido idPrefijo={prefijo} />
                     <Campo nombre="whatsappAlt" etiqueta="WhatsApp alternativo" tipo="tel" valor={r.whatsappAlt} idPrefijo={prefijo} />
                     <Campo nombre="email" etiqueta="Email" tipo="email" valor={r.email} idPrefijo={prefijo} />
-                    <Campo nombre="dni" etiqueta="DNI o documento" valor={r.dni} idPrefijo={prefijo} />
+                    <Campo nombre="dni" etiqueta="Documento" valor={r.dni} idPrefijo={prefijo} />
                   </div>
                 </FormAccion>
                 <div className="mt-3 flex flex-wrap gap-3 border-t border-marino/10 pt-3">

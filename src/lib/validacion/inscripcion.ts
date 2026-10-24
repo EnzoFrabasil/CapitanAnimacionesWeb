@@ -38,10 +38,10 @@ const textoOpcional = (max: number) =>
 
 /** Mensaje de error de un teléfono escrito como "+código número" (o sin "+", y entonces es de Argentina). */
 function errorTelefono(valor: string): string | null {
-  if (valor.startsWith("+") && !separarTelefono(valor).codigo) return "Falta el código de país (54 para Argentina).";
+  if (valor.startsWith("+") && !separarTelefono(valor).codigo) return "Falta el código de país.";
   if (normalizarWhatsapp(valor)) return null;
   return separarTelefono(valor).codigo === "54" || !valor.startsWith("+")
-    ? "No parece un celular válido. Escribilo con el código de área, por ejemplo 11 2345-6789."
+    ? "No parece un celular válido. Revisá que tenga el código de área."
     : "No parece un celular válido para ese código de país.";
 }
 
