@@ -50,6 +50,19 @@ describe("validarContenido", () => {
     expect(errores({ ...valido, contacto: { ...valido.contacto, redes: [red] } })).toEqual(["contacto.redes.0.url"]);
   });
 
+  it("completa los textos de la inscripción en versiones publicadas antes de que existieran", () => {
+    const { inscripcion: _sinTextos, ...anterior } = valido;
+    const r = validarContenido(anterior);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.contenido.inscripcion.titulo).toBe(contenidoInicial.inscripcion.titulo);
+  });
+
+  it("marca los textos de la inscripción vacíos", () => {
+    expect(errores({ ...valido, inscripcion: { ...valido.inscripcion, botonEnviar: " " } })).toEqual([
+      "inscripcion.botonEnviar",
+    ]);
+  });
+
   it("rechaza secciones con el mismo id", () => {
     const datos = { ...valido, secciones: [valido.secciones[0], valido.secciones[0]] };
     expect(errores(datos)).toEqual(["secciones"]);

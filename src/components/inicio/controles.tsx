@@ -196,7 +196,7 @@ export function ListaPreguntas({ lista }: { lista: Contenido["preguntas"]["lista
 const claseEnlaceRed =
   "flex items-center gap-2 rounded-full border-2 border-marino/20 bg-white px-5 py-3 font-semibold text-marino transition hover:-translate-y-0.5 hover:border-marino";
 
-function CampoAjuste({
+export function CampoAjuste({
   edicion,
   ruta,
   etiqueta,

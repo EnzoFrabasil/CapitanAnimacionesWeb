@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { TextosInscripcion } from "@/lib/contenido/esquema";
 import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CasillaPrivacidad } from "./CasillaPrivacidad";
 import { Exito } from "./Exito";
@@ -9,7 +10,6 @@ import { PasoNinos } from "./PasoNinos";
 import { PasoRevision } from "./PasoRevision";
 import type { ContactoForm, NinoForm } from "./tipos";
 
-const PASOS = ["Contactos", "Niños", "Revisión"] as const;
 
 const contactoVacio = (): ContactoForm => ({
   nombre: "",
@@ -37,12 +37,15 @@ const ninoVacio = (clave: number, apellido = ""): NinoForm => ({
 const pasoDe = (path: string) => (path.startsWith("contactos") ? 0 : path === "aceptaPrivacidad" ? 2 : 1);
 
 interface Props {
+  /** Textos editables desde el panel (Editar página de inicio → Textos de la inscripción). */
+  textos: TextosInscripcion;
   temporadaId: number;
   nombreTemporada: string;
   contexto: ContextoInscripcion;
 }
 
-export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }: Props) {
+export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, contexto }: Props) {
+  const PASOS = [textos.pasoContactos, textos.pasoNinos, textos.pasoRevision];
   const schema = useMemo(() => crearInscripcionSchema(contexto), [contexto]);
   const proximaClave = useRef(1);
 
@@ -152,11 +155,11 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
     }
   };
 
-  if (numero !== null) return <Exito numero={numero} />;
+  if (numero !== null) return <Exito numero={numero} titulo={textos.exitoTitulo} texto={textos.exitoTexto} />;
 
   return (
     <div>
-      <h1 className="font-titulo text-3xl font-bold text-marino sm:text-4xl">¡Sumate a la tripulación!</h1>
+      <h1 className="font-titulo text-3xl font-bold text-marino sm:text-4xl">{textos.titulo}</h1>
       <p className="mt-1 text-lg">Inscripción a la {nombreTemporada}</p>
 
       <ol className="mt-6 grid grid-cols-3 gap-2" aria-label="Pasos de la inscripción">
@@ -196,6 +199,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
 
         {paso === 0 && (
           <PasoContactos
+            intro={textos.introContactos}
             contactos={contactos}
             errorDe={errorDe}
             tocar={tocar}
@@ -210,6 +214,8 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
 
         {paso === 1 && (
           <PasoNinos
+            intro={textos.introNinos}
+            ayudaInfoAdicional={textos.ayudaInfoAdicional}
             ninos={ninos}
             contexto={contexto}
             errorDe={errorDe}
@@ -230,8 +236,9 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
 
         {paso === 2 && resultado.success && (
           <>
-            <PasoRevision datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
+            <PasoRevision intro={textos.introRevision} datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
             <CasillaPrivacidad
+              texto={textos.textoAceptacion}
               marcada={aceptaPrivacidad}
               error={errorDe("aceptaPrivacidad")}
               cambiar={(valor) => {
@@ -265,7 +272,7 @@ export function FormularioInscripcion({ temporadaId, nombreTemporada, contexto }
             disabled={enviando}
             className="rounded-full bg-naranja px-8 py-3 font-titulo text-xl font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-wait disabled:opacity-70"
           >
-            {paso < 2 ? "Siguiente" : enviando ? "Enviando…" : "Enviar inscripción"}
+            {paso < 2 ? "Siguiente" : enviando ? "Enviando…" : textos.botonEnviar}
           </button>
         </div>
       </form>

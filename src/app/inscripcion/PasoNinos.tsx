@@ -9,6 +9,8 @@ import { CampoTexto, Casilla, MensajeError, OpcionesBotones, claseInput } from "
 import { ACENTOS, type ErrorDe, type NinoForm } from "./tipos";
 
 interface Props {
+  intro: string;
+  ayudaInfoAdicional: string;
   ninos: NinoForm[];
   contexto: ContextoInscripcion;
   /** Los cambios pueden calcularse a partir del estado actual (para toggles rápidos). */
@@ -19,14 +21,14 @@ interface Props {
   errorDe: ErrorDe;
 }
 
-export function PasoNinos({ ninos, contexto, cambiar, tocar, agregar, quitar, errorDe }: Props) {
+export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar, tocar, agregar, quitar, errorDe }: Props) {
   const hoy = fechaDesdeIso(contexto.hoy);
   const fechaMinima = new Date(hoy);
   fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - EDAD_MAXIMA - 1);
 
   return (
     <div className="space-y-6">
-      <p>Contanos quiénes se suman a la tripulación. Podés inscribir hasta {MAX_NINOS_POR_INSCRIPCION} chicos juntos.</p>
+      {intro && <p className="whitespace-pre-line">{intro}</p>}
 
       {ninos.map((n, i) => {
         const acento = ACENTOS[i % ACENTOS.length];
@@ -91,13 +93,15 @@ export function PasoNinos({ ninos, contexto, cambiar, tocar, agregar, quitar, er
                   value={n.infoAdicional}
                   onChange={(e) => cambiar(i, { infoAdicional: e.target.value })}
                   onBlur={() => tocar(id("infoAdicional"))}
-                  aria-describedby={`${id("infoAdicional")}-ayuda`}
+                  aria-describedby={ayudaInfoAdicional ? `${id("infoAdicional")}-ayuda` : undefined}
                   aria-invalid={errorDe(id("infoAdicional")) ? true : undefined}
                   className={claseInput(Boolean(errorDe(id("infoAdicional"))))}
                 />
-                <p id={`${id("infoAdicional")}-ayuda`} className="mt-1 text-sm text-texto/80">
-                  Alergias, medicación, condiciones o cualquier cosa que debamos saber
-                </p>
+                {ayudaInfoAdicional && (
+                  <p id={`${id("infoAdicional")}-ayuda`} className="mt-1 text-sm text-texto/80">
+                    {ayudaInfoAdicional}
+                  </p>
+                )}
                 <MensajeError id={`${id("infoAdicional")}-error`} mensaje={errorDe(id("infoAdicional"))} />
               </div>
 

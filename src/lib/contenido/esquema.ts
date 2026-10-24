@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { textosInscripcionIniciales } from "@/config/textosInscripcion";
 import { normalizarWhatsapp } from "@/lib/dominio/telefono";
 
 // Contenido de la página de inicio que los administradores editan desde el panel.
@@ -49,6 +50,25 @@ export const seccionSchema = z.object({
   acento: z.enum(COLORES_ACENTO),
 });
 
+/** Textos del formulario de inscripción (no son de la página de inicio, pero se editan en el mismo lugar). */
+export const textosInscripcionSchema = z.object({
+  titulo: texto(80, "el título"),
+  pasoContactos: texto(30, "el nombre del paso 1"),
+  pasoNinos: texto(30, "el nombre del paso 2"),
+  pasoRevision: texto(30, "el nombre del paso 3"),
+  introContactos: textoOpcional(400, "la introducción del paso 1"),
+  introNinos: textoOpcional(400, "la introducción del paso 2"),
+  ayudaInfoAdicional: textoOpcional(200, "la ayuda de información adicional"),
+  introRevision: textoOpcional(400, "la introducción del paso 3"),
+  textoAceptacion: texto(300, "el texto de aceptación"),
+  botonEnviar: texto(40, "el texto del botón"),
+  exitoTitulo: texto(80, "el título"),
+  exitoTexto: textoOpcional(600, "el texto"),
+  cerradasTitulo: texto(80, "el título"),
+  cerradasTexto: textoOpcional(400, "el texto"),
+});
+export type TextosInscripcion = z.output<typeof textosInscripcionSchema>;
+
 export const contenidoSchema = z.object({
   descripcion: texto(300, "la descripción para Google y redes"),
   whatsapp: z.object({
@@ -98,6 +118,8 @@ export const contenidoSchema = z.object({
       )
       .max(MAX_REDES, `Puede haber hasta ${MAX_REDES} redes.`),
   }),
+  // Las versiones publicadas antes de que existieran estos textos usan los iniciales.
+  inscripcion: textosInscripcionSchema.default(textosInscripcionIniciales),
 });
 
 /** Contenido tal como lo edita el panel (antes de normalizar el WhatsApp). */

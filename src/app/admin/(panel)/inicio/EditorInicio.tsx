@@ -8,6 +8,7 @@ import { validarContenido, type Contenido } from "@/lib/contenido/esquema";
 import { TAMANO_MAXIMO_IMAGEN } from "@/lib/contenido/imagenes";
 import { formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { publicarContenido } from "./acciones";
+import { EditorTextosInscripcion } from "./EditorTextosInscripcion";
 
 // Editor de la página de inicio: muestra la página real con los textos e
 // imágenes editables en el lugar. "Publicar" valida todo y, si no hay errores,
@@ -91,6 +92,7 @@ export function EditorInicio({
   const [intentoPublicar, setIntentoPublicar] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [verVersiones, setVerVersiones] = useState(false);
+  const [pestana, setPestana] = useState<"inicio" | "inscripcion">("inicio");
   const [publicando, iniciarPublicacion] = useTransition();
   const router = useRouter();
 
@@ -125,11 +127,16 @@ export function EditorInicio({
   );
 
   const irAlError = (ruta: string) => {
-    const el =
-      document.querySelector<HTMLElement>(`[data-ruta="${CSS.escape(ruta)}"]`) ??
-      document.querySelector<HTMLElement>(`[data-ruta^="${CSS.escape(ruta)}."]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
-    el?.focus({ preventScroll: true });
+    // Los textos de la inscripción están en otra pestaña: primero se cambia y después se busca el campo.
+    const destino = ruta.startsWith("inscripcion") ? "inscripcion" : "inicio";
+    setPestana(destino);
+    window.setTimeout(() => {
+      const el =
+        document.querySelector<HTMLElement>(`[data-ruta="${CSS.escape(ruta)}"]`) ??
+        document.querySelector<HTMLElement>(`[data-ruta^="${CSS.escape(ruta)}."]`);
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.focus({ preventScroll: true });
+    }, destino === pestana ? 0 : 50);
   };
 
   const publicar = (forzar = false) => {
@@ -192,9 +199,8 @@ export function EditorInicio({
           <div className="mr-auto">
             <h1 className="font-titulo text-2xl font-bold text-marino">Editar página de inicio</h1>
             <p className="text-sm" aria-live="polite">
-              {hayCambios
-                ? "Tenés cambios sin publicar. Hacé clic en cualquier texto para editarlo."
-                : "Esto es lo que se ve en el sitio. Hacé clic en cualquier texto para editarlo."}
+              {hayCambios ? "Tenés cambios sin publicar. " : "Esto es lo que se ve en el sitio. "}
+              {pestana === "inicio" ? "Hacé clic en cualquier texto para editarlo." : "Editá los textos del formulario."}
             </p>
           </div>
           <a href="/" target="_blank" rel="noopener" className={`${claseBoton} text-marino underline underline-offset-4`}>
@@ -286,18 +292,47 @@ export function EditorInicio({
         )}
       </div>
 
-      {/* Copia real de la página. Los enlaces no navegan mientras se edita. */}
-      <div
-        className="flex flex-col bg-crema"
-        onClickCapture={(e) => {
-          const objetivo = e.target as Element;
-          if (objetivo.closest("a") && !objetivo.closest("[data-editor-ui]")) e.preventDefault();
-        }}
-      >
-        <ProveedorEdicion edicion={edicion}>
-          <VistaInicio contenido={borrador} />
-        </ProveedorEdicion>
+      <div role="tablist" aria-label="Qué editar" className="flex gap-2 border-b-2 border-marino/10 bg-white px-4 pt-3">
+        {(
+          [
+            ["inicio", "Página de inicio"],
+            ["inscripcion", "Textos de la inscripción"],
+          ] as const
+        ).map(([id, nombre]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={pestana === id}
+            onClick={() => setPestana(id)}
+            className={`-mb-0.5 rounded-t-xl border-2 px-4 py-2 font-semibold ${
+              pestana === id ? "border-marino/10 border-b-crema bg-crema text-marino" : "border-transparent text-texto/70 hover:text-marino"
+            }`}
+          >
+            {nombre}
+          </button>
+        ))}
       </div>
+
+      <ProveedorEdicion edicion={edicion}>
+        {pestana === "inicio" ? (
+          /* Copia real de la página. Los enlaces no navegan mientras se edita. */
+          <div
+            role="tabpanel"
+            className="flex flex-col bg-crema"
+            onClickCapture={(e) => {
+              const objetivo = e.target as Element;
+              if (objetivo.closest("a") && !objetivo.closest("[data-editor-ui]")) e.preventDefault();
+            }}
+          >
+            <VistaInicio contenido={borrador} />
+          </div>
+        ) : (
+          <div role="tabpanel" className="bg-crema">
+            <EditorTextosInscripcion textos={borrador.inscripcion} />
+          </div>
+        )}
+      </ProveedorEdicion>
     </div>
   );
 }

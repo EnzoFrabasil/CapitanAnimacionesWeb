@@ -5,6 +5,7 @@ import { edadParaMostrar, type ContextoInscripcion, type InscripcionValidada } f
 import { ACENTOS } from "./tipos";
 
 interface Props {
+  intro: string;
   datos: InscripcionValidada;
   contexto: ContextoInscripcion;
   irAPaso: (paso: number) => void;
@@ -27,12 +28,12 @@ function Editar({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function PasoRevision({ datos, contexto, irAPaso }: Props) {
+export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
   const semanaPorId = new Map(contexto.semanas.map((s) => [s.id, s]));
 
   return (
     <div className="space-y-6">
-      <p>Revisá que esté todo bien antes de enviar.</p>
+      {intro && <p className="whitespace-pre-line">{intro}</p>}
 
       <section className="rounded-3xl bg-white p-5 shadow-md sm:p-6">
         <div className="mb-3 flex items-center justify-between">

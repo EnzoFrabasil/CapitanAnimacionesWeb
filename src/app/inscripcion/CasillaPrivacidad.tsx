@@ -1,6 +1,5 @@
 "use client";
 
-import { sitio } from "@/config/sitio";
 import { MensajeError } from "./campos";
 
 /**
@@ -8,10 +7,12 @@ import { MensajeError } from "./campos";
  * simple con un texto cálido: el detalle formal queda en /privacidad.
  */
 export function CasillaPrivacidad({
+  texto,
   marcada,
   error,
   cambiar,
 }: {
+  texto: string;
   marcada: boolean;
   error?: string;
   cambiar: (marcada: boolean) => void;
@@ -29,7 +30,7 @@ export function CasillaPrivacidad({
           className={`mt-0.5 size-5 shrink-0 accent-marino ${error ? "outline-2 outline-offset-2 outline-rojo" : ""}`}
         />
         <span>
-          Acepto que {sitio.nombre} use estos datos para organizar la colonia y cuidar a los chicos.{" "}
+          {texto}{" "}
           <a
             href="/privacidad"
             target="_blank"

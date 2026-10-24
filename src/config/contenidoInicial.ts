@@ -1,4 +1,5 @@
 import type { Contenido } from "@/lib/contenido/esquema";
+import { textosInscripcionIniciales } from "./textosInscripcion";
 
 // Contenido de la página de inicio mientras ningún administrador haya publicado
 // cambios desde el panel (Panel → Página de inicio). Lo marcado con TODO es un
@@ -102,4 +103,6 @@ export const contenidoInicial: Contenido = {
       },
     ],
   },
+
+  inscripcion: textosInscripcionIniciales,
 };

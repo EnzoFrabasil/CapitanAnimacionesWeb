@@ -4,6 +4,7 @@ import { CampoTexto, MensajeError } from "./campos";
 import type { ContactoForm, ErrorDe } from "./tipos";
 
 interface Props {
+  intro: string;
   contactos: ContactoForm[];
   cambiar: (indice: number, campo: keyof ContactoForm, valor: string) => void;
   tocar: (path: string) => void;
@@ -12,13 +13,10 @@ interface Props {
   errorDe: ErrorDe;
 }
 
-export function PasoContactos({ contactos, cambiar, tocar, agregar, quitar, errorDe }: Props) {
+export function PasoContactos({ intro, contactos, cambiar, tocar, agregar, quitar, errorDe }: Props) {
   return (
     <div className="space-y-6">
-      <p>
-        Dejanos un contacto y te escribimos por WhatsApp (o te llamamos) para confirmar la inscripción. Si querés, podés sumar
-        más contactos.
-      </p>
+      {intro && <p className="whitespace-pre-line">{intro}</p>}
 
       {contactos.map((c, i) => {
         const id = (campo: keyof ContactoForm) => `contactos.${i}.${campo}`;
