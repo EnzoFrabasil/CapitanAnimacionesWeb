@@ -103,6 +103,11 @@ model Temporada {
   turnos             Turno[]  @default([MANANA, TARDE])
   permiteSemanas     Boolean  @default(true)
   permitePorDia      Boolean  @default(true)
+  // Cómo se llama cada período en el formulario ("Semana", "Quincena"). En la base son "semanas".
+  nombrePeriodo      String   @default("Semana")
+  // Horario de cada turno para mostrar en el formulario (por ejemplo "8:30 a 12:30 hs").
+  horarioManana      String   @default("")
+  horarioTarde       String   @default("")
   createdAt          DateTime @default(now())
 
   semanas       Semana[]

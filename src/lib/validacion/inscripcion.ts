@@ -3,6 +3,7 @@ import { LARGO_MAXIMO, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { calcularEdad, validarFechaNacimiento, type RangoEdadPermitida } from "@/lib/dominio/edad";
+import { periodo, type HorariosTurno } from "@/lib/dominio/periodo";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp, separarTelefono, soloCodigoDePais } from "@/lib/dominio/telefono";
 
@@ -24,6 +25,10 @@ export interface ContextoInscripcion {
   modalidades?: readonly (typeof MODALIDADES)[number][];
   /** Edad permitida en la temporada. Si no se indica, la de src/config/inscripcion.ts. */
   edades?: RangoEdadPermitida;
+  /** Cómo se llama cada período ("Semana", "Quincena"). Si no se indica, "Semana". */
+  nombrePeriodo?: string;
+  /** Horario de cada turno, para mostrar en el formulario. */
+  horarios?: HorariosTurno;
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
   hoy: string;
 }
@@ -104,6 +109,7 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
   const diasValidos = new Set(diasHabilesDeSemanas(contexto.semanas));
   const turnos = contexto.turnos ?? TURNOS;
   const modalidades = contexto.modalidades ?? MODALIDADES;
+  const p = periodo(contexto.nombrePeriodo);
 
   return z
     .object({
@@ -141,9 +147,9 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
       (nino, ctx) => {
         if (nino.modalidad === "SEMANAS") {
           if (nino.semanas.length === 0) {
-            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Elegí al menos una semana." });
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Elegí al menos una ${p.singular.toLowerCase()}.` });
           } else if (nino.semanas.some((id) => !semanaIds.has(id))) {
-            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Alguna de las semanas elegidas no es válida." });
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Alguna de las ${p.plural.toLowerCase()} elegidas no es válida.` });
           }
         } else {
           if (nino.dias.length === 0) {
@@ -152,7 +158,7 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
             ctx.addIssue({
               code: "custom",
               path: ["dias"],
-              message: "Solo se pueden elegir días de lunes a viernes dentro de las semanas de la colonia.",
+              message: "Solo se pueden elegir días de lunes a viernes dentro de las fechas de la colonia.",
             });
           }
         }

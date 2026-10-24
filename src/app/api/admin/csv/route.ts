@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const temporada = await temporadaParaListado(filtros.temporada);
   if (!temporada) return Response.json({ ok: false, error: "No hay temporadas." }, { status: 404 });
 
-  const csv = generarCsvInscriptos(await listarInscriptos(filtros, temporada));
+  const csv = generarCsvInscriptos(await listarInscriptos(filtros, temporada), temporada.nombrePeriodo);
   const nombre = `inscriptos-${temporada.nombre
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")

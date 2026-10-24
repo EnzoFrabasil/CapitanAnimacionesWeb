@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FilaInscripto as Fila } from "@/lib/admin/consultas";
+import { periodo } from "@/lib/dominio/periodo";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { eliminarInscriptos } from "./acciones";
 import { FilaInscripto } from "./FilaInscripto";
@@ -10,10 +11,12 @@ import { FilaInscripto } from "./FilaInscripto";
 export function TablaInscriptos({
   filas,
   totalSemanas,
+  nombrePeriodo,
   grupos,
 }: {
   filas: Fila[];
   totalSemanas: number;
+  nombrePeriodo: string;
   grupos: { id: number; nombre: string }[];
 }) {
   const [seleccion, setSeleccion] = useState<ReadonlySet<number>>(new Set());
@@ -115,6 +118,7 @@ export function TablaInscriptos({
                 key={f.id}
                 fila={f}
                 totalSemanas={totalSemanas}
+                inicialPeriodo={periodo(nombrePeriodo).inicial}
                 grupos={grupos}
                 seleccionada={seleccion.has(f.id)}
                 alternarSeleccion={(marcada) => alternar(f.id, marcada)}

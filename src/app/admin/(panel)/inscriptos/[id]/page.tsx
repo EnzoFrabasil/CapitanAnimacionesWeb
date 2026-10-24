@@ -190,6 +190,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                 </label>
               </div>
               <EditorAsistencia
+                nombrePeriodo={temporada.nombrePeriodo}
                 modalidad={f.modalidad}
                 semanas={temporada.semanas.map((s) => ({
                   id: s.id,

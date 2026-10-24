@@ -6,6 +6,7 @@ import { claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { fechaAIso, sumarDias } from "@/lib/dominio/fechas";
+import { NOMBRES_PERIODO, periodo } from "@/lib/dominio/periodo";
 import { ETIQUETA_TURNO } from "@/lib/formato";
 import { TURNOS } from "@/lib/validacion/inscripcion";
 import { prisma } from "@/lib/prisma";
@@ -65,6 +66,7 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
 
   const sinGrupo = await prisma.inscripcionNino.count({ where: { grupoEdadId: null, inscripcion: { temporadaId: id } } });
   const ultima = temporada.semanas.at(-1);
+  const p = periodo(temporada.nombrePeriodo);
   const proximoLunes = ultima ? sumarDias(ultima.fechaFin, 3) : null;
 
   return (
@@ -124,27 +126,50 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
             <fieldset className="space-y-2">
               <legend className="mb-1 text-sm font-semibold text-marino">Turnos</legend>
               {TURNOS.map((t) => (
-                <Casilla key={t} nombre="turnos" valor={t} etiqueta={`Turno ${ETIQUETA_TURNO[t].toLowerCase()}`} marcada={temporada.turnos.includes(t)} />
+                <div key={t} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Casilla nombre="turnos" valor={t} etiqueta={`Turno ${ETIQUETA_TURNO[t].toLowerCase()}`} marcada={temporada.turnos.includes(t)} />
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="sr-only">Horario del turno {ETIQUETA_TURNO[t].toLowerCase()}</span>
+                    <input
+                      name={t === "MANANA" ? "horarioManana" : "horarioTarde"}
+                      defaultValue={t === "MANANA" ? temporada.horarioManana : temporada.horarioTarde}
+                      placeholder="Horario, ej. 8:30 a 12:30 hs"
+                      maxLength={60}
+                      className="w-56 rounded-lg border border-marino/30 px-2 py-1 text-sm"
+                    />
+                  </label>
+                </div>
               ))}
+              <p className="text-xs">El horario se muestra en el formulario junto al turno.</p>
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="mb-1 text-sm font-semibold text-marino">Formas de asistir</legend>
-              <Casilla nombre="permiteSemanas" etiqueta="Por semanas" marcada={temporada.permiteSemanas} />
+              <label className="flex items-center gap-2 text-sm">
+                Cada período se llama
+                <select name="nombrePeriodo" defaultValue={temporada.nombrePeriodo} className="rounded-lg border border-marino/30 px-2 py-1 text-sm">
+                  {NOMBRES_PERIODO.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Casilla nombre="permiteSemanas" etiqueta={`Por ${p.plural.toLowerCase()} (y "Colonia completa")`} marcada={temporada.permiteSemanas} />
               <Casilla nombre="permitePorDia" etiqueta="Por día" marcada={temporada.permitePorDia} />
             </fieldset>
           </div>
         </FormAccion>
         {(temporada.permiteSemanas || temporada.permitePorDia) && !temporada.semanas.some((s) => s.activa) && (
           <p role="alert" className="mt-3 text-sm font-medium text-rojo">
-            No hay ninguna semana activa: las familias no van a poder elegir semanas ni días.
+            No hay ninguna {p.singular.toLowerCase()} activa: las familias no van a poder elegir {p.plural.toLowerCase()} ni días.
           </p>
         )}
       </Seccion>
 
-      <Seccion titulo="Semanas">
+      <Seccion titulo={p.plural}>
         <p className="mb-3 text-sm">
-          Solo se ofrecen las semanas activas. Las familias que eligen &quot;por día&quot; ven los días de lunes a viernes
-          dentro de las semanas activas. Desactivar una semana no cambia a los que ya se inscribieron.
+          Solo se ofrecen las {p.plural.toLowerCase()} activas, con su número y sus fechas. Las familias que eligen
+          &quot;por día&quot; ven los días de lunes a viernes dentro de ellas. Desactivar una no cambia a los que ya se inscribieron.
         </p>
         <div className="space-y-3">
           {temporada.semanas.map((s) => (
@@ -158,12 +183,12 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
                 </div>
               </FormAccion>
               <FormAccion accion={eliminarSemana.bind(null, s.id)} textoBoton="Eliminar" textoPendiente="Eliminando…" variante="peligro" />
-              <p className="w-full text-xs">{s._count.inscripciones} inscriptos por semana completa</p>
+              <p className="w-full text-xs">{s._count.inscripciones} inscriptos en esta {p.singular.toLowerCase()} completa</p>
             </div>
           ))}
         </div>
-        <h3 className="mt-5 mb-2 text-sm font-semibold text-marino">Agregar semana</h3>
-        <FormAccion accion={guardarSemana.bind(null, id, null)} textoBoton="Agregar semana" className="flex flex-wrap items-end gap-3 [&>div:last-child]:mt-0">
+        <h3 className="mt-5 mb-2 text-sm font-semibold text-marino">Agregar {p.singular.toLowerCase()}</h3>
+        <FormAccion accion={guardarSemana.bind(null, id, null)} textoBoton={`Agregar ${p.singular.toLowerCase()}`} className="flex flex-wrap items-end gap-3 [&>div:last-child]:mt-0">
           <Campo nombre="numero" etiqueta="N.º" tipo="number" min={1} valor={(ultima?.numero ?? 0) + 1} requerido idPrefijo="semana-nueva" className="w-20" />
           <Campo nombre="fechaInicio" etiqueta="Desde" tipo="date" valor={proximoLunes ? fechaAIso(proximoLunes) : ""} requerido idPrefijo="semana-nueva" />
           <Campo nombre="fechaFin" etiqueta="Hasta" tipo="date" valor={proximoLunes ? fechaAIso(sumarDias(proximoLunes, 4)) : ""} requerido idPrefijo="semana-nueva" />

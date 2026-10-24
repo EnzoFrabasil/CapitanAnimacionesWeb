@@ -8,6 +8,7 @@ import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
 import { mensajesDeError, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
+import { NOMBRES_PERIODO } from "@/lib/dominio/periodo";
 import { TURNOS } from "@/lib/validacion/inscripcion";
 
 type Previo = ResultadoAccion | null;
@@ -69,7 +70,7 @@ export async function guardarSemana(
       await prisma.semana.create({ data: { ...r.data, temporadaId } });
     }
   } catch (e) {
-    return falloPorExcepcion(e, { unico: `Ya existe la semana ${r.data.numero} en esta temporada.` });
+    return falloPorExcepcion(e, { unico: `Ya existe el período ${r.data.numero} en esta temporada.` });
   }
   refresh();
   return exito(semanaId ? "Semana guardada." : "Semana agregada.");
@@ -81,13 +82,21 @@ export async function guardarOpciones(temporadaId: number, _previo: Previo, dato
   const turnos = TURNOS.filter((t) => datos.getAll("turnos").includes(t));
   const permiteSemanas = datos.get("permiteSemanas") === "on";
   const permitePorDia = datos.get("permitePorDia") === "on";
+  const nombrePeriodo = String(datos.get("nombrePeriodo") ?? "");
+  const horario = (campo: string) => String(datos.get(campo) ?? "").trim().slice(0, 60);
+  const horarioManana = horario("horarioManana");
+  const horarioTarde = horario("horarioTarde");
   const errores = [
+    ...(!(NOMBRES_PERIODO as readonly string[]).includes(nombrePeriodo) ? ["Elegí cómo se llama cada período."] : []),
     ...(turnos.length === 0 ? ["Tiene que haber al menos un turno activo."] : []),
-    ...(!permiteSemanas && !permitePorDia ? ["Tiene que haber al menos una forma de asistir (por semanas o por día)."] : []),
+    ...(!permiteSemanas && !permitePorDia ? ["Tiene que haber al menos una forma de asistir."] : []),
   ];
   if (errores.length) return fallo(...errores);
   try {
-    await prisma.temporada.update({ where: { id: temporadaId }, data: { turnos, permiteSemanas, permitePorDia } });
+    await prisma.temporada.update({
+      where: { id: temporadaId },
+      data: { turnos, permiteSemanas, permitePorDia, nombrePeriodo, horarioManana, horarioTarde },
+    });
   } catch (e) {
     return falloPorExcepcion(e);
   }
@@ -100,10 +109,10 @@ export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion>
   try {
     await prisma.semana.delete({ where: { id: semanaId } });
   } catch (e) {
-    return falloPorExcepcion(e, { enUso: "No se puede borrar: hay niños inscriptos en esa semana." });
+    return falloPorExcepcion(e, { enUso: "No se puede borrar: hay niños inscriptos en ese período." });
   }
   refresh();
-  return exito("Semana eliminada.");
+  return exito("Período eliminado.");
 }
 
 /**

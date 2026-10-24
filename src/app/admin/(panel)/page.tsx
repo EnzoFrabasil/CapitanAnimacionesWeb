@@ -65,6 +65,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           temporadas={temporadas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
           semanas={temporada.semanas.map((s) => ({ id: s.id, numero: s.numero }))}
+          nombrePeriodo={temporada.nombrePeriodo}
         />
       </section>
 
@@ -93,6 +94,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
         <TablaInscriptos
           filas={filas}
           totalSemanas={temporada.semanas.length}
+          nombrePeriodo={temporada.nombrePeriodo}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
         />
       )}

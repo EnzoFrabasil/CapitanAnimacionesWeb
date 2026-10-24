@@ -11,9 +11,11 @@ interface Props {
   temporadas: { id: number; nombre: string }[];
   grupos: { id: number; nombre: string }[];
   semanas: { id: number; numero: number }[];
+  /** "Semana", "Quincena" */
+  nombrePeriodo: string;
 }
 
-export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, semanas }: Props) {
+export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, semanas, nombrePeriodo }: Props) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState(filtros.q ?? "");
 
@@ -73,9 +75,9 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, seman
       )}
       {selector(
         "semana",
-        "Semana",
+        nombrePeriodo,
         filtros.semana,
-        [{ valor: "", texto: "Todas" }, ...semanas.map((s) => ({ valor: s.id, texto: `Semana ${s.numero}` }))],
+        [{ valor: "", texto: "Todas" }, ...semanas.map((s) => ({ valor: s.id, texto: `${nombrePeriodo} ${s.numero}` }))],
         (v) => aplicar({ semana: v ? Number(v) : undefined }),
       )}
       {selector(

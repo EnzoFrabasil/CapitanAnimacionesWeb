@@ -1,6 +1,7 @@
 "use client";
 
-import { ETIQUETA_MODALIDAD, ETIQUETA_TURNO, formatearDiaCorto, formatearFecha, formatearWhatsapp } from "@/lib/formato";
+import { formatearDiaCorto, formatearFecha, formatearWhatsapp } from "@/lib/formato";
+import { etiquetaModalidad, etiquetaTurno, periodo } from "@/lib/dominio/periodo";
 import { edadParaMostrar, type ContextoInscripcion, type InscripcionValidada } from "@/lib/validacion/inscripcion";
 import { ACENTOS } from "./tipos";
 
@@ -30,6 +31,7 @@ function Editar({ onClick }: { onClick: () => void }) {
 
 export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
   const semanaPorId = new Map(contexto.semanas.map((s) => [s.id, s]));
+  const p = periodo(contexto.nombrePeriodo);
 
   return (
     <div className="space-y-6">
@@ -75,12 +77,12 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
               <Dato etiqueta="Fecha de nacimiento">
                 {formatearFecha(n.fechaNacimiento)} ({edad} años)
               </Dato>
-              <Dato etiqueta="Turno">{ETIQUETA_TURNO[n.turno]}</Dato>
-              <Dato etiqueta={ETIQUETA_MODALIDAD[n.modalidad]}>
+              <Dato etiqueta="Turno">{etiquetaTurno(n.turno, contexto.horarios)}</Dato>
+              <Dato etiqueta={etiquetaModalidad(n.modalidad, p)}>
                 {n.modalidad === "SEMANAS"
                   ? n.semanas.length === contexto.semanas.length
                     ? "Colonia completa"
-                    : n.semanas.map((id) => `Semana ${semanaPorId.get(id)?.numero}`).join(", ")
+                    : n.semanas.map((id) => `${p.singular} ${semanaPorId.get(id)?.numero}`).join(", ")
                   : n.dias.map(formatearDiaCorto).join(", ")}
               </Dato>
               {n.infoAdicional && <Dato etiqueta="Información adicional">{n.infoAdicional}</Dato>}

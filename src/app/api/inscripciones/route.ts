@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     turnos: temporada.turnos,
     modalidades: temporada.modalidades,
     edades: temporada.edades,
+    nombrePeriodo: temporada.nombrePeriodo,
     hoy: fechaAIso(hoy),
   }).safeParse(datos);
   if (!resultado.success) {

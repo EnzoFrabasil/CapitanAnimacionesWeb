@@ -3,7 +3,8 @@
 import { EDAD_MAXIMA, EDAD_MINIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
-import { ETIQUETA_MODALIDAD, ETIQUETA_TURNO, formatearDiaCorto } from "@/lib/formato";
+import { etiquetaModalidad, etiquetaTurno, periodo } from "@/lib/dominio/periodo";
+import { formatearDiaCorto } from "@/lib/formato";
 import { MODALIDADES, TURNOS, edadParaMostrar, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CampoTexto, Casilla, MensajeError, OpcionesBotones, claseInput } from "./campos";
 import { ACENTOS, type ErrorDe, type NinoForm } from "./tipos";
@@ -117,13 +118,13 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
               <div className="sm:col-span-2">
                 {turnos.length === 1 ? (
                   <p>
-                    <span className="font-medium text-marino">Turno:</span> {ETIQUETA_TURNO[turnos[0]]}
+                    <span className="font-medium text-marino">Turno:</span> {etiquetaTurno(turnos[0], contexto.horarios)}
                   </p>
                 ) : (
                   <OpcionesBotones
                     nombre={id("turno")}
                     leyenda="Turno"
-                    opciones={turnos.map((t) => ({ valor: t, etiqueta: ETIQUETA_TURNO[t] }))}
+                    opciones={turnos.map((t) => ({ valor: t, etiqueta: etiquetaTurno(t, contexto.horarios) }))}
                     valor={n.turno}
                     onCambio={(turno) => {
                       cambiar(i, { turno });
@@ -176,6 +177,7 @@ function Asistencia({
 }) {
   const base = `ninos.${indice}`;
   const modalidades = contexto.modalidades ?? MODALIDADES;
+  const p = periodo(contexto.nombrePeriodo);
   const todasIds = contexto.semanas.map((s) => s.id);
   const todas = todasIds.length > 0 && todasIds.every((sid) => nino.semanas.includes(sid));
 
@@ -199,17 +201,17 @@ function Asistencia({
         <OpcionesBotones
           nombre={`${base}.modalidad`}
           leyenda="¿Cómo va a asistir?"
-          opciones={modalidades.map((m) => ({ valor: m, etiqueta: ETIQUETA_MODALIDAD[m] }))}
+          opciones={modalidades.map((m) => ({ valor: m, etiqueta: etiquetaModalidad(m, p) }))}
           valor={nino.modalidad}
           onCambio={(modalidad) => cambiar(indice, { modalidad })}
         />
       ) : (
-        <p className="font-medium text-marino">{nino.modalidad === "SEMANAS" ? "¿Qué semanas va a asistir?" : "¿Qué días va a asistir?"}</p>
+        <p className="font-medium text-marino">{nino.modalidad === "SEMANAS" ? `¿Qué ${p.plural.toLowerCase()} va a asistir?` : "¿Qué días va a asistir?"}</p>
       )}
 
       {nino.modalidad === "SEMANAS" ? (
         <fieldset aria-describedby={errorDe(`${base}.semanas`) ? `${base}.semanas-error` : undefined}>
-          <legend className="sr-only">Semanas</legend>
+          <legend className="sr-only">{p.plural}</legend>
           <div className="space-y-2">
             <Casilla
               id={`${base}.semanas.todas`}
@@ -227,7 +229,7 @@ function Asistencia({
                 id={`${base}.semanas.${s.id}`}
                 etiqueta={
                   <>
-                    Semana {s.numero}{" "}
+                    {p.singular} {s.numero}{" "}
                     <span className="text-texto/80">
                       ({formatearDiaCorto(s.fechaInicio)} al {formatearDiaCorto(s.fechaFin)})
                     </span>
@@ -246,7 +248,9 @@ function Asistencia({
           <div className="space-y-3">
             {contexto.semanas.map((s) => (
               <div key={s.id}>
-                <p className="mb-1 text-sm font-semibold text-marino">Semana {s.numero}</p>
+                <p className="mb-1 text-sm font-semibold text-marino">
+                  {p.singular} {s.numero}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {diasHabilesDeSemanas([s]).map((dia) => {
                     const elegido = nino.dias.includes(dia);

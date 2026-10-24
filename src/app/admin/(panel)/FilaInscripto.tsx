@@ -32,12 +32,15 @@ function IconoLapiz({ className }: { className?: string }) {
 export function FilaInscripto({
   fila: f,
   totalSemanas,
+  inicialPeriodo,
   grupos,
   seleccionada,
   alternarSeleccion,
 }: {
   fila: Fila;
   totalSemanas: number;
+  /** "S" de semana, "Q" de quincena: "Q1, Q2" en la columna Asistencia. */
+  inicialPeriodo: string;
   grupos: { id: number; nombre: string }[];
   seleccionada: boolean;
   alternarSeleccion: (marcada: boolean) => void;
@@ -98,7 +101,7 @@ export function FilaInscripto({
       ? f.semanas.length === totalSemanas
         ? "Colonia completa"
         : f.semanas
-            .map((s) => `S${s.semana.numero}`)
+            .map((s) => `${inicialPeriodo}${s.semana.numero}`)
             .sort()
             .join(", ")
       : `${f.dias.length} ${f.dias.length === 1 ? "día" : "días"}`;

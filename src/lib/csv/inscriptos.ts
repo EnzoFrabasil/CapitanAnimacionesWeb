@@ -77,14 +77,14 @@ export interface InscriptoExport {
   };
 }
 
-export function filaExport(f: InscriptoExport): (string | number)[] {
+export function filaExport(f: InscriptoExport, nombrePeriodo = "Semana"): (string | number)[] {
   const contacto = f.nino.responsables[0];
   const asistencia =
     f.modalidad === "SEMANAS"
       ? f.semanas
           .map((s) => s.semana.numero)
           .sort((a, b) => a - b)
-          .map((n) => `Semana ${n}`)
+          .map((n) => `${nombrePeriodo} ${n}`)
           .join(", ")
       : f.dias
           .map((d) => fechaAIso(d.fecha))
@@ -115,8 +115,11 @@ export function filaExport(f: InscriptoExport): (string | number)[] {
   ];
 }
 
-export function generarCsvInscriptos(filas: readonly InscriptoExport[]): string {
-  return generarCsv(COLUMNAS, filas.map(filaExport));
+export function generarCsvInscriptos(filas: readonly InscriptoExport[], nombrePeriodo?: string): string {
+  return generarCsv(
+    COLUMNAS,
+    filas.map((f) => filaExport(f, nombrePeriodo)),
+  );
 }
 
 // ---------------------------------------------------------------------------
