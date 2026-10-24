@@ -16,6 +16,10 @@
   --color-marino: #093651;
   --color-crema: #fff4db;
   --color-texto: #3d3d3d;
+  /* Gráficos del panel: un paso más oscuros que verde/amarillo para que se distingan
+     sobre blanco y con daltonismo (validados). */
+  --color-grafico-confirmado: #0b8a71;
+  --color-grafico-espera: #d4790f;
 
   --font-titulo: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;

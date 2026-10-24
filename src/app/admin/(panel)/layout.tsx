@@ -21,6 +21,9 @@ export default function LayoutPanel({ children }: LayoutProps<"/admin">) {
             <Link href="/admin" className="hover:text-amarillo">
               Inscriptos
             </Link>
+            <Link href="/admin/analiticas" className="hover:text-amarillo">
+              Analíticas
+            </Link>
             <Link href="/admin/configuracion" className="hover:text-amarillo">
               Configuración
             </Link>
