@@ -116,6 +116,17 @@ export const responsableAdminSchema = z.object({
 export const temporadaSchema = z.object({
   nombre: texto(80, "Falta el nombre."),
   anio: z.coerce.number("Año inválido.").int("Año inválido.").min(2000, "Año inválido.").max(2100, "Año inválido."),
+  // Vacío = sin cupo.
+  cupo: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+    z.coerce
+      .number("Cupo inválido.")
+      .int("El cupo tiene que ser un número entero.")
+      .min(1, "El cupo tiene que ser 1 o más.")
+      .max(10000, "Cupo inválido.")
+      .nullable()
+      .default(null),
+  ),
 });
 
 export const semanaSchema = z

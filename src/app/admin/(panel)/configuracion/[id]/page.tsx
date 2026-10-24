@@ -70,6 +70,15 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
             <div className="grid gap-3 sm:grid-cols-3">
               <Campo nombre="nombre" etiqueta="Nombre" valor={temporada.nombre} requerido className="sm:col-span-2" />
               <Campo nombre="anio" etiqueta="Año" tipo="number" valor={temporada.anio} requerido />
+              <Campo
+                nombre="cupo"
+                etiqueta="Cupo total"
+                tipo="number"
+                min={1}
+                valor={temporada.cupo}
+                className="sm:col-span-3"
+                ayuda="Cantidad de lugares. En la página de inicio se muestra cuántos quedan (cada niño inscripto ocupa uno, salvo los cancelados). Dejalo vacío para no mostrar el contador."
+              />
             </div>
           </FormAccion>
         </Seccion>

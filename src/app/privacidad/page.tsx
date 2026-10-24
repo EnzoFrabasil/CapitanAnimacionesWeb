@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Bienvenida } from "@/components/marca/Bienvenida";
 import { Encabezado } from "@/components/marca/Encabezado";
 import { PiePagina } from "@/components/marca/PiePagina";
 import { VERSION_PRIVACIDAD } from "@/config/inscripcion";
-import { sitio, urlWhatsapp } from "@/config/sitio";
+import { sitio } from "@/config/sitio";
+import { obtenerContenido } from "@/lib/contenido/servidor";
+import { urlWhatsapp } from "@/lib/contenido/urls";
 
 // Texto informativo de la Ley 25.326 (art. 6) en lenguaje simple.
 // Si cambiás el contenido, actualizá VERSION_PRIVACIDAD en src/config/inscripcion.ts.
@@ -22,9 +25,11 @@ function Bloque({ titulo, children }: { titulo: string; children: React.ReactNod
   );
 }
 
-export default function PaginaPrivacidad() {
+export default async function PaginaPrivacidad() {
+  const { whatsapp } = await obtenerContenido();
   return (
     <>
+      <Bienvenida />
       <Encabezado />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
         <article className="space-y-6 rounded-3xl bg-white p-6 shadow-md sm:p-8">
@@ -60,7 +65,7 @@ export default function PaginaPrivacidad() {
           <Bloque titulo="Podés pedirnos cambios cuando quieras">
             <p>
               Si querés ver, corregir o borrar tus datos o los de los chicos, escribinos por{" "}
-              <a href={urlWhatsapp} className="font-medium text-marino underline underline-offset-2">
+              <a href={urlWhatsapp(whatsapp)} className="font-medium text-marino underline underline-offset-2">
                 WhatsApp
               </a>{" "}
               y lo resolvemos. Es gratis.

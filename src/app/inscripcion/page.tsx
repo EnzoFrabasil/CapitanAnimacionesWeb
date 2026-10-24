@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { Bienvenida } from "@/components/marca/Bienvenida";
 import { Encabezado } from "@/components/marca/Encabezado";
 import { PiePagina } from "@/components/marca/PiePagina";
 import { sitio } from "@/config/sitio";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 export default function PaginaInscripcion() {
   return (
     <>
+      <Bienvenida />
       <Encabezado mostrarInscribite={false} />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8">
         <Suspense fallback={<p className="py-16 text-center">Cargando el formulario…</p>}>

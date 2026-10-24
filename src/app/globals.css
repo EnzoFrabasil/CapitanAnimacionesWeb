@@ -90,3 +90,375 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Editor de la página de inicio (panel): textos que se editan en el lugar. */
+[data-editable] {
+  border-radius: 0.25rem;
+  outline: 2px dashed color-mix(in srgb, var(--color-azul) 45%, transparent);
+  outline-offset: 2px;
+  cursor: text;
+  min-width: 2ch;
+  display: inline-block;
+}
+[data-editable]:hover {
+  outline-color: var(--color-azul);
+}
+[data-editable]:focus {
+  outline: 3px solid var(--color-azul);
+  background: color-mix(in srgb, white 70%, transparent);
+}
+[data-editable][data-error] {
+  outline: 3px solid var(--color-rojo);
+}
+[data-editable]:empty::before {
+  content: attr(data-vacio);
+  opacity: 0.5;
+}
+
+/* Animación de bienvenida (src/components/marca/Bienvenida.tsx).
+   La imagen del capitán colgado se divide en dos capas alineadas:
+   el logo (mitad de arriba) y el capitán (mitad de abajo). */
+.bienvenida {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-crema);
+  /* Sale como una cortina que sube (curva ease-in-out-quart), sin cortes. */
+  animation: bienvenida-cortina 0.9s cubic-bezier(0.76, 0, 0.24, 1) 3.75s forwards;
+}
+.bienvenida:not([data-lista]),
+.bienvenida:not([data-lista]) * {
+  animation-play-state: paused !important;
+}
+[data-bienvenida-vista] .bienvenida {
+  display: none;
+}
+html:has(.bienvenida) {
+  overflow: hidden;
+}
+[data-bienvenida-vista]:has(.bienvenida) {
+  overflow: auto;
+}
+.bienvenida-escena {
+  position: relative;
+  width: min(88vw, 560px);
+  aspect-ratio: 2213 / 1669;
+  margin-bottom: 12vh;
+}
+.bienvenida-capa {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Las dos capas se cortan con una muesca alrededor de la mano (que tapa el borde
+   celeste del logo); cuando el capitán se suelta, un parche celeste cierra el borde. */
+.bienvenida-logo {
+  clip-path: polygon(0 0, 100% 0, 100% 49.3%, 52% 49.3%, 52% 47.6%, 46.8% 47.6%, 46.8% 49.3%, 0 49.3%);
+  animation: bienvenida-caida-logo 0.9s cubic-bezier(0.3, 1.4, 0.5, 1) 0.15s both;
+}
+.bienvenida-capitan {
+  clip-path: polygon(0 49.3%, 46.8% 49.3%, 46.8% 47.6%, 52% 47.6%, 52% 49.3%, 100% 49.3%, 100% 100%, 0 100%);
+  transform-origin: 49.4% 48%; /* la mano agarrada del logo */
+  animation:
+    bienvenida-asoma 0.35s ease-out 0.95s both,
+    bienvenida-hamaca 1.3s ease-in-out 1.3s both,
+    bienvenida-se-suelta 0.7s cubic-bezier(0.55, 0, 0.9, 0.45) 2.6s forwards;
+}
+.bienvenida-parche {
+  position: absolute;
+  left: 46.6%;
+  top: 47.4%;
+  width: 5.6%;
+  height: 1.5%;
+  background: #b8e5fc; /* celeste del borde del logo */
+  animation: bienvenida-caida-logo 0.9s cubic-bezier(0.3, 1.4, 0.5, 1) 0.15s both;
+}
+.bienvenida-mar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 22vh;
+  animation: bienvenida-sube-mar 0.6s ease-out 0.1s both;
+}
+.bienvenida-ola {
+  animation: bienvenida-oleaje 3s ease-in-out infinite alternate;
+}
+.bienvenida-gota {
+  position: absolute;
+  bottom: 18vh;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-azul);
+  opacity: 0;
+  animation: bienvenida-salpicon 0.7s ease-out 3.15s forwards;
+}
+.bienvenida-saltar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, white 80%, transparent);
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-marino);
+}
+
+@keyframes bienvenida-caida-logo {
+  0% {
+    transform: translateY(-110vh) rotate(-8deg);
+  }
+  70% {
+    transform: translateY(0) rotate(2deg) scaleY(0.92);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes bienvenida-asoma {
+  from {
+    opacity: 0;
+    transform: translateY(-12%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bienvenida-hamaca {
+  0% {
+    rotate: 0deg;
+  }
+  25% {
+    rotate: 14deg;
+  }
+  55% {
+    rotate: -10deg;
+  }
+  80% {
+    rotate: 6deg;
+  }
+  100% {
+    rotate: -3deg;
+  }
+}
+@keyframes bienvenida-se-suelta {
+  0% {
+    translate: 0 0;
+    rotate: -3deg;
+  }
+  15% {
+    translate: 0 -4%;
+    rotate: -8deg;
+  }
+  100% {
+    translate: 0 85vh;
+    rotate: 25deg;
+  }
+}
+@keyframes bienvenida-sube-mar {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes bienvenida-oleaje {
+  to {
+    transform: translateX(-4%);
+  }
+}
+@keyframes bienvenida-salpicon {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1);
+  }
+}
+@keyframes bienvenida-cortina {
+  to {
+    transform: translateY(-100%);
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bienvenida {
+    display: none;
+  }
+}
+
+/* Aviso de lugares con la insignia del capitán (src/components/inicio/AvisoCupos.tsx).
+   Esquina inferior izquierda, a la altura del botón de WhatsApp. */
+.aviso-cupos {
+  --entrada: cubic-bezier(0.16, 1, 0.3, 1);
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.aviso-insignia {
+  position: relative;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow:
+    0 0 0 2px var(--color-marino),
+    0 4px 0 2px var(--color-marino);
+  cursor: pointer;
+  animation: aviso-aparece 0.6s var(--entrada) both;
+  transition: translate 0.2s ease;
+}
+.aviso-insignia:hover {
+  translate: 0 -2px;
+}
+.aviso-insignia:focus-visible {
+  outline: 3px solid var(--color-azul);
+  outline-offset: 4px;
+}
+.aviso-insignia img {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+}
+.aviso-cupos[data-fase="mensaje"] .aviso-insignia {
+  animation: aviso-sacudida 0.5s ease-in-out;
+}
+/* Se esconde del todo un rato, para no molestar; después vuelve a aparecer. */
+.aviso-cupos[data-fase="escondido"] .aviso-insignia {
+  animation: aviso-se-va 0.4s ease-in forwards;
+  pointer-events: none;
+}
+/* Puntito rojo de "te llegó un mensaje". */
+.aviso-punto {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: var(--color-rojo);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  animation: aviso-aparece 0.4s var(--entrada) both;
+}
+.aviso-globito {
+  position: relative;
+  border: 2px solid var(--color-marino);
+  border-radius: 1rem;
+  background: white;
+  padding: 0.4rem 0.85rem;
+  box-shadow: 0 3px 0 0 var(--color-marino);
+  font-family: var(--font-titulo);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-marino);
+  transform-origin: left center;
+  opacity: 0;
+  scale: 0.6;
+  translate: -8px 0;
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease,
+    scale 0.45s var(--entrada),
+    translate 0.45s var(--entrada);
+}
+/* Piquito del globito, hacia la insignia. */
+.aviso-globito::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-bottom: 2px solid var(--color-marino);
+  border-left: 2px solid var(--color-marino);
+  background: white;
+  translate: 0 -50%;
+  rotate: 45deg;
+}
+.aviso-cupos[data-fase="abierto"] .aviso-globito {
+  opacity: 1;
+  scale: 1;
+  translate: 0 0;
+  pointer-events: auto;
+}
+.aviso-globito:hover {
+  border-color: var(--color-naranja);
+}
+.aviso-globito:focus-visible {
+  outline: 3px solid var(--color-azul);
+  outline-offset: 3px;
+}
+.aviso-numero {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-naranja);
+}
+.aviso-cupos[data-urgencia="ultimos"] .aviso-numero,
+.aviso-cupos[data-urgencia="completo"] .aviso-globito {
+  color: var(--color-rojo);
+}
+@media (min-width: 640px) {
+  .aviso-cupos {
+    left: 1.5rem;
+    bottom: 1.5rem;
+  }
+  .aviso-insignia {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+@keyframes aviso-aparece {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+@keyframes aviso-se-va {
+  to {
+    opacity: 0;
+    scale: 0.4;
+    visibility: hidden;
+  }
+}
+@keyframes aviso-sacudida {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: -12deg;
+  }
+  40% {
+    rotate: 10deg;
+  }
+  60% {
+    rotate: -6deg;
+  }
+  80% {
+    rotate: 3deg;
+  }
+}
+@media print {
+  .aviso-cupos {
+    display: none;
+  }
+}

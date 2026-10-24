@@ -15,13 +15,16 @@ const poppins = Poppins({
   weight: ["400", "500", "600"],
 });
 
+// Descripción general. La página de inicio usa la que se edita desde el panel.
+const descripcionGeneral = `Colonia de vacaciones de ${sitio.nombre}. ${sitio.eslogan}`;
+
 export const metadata: Metadata = {
   title: sitio.nombre,
-  description: sitio.descripcion,
+  description: descripcionGeneral,
   icons: { icon: sitio.logos.circular, apple: sitio.logos.circular },
   openGraph: {
     title: sitio.nombre,
-    description: sitio.descripcion,
+    description: descripcionGeneral,
     siteName: sitio.nombre,
     locale: "es_AR",
     type: "website",
@@ -32,7 +35,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // suppressHydrationWarning: el script de la bienvenida marca <html> antes de hidratar.
     <html
+      suppressHydrationWarning
       lang="es-AR"
       className={`${fredoka.variable} ${poppins.variable} h-full antialiased`}
     >

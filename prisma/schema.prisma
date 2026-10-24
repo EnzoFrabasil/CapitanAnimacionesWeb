@@ -93,6 +93,9 @@ model Temporada {
   nombre             String
   anio               Int
   inscripcionAbierta Boolean  @default(false)
+  // Cantidad total de lugares (cada niño inscripto ocupa uno, salvo los cancelados).
+  // Se muestra como "quedan N lugares" en la página de inicio. Null = sin cupo.
+  cupo               Int?
   createdAt          DateTime @default(now())
 
   semanas       Semana[]
@@ -198,4 +201,28 @@ model InscripcionDia {
 
   @@id([inscripcionNinoId, fecha])
   @@index([fecha])
+}
+
+// ── Contenido editable de la página de inicio ────────────────────────────────
+
+// Cada vez que un administrador publica la página de inicio se guarda una
+// versión nueva (la última es la publicada). Se conservan las últimas para
+// poder volver atrás. `datos` sigue el esquema de src/lib/contenido/esquema.ts.
+model ContenidoSitio {
+  id        Int      @id @default(autoincrement())
+  datos     Json
+  creadoEn  DateTime @default(now())
+
+  @@index([creadoEn])
+}
+
+// Imágenes subidas desde el editor de la página de inicio. Se guardan en la
+// base (ya achicadas en el navegador) y se sirven desde /imagenes/<id>.
+// Son inmutables: cambiar una imagen sube una nueva.
+model Imagen {
+  id       String   @id @default(cuid())
+  tipo     String
+  datos    Bytes
+  tamano   Int
+  creadaEn DateTime @default(now())
 }

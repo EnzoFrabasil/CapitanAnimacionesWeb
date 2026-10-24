@@ -1,11 +1,10 @@
-import { urlWhatsapp } from "@/config/sitio";
 import { IconoWhatsapp } from "./iconos";
 
 /** Botón flotante para escribirle a la colonia por WhatsApp. */
-export function BotonWhatsapp() {
+export function BotonWhatsapp({ url }: { url: string }) {
   return (
     <a
-      href={urlWhatsapp}
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escribinos por WhatsApp"
