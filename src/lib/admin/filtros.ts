@@ -16,6 +16,8 @@ export const filtrosSchema = z.object({
   semana: entero.optional().catch(undefined),
   estado: z.enum(ESTADOS).optional().catch(undefined),
   duplicados: z.literal("1").optional().catch(undefined),
+  /** Solo los que tienen información adicional (alergias, medicación, etc.). */
+  info: z.literal("1").optional().catch(undefined),
   q: z.string().trim().max(100).optional().catch(undefined).transform((v) => v || undefined),
 });
 
@@ -44,6 +46,7 @@ export function condicionDeFiltros(filtros: Filtros, temporadaId: number): Prism
   else if (filtros.grupo !== undefined) y.push({ grupoEdadId: filtros.grupo });
   if (filtros.estado) y.push({ estado: filtros.estado });
   if (filtros.duplicados) y.push({ posibleDuplicado: true });
+  if (filtros.info) y.push({ nino: { infoAdicional: { not: null } } }, { NOT: { nino: { infoAdicional: "" } } });
 
   // Incluye a los que van por días sueltos dentro de la opción u horario.
   if (filtros.semana !== undefined) {
@@ -56,12 +59,13 @@ export function condicionDeFiltros(filtros: Filtros, temporadaId: number): Prism
     y.push({ OR: [{ semanas: { some: { semana } } }, { dias: { some: { semana } } }] });
   }
 
-  // Cada palabra tiene que aparecer en el nombre, el apellido o el DNI.
+  // Cada palabra tiene que aparecer en el nombre, el apellido, el DNI o la información adicional.
   for (const palabra of filtros.q?.split(/\s+/) ?? []) {
     const digitos = palabra.replace(/[.\s]/g, "");
     const o: Prisma.InscripcionNinoWhereInput[] = [
       { nino: { nombre: { contains: palabra, mode: "insensitive" } } },
       { nino: { apellido: { contains: palabra, mode: "insensitive" } } },
+      { nino: { infoAdicional: { contains: palabra, mode: "insensitive" } } },
     ];
     if (/^\d+$/.test(digitos)) o.push({ nino: { dni: { contains: digitos } } });
     y.push({ OR: o });

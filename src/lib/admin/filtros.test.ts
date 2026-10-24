@@ -5,7 +5,7 @@ describe("leerFiltros", () => {
   it("lee valores válidos e ignora los inválidos", () => {
     expect(
       leerFiltros({ temporada: "2", grupo: "sin", horario: "8:30", estado: "NADA", semana: "x", duplicados: "1", q: "  ana  " }),
-    ).toEqual({ temporada: 2, grupo: "sin", horario: undefined, estado: undefined, semana: undefined, duplicados: "1", q: "ana" });
+    ).toEqual({ temporada: 2, grupo: "sin", horario: undefined, estado: undefined, semana: undefined, duplicados: "1", info: undefined, q: "ana" });
     expect(leerFiltros({ grupo: ["3", "4"], q: "" })).toMatchObject({ grupo: 3, q: undefined });
   });
 
@@ -24,15 +24,25 @@ describe("condicionDeFiltros", () => {
         OR: [
           { nino: { nombre: { contains: "García", mode: "insensitive" } } },
           { nino: { apellido: { contains: "García", mode: "insensitive" } } },
+          { nino: { infoAdicional: { contains: "García", mode: "insensitive" } } },
         ],
       },
       {
         OR: [
           { nino: { nombre: { contains: "45.123", mode: "insensitive" } } },
           { nino: { apellido: { contains: "45.123", mode: "insensitive" } } },
+          { nino: { infoAdicional: { contains: "45.123", mode: "insensitive" } } },
           { nino: { dni: { contains: "45123" } } },
         ],
       },
+    ]);
+  });
+
+  it("filtro de información adicional deja afuera los vacíos", () => {
+    const where = condicionDeFiltros(leerFiltros({ info: "1" }), 1);
+    expect((where.AND as unknown[]).slice(1)).toEqual([
+      { nino: { infoAdicional: { not: null } } },
+      { NOT: { nino: { infoAdicional: "" } } },
     ]);
   });
 

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
 import { IconoWhatsapp } from "@/components/marca/iconos";
-import type { FilaInscripto as Fila } from "@/lib/admin/consultas";
+import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { fechaAIso } from "@/lib/dominio/fechas";
-import { describirAsistencia, type Opcion } from "@/lib/dominio/opciones";
+import { describirAsistencia, formatearPrecio, type Opcion } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { ESTADOS } from "@/lib/validacion/admin";
 import { eliminarInscripto, guardarEdicionRapida } from "./acciones";
@@ -24,20 +24,31 @@ function IconoLapiz({ className }: { className?: string }) {
   );
 }
 
+function IconoFlecha({ abierta }: { abierta: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`size-4 transition-transform ${abierta ? "rotate-90" : ""}`}>
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
 /**
- * Fila del listado de inscriptos. Con el lápiz se editan en el lugar los datos
+ * Fila del listado de inscriptos. La flecha abre una ficha rápida de solo lectura
+ * (información adicional, contactos, hermanos y total de la familia). Con el lápiz se editan en el lugar los datos
  * principales; desde ahí también se puede eliminar. La asistencia y el resto
  * de los datos se editan en el detalle.
  */
 export function FilaInscripto({
   fila: f,
   opciones,
+  familia,
   grupos,
   seleccionada,
   alternarSeleccion,
 }: {
   fila: Fila;
   opciones: Opcion[];
+  familia: ResumenFamilia | undefined;
   grupos: { id: number; nombre: string }[];
   seleccionada: boolean;
   alternarSeleccion: (marcada: boolean) => void;
@@ -54,6 +65,7 @@ export function FilaInscripto({
     contactoWhatsapp: contacto ? formatearWhatsapp(contacto.responsable.whatsapp) : "",
   });
   const [editando, setEditando] = useState(false);
+  const [abierta, setAbierta] = useState(false);
   const [valores, setValores] = useState(inicial);
   const [resultado, setResultado] = useState<ResultadoAccion | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -98,6 +110,9 @@ export function FilaInscripto({
   });
   const detalleDias = f.modalidad === "POR_DIA" ? f.dias.map((d) => formatearDiaCorto(fechaAIso(d.fecha))).join(", ") : undefined;
   const nombreCompleto = `${f.nino.nombre} ${f.nino.apellido}`;
+  const info = f.nino.infoAdicional?.trim();
+  const hermanos = familia?.chicos.filter((c) => c.id !== f.id) ?? [];
+  const otrosContactos = f.nino.responsables.length - 1;
 
   return (
     <>
@@ -110,6 +125,19 @@ export function FilaInscripto({
             aria-label={`Seleccionar a ${f.nino.nombre} ${f.nino.apellido}`}
             className="mt-1 size-4 accent-marino"
           />
+        </td>
+        <td className="py-3 pl-1">
+          <button
+            type="button"
+            onClick={() => setAbierta((a) => !a)}
+            aria-expanded={abierta}
+            aria-controls={`ficha-${f.id}`}
+            aria-label={`${abierta ? "Cerrar" : "Ver"} ficha rápida de ${nombreCompleto}`}
+            title={abierta ? "Cerrar ficha" : "Ver ficha rápida"}
+            className="mt-0.5 rounded-md p-1 text-marino hover:bg-marino/10"
+          >
+            <IconoFlecha abierta={abierta} />
+          </button>
         </td>
         <td className="px-3 py-3 whitespace-nowrap">
           {formatearFechaHora(f.inscripcion.fechaAlta)}
@@ -126,9 +154,22 @@ export function FilaInscripto({
               <Link href={`/admin/inscriptos/${f.id}`} className="font-semibold text-marino underline-offset-2 hover:underline">
                 {f.nino.apellido}, {f.nino.nombre}
               </Link>
-              {f.posibleDuplicado && (
-                <div className="mt-1">
-                  <InsigniaDuplicado />
+              {(info || hermanos.length > 0 || f.posibleDuplicado) && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {info && (
+                    <span title={info} className="inline-block rounded-full bg-rojo/10 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-rojo">
+                      Info adicional
+                    </span>
+                  )}
+                  {hermanos.length > 0 && (
+                    <span
+                      title={hermanos.map((h) => `${h.nombre} ${h.apellido}`).join(", ")}
+                      className="inline-block rounded-full bg-azul/15 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-marino"
+                    >
+                      {hermanos.length === 1 ? "1 hermano/a" : `${hermanos.length} hermanos`}
+                    </span>
+                  )}
+                  {f.posibleDuplicado && <InsigniaDuplicado />}
                 </div>
               )}
             </>
@@ -189,6 +230,11 @@ export function FilaInscripto({
                   {contacto.parentesco && `${contacto.parentesco} · `}
                   {formatearWhatsapp(contacto.responsable.whatsapp)}
                 </div>
+                {otrosContactos > 0 && (
+                  <div className="text-xs font-medium text-marino">
+                    +{otrosContactos} {otrosContactos === 1 ? "contacto" : "contactos"}
+                  </div>
+                )}
               </div>
               <a
                 href={`https://wa.me/${contacto.responsable.whatsapp.replace("+", "")}`}
@@ -237,9 +283,97 @@ export function FilaInscripto({
           )}
         </td>
       </tr>
+      {abierta && (
+        <tr id={`ficha-${f.id}`} className="bg-crema/40">
+          <td />
+          <td colSpan={10} className="px-3 pt-1 pb-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <section
+                aria-label="Información adicional"
+                className={`rounded-xl border p-3 ${info ? "border-rojo/30 bg-rojo/5" : "border-marino/10 bg-white"}`}
+              >
+                <h3 className={`mb-1 text-xs font-semibold tracking-wide uppercase ${info ? "text-rojo" : "text-marino"}`}>
+                  Información adicional
+                </h3>
+                <p className={`text-sm whitespace-pre-line ${info ? "font-medium text-rojo" : "text-texto/70"}`}>
+                  {info || "No cargaron nada."}
+                </p>
+                {f.notasAdmin && (
+                  <>
+                    <h3 className="mt-3 mb-1 text-xs font-semibold tracking-wide text-marino uppercase">Notas internas</h3>
+                    <p className="text-sm whitespace-pre-line">{f.notasAdmin}</p>
+                  </>
+                )}
+              </section>
+              <section aria-label="Contactos" className="rounded-xl border border-marino/10 bg-white p-3">
+                <h3 className="mb-1 text-xs font-semibold tracking-wide text-marino uppercase">Contactos</h3>
+                <ul className="space-y-2 text-sm">
+                  {f.nino.responsables.map((v) => (
+                    <li key={v.responsableId} className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-medium">
+                          {v.responsable.nombre} {v.responsable.apellido}
+                        </span>
+                        {v.parentesco && <span className="text-texto/80"> · {v.parentesco}</span>}
+                        {v.esPrincipal && <span className="ml-1 rounded-full bg-amarillo px-1.5 text-xs text-marino">Principal</span>}
+                        <div className="text-xs text-texto/80">
+                          {formatearWhatsapp(v.responsable.whatsapp)}
+                          {v.responsable.whatsappAlt && ` · otro: ${formatearWhatsapp(v.responsable.whatsappAlt)}`}
+                          {v.responsable.email && ` · ${v.responsable.email}`}
+                        </div>
+                      </div>
+                      <a
+                        href={`https://wa.me/${v.responsable.whatsapp.replace("+", "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Abrir WhatsApp con ${v.responsable.nombre} ${v.responsable.apellido}`}
+                        className="shrink-0 rounded-lg border border-verde/50 p-1 text-marino hover:bg-verde/10"
+                      >
+                        <IconoWhatsapp className="size-4" />
+                      </a>
+                    </li>
+                  ))}
+                  {f.nino.responsables.length === 0 && <li className="text-rojo">Sin contactos</li>}
+                </ul>
+              </section>
+              <section aria-label="Familia" className="rounded-xl border border-marino/10 bg-white p-3">
+                <h3 className="mb-1 text-xs font-semibold tracking-wide text-marino uppercase">Hermanos en la temporada</h3>
+                {hermanos.length === 0 ? (
+                  <p className="text-sm text-texto/70">No tiene hermanos inscriptos.</p>
+                ) : (
+                  <ul className="space-y-1 text-sm">
+                    {hermanos.map((h) => (
+                      <li key={h.id}>
+                        <Link href={`/admin/inscriptos/${h.id}`} className="font-medium text-marino underline-offset-2 hover:underline">
+                          {h.nombre} {h.apellido}
+                        </Link>
+                        <div className="text-xs text-texto/80">
+                          {h.grupo ?? "Sin grupo"} · {h.asistencia}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {familia && familia.chicos.length > 0 && (
+                  <p className="mt-3 border-t border-marino/10 pt-2 text-sm">
+                    Total de la familia: <strong className="tabular-nums">{formatearPrecio(familia.total.total)}</strong>
+                    {familia.total.descuento > 0 && (
+                      <span className="text-verde"> (descuento −{formatearPrecio(familia.total.descuento)})</span>
+                    )}
+                    {familia.total.incompleto && <span className="text-texto/70"> + días a confirmar</span>}
+                  </p>
+                )}
+                <Link href={`/admin/inscriptos/${f.id}`} className="mt-3 inline-block text-sm font-semibold text-marino underline">
+                  Ver ficha completa
+                </Link>
+              </section>
+            </div>
+          </td>
+        </tr>
+      )}
       {resultado && (
         <tr>
-          <td colSpan={10} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
+          <td colSpan={11} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
             {resultado.ok ? `${nombreCompleto}: ${resultado.mensaje}` : resultado.errores.join(" ")}
           </td>
         </tr>

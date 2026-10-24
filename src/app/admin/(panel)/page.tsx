@@ -3,10 +3,10 @@ import { Suspense } from "react";
 import { asignarSinGrupo } from "@/app/admin/(panel)/configuracion/acciones";
 import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
-import { contarSinGrupo, listarInscriptos, listarTemporadas, temporadaParaListado } from "@/lib/admin/consultas";
+import { contarSinGrupo, listarInscriptos, listarTemporadas, resumenFamilias, temporadaParaListado } from "@/lib/admin/consultas";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirAdmin } from "@/lib/auth/admin";
-import { aOpcion } from "@/lib/temporada";
+import { aOpcion, preciosDe } from "@/lib/temporada";
 import { TablaInscriptos } from "./TablaInscriptos";
 import { FiltrosListado } from "./FiltrosListado";
 
@@ -37,7 +37,13 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
 
   const [filas, sinGrupo] = await Promise.all([listarInscriptos(filtros, temporada), contarSinGrupo(temporada.id)]);
   const opciones = temporada.semanas.map(aOpcion);
-  const hayFiltros = Boolean(filtros.grupo || filtros.horario || filtros.semana || filtros.estado || filtros.duplicados || filtros.q);
+  const familias = await resumenFamilias(
+    temporada.id,
+    [...new Set(filas.map((f) => f.nino.familiaId))],
+    opciones,
+    preciosDe(temporada),
+  );
+  const hayFiltros = Boolean(filtros.grupo || filtros.horario || filtros.semana || filtros.estado || filtros.duplicados || filtros.info || filtros.q);
 
   return (
     <div className="space-y-5">
@@ -95,6 +101,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
         <TablaInscriptos
           filas={filas}
           opciones={opciones}
+          familias={familias}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
         />
       )}

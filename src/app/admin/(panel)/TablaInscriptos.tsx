@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { FilaInscripto as Fila } from "@/lib/admin/consultas";
+import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { Opcion } from "@/lib/dominio/opciones";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { eliminarInscriptos } from "./acciones";
@@ -11,11 +11,14 @@ import { FilaInscripto } from "./FilaInscripto";
 export function TablaInscriptos({
   filas,
   opciones,
+  familias,
   grupos,
 }: {
   filas: Fila[];
   /** Todas las opciones de la temporada (también las desactivadas). */
   opciones: Opcion[];
+  /** Hermanos y total de cada familia en la temporada. */
+  familias: Record<number, ResumenFamilia>;
   grupos: { id: number; nombre: string }[];
 }) {
   const [seleccion, setSeleccion] = useState<ReadonlySet<number>>(new Set());
@@ -97,6 +100,9 @@ export function TablaInscriptos({
                   className="size-4 accent-marino"
                 />
               </th>
+              <th scope="col" className="py-3 pl-1">
+                <span className="sr-only">Ver ficha rápida</span>
+              </th>
               <th scope="col" className="px-3 py-3">Alta</th>
               <th scope="col" className="px-3 py-3">Niño/a</th>
               <th scope="col" className="px-3 py-3">Documento</th>
@@ -116,6 +122,7 @@ export function TablaInscriptos({
                 key={f.id}
                 fila={f}
                 opciones={opciones}
+                familia={familias[f.nino.familiaId]}
                 grupos={grupos}
                 seleccionada={seleccion.has(f.id)}
                 alternarSeleccion={(marcada) => alternar(f.id, marcada)}

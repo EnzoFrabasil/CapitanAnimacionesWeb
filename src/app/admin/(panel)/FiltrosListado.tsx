@@ -87,8 +87,8 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opcio
         ],
         (v) => aplicar({ estado: (v || undefined) as Filtros["estado"] }),
       )}
-      <div className="flex items-end">
-        <label className="flex cursor-pointer items-center gap-2 py-2 text-sm font-medium text-marino">
+      <div className="flex flex-col justify-end">
+        <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-medium text-marino">
           <input
             type="checkbox"
             checked={filtros.duplicados === "1"}
@@ -96,6 +96,15 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opcio
             className="size-4 accent-marino"
           />
           Posibles duplicados
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-medium text-marino">
+          <input
+            type="checkbox"
+            checked={filtros.info === "1"}
+            onChange={(e) => aplicar({ info: e.target.checked ? "1" : undefined })}
+            className="size-4 accent-marino"
+          />
+          Con información adicional
         </label>
       </div>
       <form
@@ -115,7 +124,7 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opcio
             type="search"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Nombre, apellido o DNI"
+            placeholder="Nombre, apellido, DNI o algo de la información adicional (ej. maní)"
             className={claseInput}
           />
           <button type="submit" className={claseBoton.secundario}>
