@@ -1,34 +1,28 @@
 import { z } from "zod";
 import { LARGO_MAXIMO, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
-import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { calcularEdad, validarFechaNacimiento, type RangoEdadPermitida } from "@/lib/dominio/edad";
-import { periodo, type HorariosTurno } from "@/lib/dominio/periodo";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
+import { diasDeOpcion, horariosElegidos, type Opcion, type Precios } from "@/lib/dominio/opciones";
 import { normalizarWhatsapp, separarTelefono, soloCodigoDePais } from "@/lib/dominio/telefono";
 
 // El mismo esquema valida en el formulario (en vivo) y en la API.
 // No importa nada de Prisma para poder usarse en el navegador.
 
-export const TURNOS = ["MANANA", "TARDE"] as const;
 export const MODALIDADES = ["SEMANAS", "POR_DIA"] as const;
 
 /** Error de la casilla de aceptación (va aparte del schema: no es un dato de la inscripción). */
 export const MENSAJE_FALTA_ACEPTAR = "Marcá esta casilla para poder enviar la inscripción.";
 
 export interface ContextoInscripcion {
-  /** Semanas que se ofrecen (solo las activas). */
-  semanas: { id: number; numero: number; fechaInicio: string; fechaFin: string }[];
-  /** Turnos que se ofrecen. Si no se indica, todos. */
-  turnos?: readonly (typeof TURNOS)[number][];
-  /** Modalidades que se ofrecen. Si no se indica, todas. */
+  /** Opciones de inscripción que se ofrecen (solo las activas). */
+  opciones: Opcion[];
+  /** SEMANAS = por opciones; POR_DIA = días sueltos. Si no se indica, solo por opciones. */
   modalidades?: readonly (typeof MODALIDADES)[number][];
+  /** Precios para mostrar el total estimado (no se usan para validar). */
+  precios?: Precios;
   /** Edad permitida en la temporada. Si no se indica, la de src/config/inscripcion.ts. */
   edades?: RangoEdadPermitida;
-  /** Cómo se llama cada período ("Semana", "Quincena"). Si no se indica, "Semana". */
-  nombrePeriodo?: string;
-  /** Horario de cada turno, para mostrar en el formulario. */
-  horarios?: HorariosTurno;
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
   hoy: string;
 }
@@ -105,11 +99,8 @@ const CAMPOS_ASISTENCIA = new Set(["modalidad", "semanas", "dias"]);
 
 export function crearNinoSchema(contexto: ContextoInscripcion) {
   const hoy = fechaDesdeIso(contexto.hoy);
-  const semanaIds = new Set(contexto.semanas.map((s) => s.id));
-  const diasValidos = new Set(diasHabilesDeSemanas(contexto.semanas));
-  const turnos = contexto.turnos ?? TURNOS;
-  const modalidades = contexto.modalidades ?? MODALIDADES;
-  const p = periodo(contexto.nombrePeriodo);
+  const opciones = new Map(contexto.opciones.map((o) => [o.id, o]));
+  const modalidades = contexto.modalidades ?? (["SEMANAS"] as const);
 
   return z
     .object({
@@ -136,30 +127,38 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
           if (error) ctx.addIssue({ code: "custom", message: error });
         }),
       infoAdicional: textoOpcional(LARGO_MAXIMO.infoAdicional),
-      turno: z.enum(TURNOS, "Elegí el turno.").refine((t) => turnos.includes(t), "Ese turno no está disponible."),
       modalidad: z
         .enum(MODALIDADES, "Elegí cómo va a asistir.")
         .refine((m) => modalidades.includes(m), "Esa forma de asistir no está disponible."),
       semanas: z.array(z.number().int()).default([]),
-      dias: z.array(z.string()).default([]),
+      dias: z.array(z.object({ fecha: z.string(), opcion: z.number().int() })).default([]),
     })
     .superRefine(
       (nino, ctx) => {
+        const todas = contexto.opciones;
         if (nino.modalidad === "SEMANAS") {
           if (nino.semanas.length === 0) {
-            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Elegí a qué ${p.plural.toLowerCase()} va a asistir.` });
-          } else if (nino.semanas.some((id) => !semanaIds.has(id))) {
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Elegí al menos una opción." });
+          } else if (nino.semanas.some((id) => !opciones.has(id))) {
             ctx.addIssue({ code: "custom", path: ["semanas"], message: "Alguna de las opciones elegidas no es válida." });
+          } else if (horariosElegidos(todas, nino.semanas).length > 1) {
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Elegí opciones de un mismo horario." });
           }
         } else {
+          const fueraDeFecha = (d: { fecha: string; opcion: number }) => {
+            const opcion = opciones.get(d.opcion);
+            return !opcion || !diasDeOpcion(opcion).includes(d.fecha);
+          };
           if (nino.dias.length === 0) {
             ctx.addIssue({ code: "custom", path: ["dias"], message: "Elegí al menos un día." });
-          } else if (nino.dias.some((d) => !diasValidos.has(d))) {
+          } else if (nino.dias.some(fueraDeFecha)) {
             ctx.addIssue({
               code: "custom",
               path: ["dias"],
               message: "Solo se pueden elegir días de lunes a viernes dentro de las fechas de la colonia.",
             });
+          } else if (horariosElegidos(todas, nino.dias.map((d) => d.opcion)).length > 1) {
+            ctx.addIssue({ code: "custom", path: ["dias"], message: "Elegí días de un mismo horario." });
           }
         }
       },
@@ -171,7 +170,10 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
       ...nino,
       // Solo se guarda la asistencia de la modalidad elegida, sin repetidos.
       semanas: nino.modalidad === "SEMANAS" ? [...new Set(nino.semanas)].sort((a, b) => a - b) : [],
-      dias: nino.modalidad === "POR_DIA" ? [...new Set(nino.dias)].sort() : [],
+      dias:
+        nino.modalidad === "POR_DIA"
+          ? [...new Map(nino.dias.map((d) => [d.fecha, d])).values()].sort((a, b) => a.fecha.localeCompare(b.fecha))
+          : [],
     }));
 }
 

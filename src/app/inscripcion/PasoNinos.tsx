@@ -1,11 +1,19 @@
 "use client";
 
 import { EDAD_MAXIMA, EDAD_MINIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
-import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
-import { etiquetaModalidad, etiquetaTurno, periodo } from "@/lib/dominio/periodo";
+import {
+  claveHorario,
+  diasDeOpcion,
+  formatearPrecio,
+  horarios,
+  horariosElegidos,
+  rangoDeFechas,
+  textoHorario,
+  type Opcion,
+} from "@/lib/dominio/opciones";
 import { formatearDiaCorto } from "@/lib/formato";
-import { MODALIDADES, TURNOS, edadParaMostrar, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
+import { edadParaMostrar, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CampoTexto, Casilla, MensajeError, OpcionesBotones, claseInput } from "./campos";
 import { ACENTOS, type ErrorDe, type NinoForm } from "./tipos";
 
@@ -24,7 +32,6 @@ interface Props {
 
 export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar, tocar, agregar, quitar, errorDe }: Props) {
   const hoy = fechaDesdeIso(contexto.hoy);
-  const turnos = contexto.turnos ?? TURNOS;
   const fechaMinima = new Date(hoy);
   const edades = contexto.edades ?? { minima: EDAD_MINIMA, maxima: EDAD_MAXIMA };
   fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - edades.maxima - 1);
@@ -116,26 +123,6 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
               </div>
 
               <div className="sm:col-span-2">
-                {turnos.length === 1 ? (
-                  <p>
-                    <span className="font-medium text-marino">Turno:</span> {etiquetaTurno(turnos[0], contexto.horarios)}
-                  </p>
-                ) : (
-                  <OpcionesBotones
-                    nombre={id("turno")}
-                    leyenda="Turno"
-                    opciones={turnos.map((t) => ({ valor: t, etiqueta: etiquetaTurno(t, contexto.horarios) }))}
-                    valor={n.turno}
-                    onCambio={(turno) => {
-                      cambiar(i, { turno });
-                      tocar(id("turno"));
-                    }}
-                    error={errorDe(id("turno"))}
-                  />
-                )}
-              </div>
-
-              <div className="sm:col-span-2">
                 <Asistencia nino={n} indice={i} contexto={contexto} cambiar={cambiar} tocar={tocar} errorDe={errorDe} />
               </div>
             </div>
@@ -160,6 +147,18 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
   );
 }
 
+function Precio({ pesos }: { pesos: number | null | undefined }) {
+  if (!pesos) return null;
+  return <span className="font-titulo font-semibold whitespace-nowrap text-marino">{formatearPrecio(pesos)}</span>;
+}
+
+const fechas = (desde: string, hasta: string) => `${formatearDiaCorto(desde)} al ${formatearDiaCorto(hasta)}`;
+
+/**
+ * Opciones de inscripción agrupadas por horario. Se pueden elegir varias, pero
+ * todas del mismo horario: las de los otros horarios quedan deshabilitadas.
+ * Si un horario tiene más de una opción, "Colonia completa" las marca todas.
+ */
 function Asistencia({
   nino,
   indice,
@@ -176,24 +175,40 @@ function Asistencia({
   errorDe: ErrorDe;
 }) {
   const base = `ninos.${indice}`;
-  const modalidades = contexto.modalidades ?? MODALIDADES;
-  const p = periodo(contexto.nombrePeriodo);
-  const todasIds = contexto.semanas.map((s) => s.id);
-  const todas = todasIds.length > 0 && todasIds.every((sid) => nino.semanas.includes(sid));
+  const modalidades = contexto.modalidades ?? ["SEMANAS"];
+  const grupos = horarios(contexto.opciones);
+  const precioCompleta = contexto.precios?.coloniaCompleta;
+  const precioDia = contexto.precios?.dia;
 
-  const alternarSemana = (semanaId: number, marcada: boolean) => {
+  // Horario ya elegido (por opciones o por días): los demás quedan deshabilitados.
+  const elegido =
+    nino.modalidad === "SEMANAS"
+      ? horariosElegidos(contexto.opciones, nino.semanas)[0]
+      : horariosElegidos(
+          contexto.opciones,
+          nino.dias.map((d) => d.opcion),
+        )[0];
+  const otroHorario = (clave: string) => elegido !== undefined && elegido !== clave;
+
+  const alternarOpcion = (opcionId: number, marcada: boolean) => {
     cambiar(indice, (actual) => ({
-      semanas: marcada ? [...actual.semanas, semanaId] : actual.semanas.filter((s) => s !== semanaId),
+      semanas: marcada ? [...actual.semanas, opcionId] : actual.semanas.filter((s) => s !== opcionId),
     }));
     tocar(`${base}.semanas`);
   };
 
-  const alternarDia = (dia: string) => {
+  const alternarDia = (fecha: string, opcion: number) => {
     cambiar(indice, (actual) => ({
-      dias: actual.dias.includes(dia) ? actual.dias.filter((d) => d !== dia) : [...actual.dias, dia],
+      dias: actual.dias.some((d) => d.fecha === fecha)
+        ? actual.dias.filter((d) => d.fecha !== fecha)
+        : [...actual.dias, { fecha, opcion }],
     }));
     tocar(`${base}.dias`);
   };
+
+  const avisoUnHorario = grupos.length > 1 && elegido !== undefined && (
+    <p className="text-sm text-texto/80">Se puede elegir un solo horario. Para cambiarlo, desmarcá lo elegido.</p>
+  );
 
   return (
     <div className="space-y-3">
@@ -201,78 +216,112 @@ function Asistencia({
         <OpcionesBotones
           nombre={`${base}.modalidad`}
           leyenda="¿Cómo va a asistir?"
-          opciones={modalidades.map((m) => ({ valor: m, etiqueta: etiquetaModalidad(m, p) }))}
+          opciones={[
+            { valor: "SEMANAS", etiqueta: "Opciones de la colonia" },
+            { valor: "POR_DIA", etiqueta: "Días sueltos" },
+          ]}
           valor={nino.modalidad}
           onCambio={(modalidad) => cambiar(indice, { modalidad })}
         />
       ) : (
-        <p className="font-medium text-marino">{nino.modalidad === "SEMANAS" ? `¿Qué ${p.plural.toLowerCase()} va a asistir?` : "¿Qué días va a asistir?"}</p>
+        <p className="font-medium text-marino">¿A qué va a asistir?</p>
       )}
 
       {nino.modalidad === "SEMANAS" ? (
         <fieldset aria-describedby={errorDe(`${base}.semanas`) ? `${base}.semanas-error` : undefined}>
-          <legend className="sr-only">{p.plural}</legend>
-          <div className="space-y-2">
-            <Casilla
-              id={`${base}.semanas.todas`}
-              etiqueta="Colonia completa"
-              destacada
-              marcada={todas}
-              onCambio={(marcada) => {
-                cambiar(indice, { semanas: marcada ? todasIds : [] });
-                tocar(`${base}.semanas`);
-              }}
-            />
-            {contexto.semanas.map((s) => (
-              <Casilla
-                key={s.id}
-                id={`${base}.semanas.${s.id}`}
-                etiqueta={
-                  <>
-                    {p.singular} {s.numero}{" "}
-                    <span className="text-texto/80">
-                      ({formatearDiaCorto(s.fechaInicio)} al {formatearDiaCorto(s.fechaFin)})
-                    </span>
-                  </>
-                }
-                marcada={nino.semanas.includes(s.id)}
-                onCambio={(marcada) => alternarSemana(s.id, marcada)}
-              />
-            ))}
+          <legend className="sr-only">Opciones de la colonia</legend>
+          <div className="space-y-4">
+            {avisoUnHorario}
+            {grupos.map((g) => {
+              const ids = g.opciones.map((o) => o.id);
+              const todas = ids.every((oid) => nino.semanas.includes(oid));
+              const bloqueado = otroHorario(g.clave);
+              return (
+                <div key={g.clave} className="space-y-2">
+                  <p className="text-sm font-semibold text-marino">Horario: {g.texto}</p>
+                  {g.opciones.length > 1 && (
+                    <Casilla
+                      id={`${base}.semanas.completa.${g.clave}`}
+                      etiqueta={
+                        <>
+                          Colonia completa{" "}
+                          <span className="font-normal text-texto/80">
+                            ({fechas(rangoDeFechas(g.opciones).desde, rangoDeFechas(g.opciones).hasta)})
+                          </span>
+                        </>
+                      }
+                      extra={<Precio pesos={precioCompleta} />}
+                      destacada
+                      deshabilitada={bloqueado}
+                      marcada={todas}
+                      onCambio={(marcada) => {
+                        cambiar(indice, { semanas: marcada ? ids : [] });
+                        tocar(`${base}.semanas`);
+                      }}
+                    />
+                  )}
+                  {g.opciones.map((o: Opcion) => (
+                    <Casilla
+                      key={o.id}
+                      id={`${base}.semanas.${o.id}`}
+                      etiqueta={
+                        <>
+                          {o.nombre} <span className="text-texto/80">({fechas(o.fechaInicio, o.fechaFin)})</span>
+                        </>
+                      }
+                      extra={<Precio pesos={o.precio} />}
+                      deshabilitada={bloqueado}
+                      marcada={nino.semanas.includes(o.id)}
+                      onCambio={(marcada) => alternarOpcion(o.id, marcada)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </div>
           <MensajeError id={`${base}.semanas-error`} mensaje={errorDe(`${base}.semanas`)} />
         </fieldset>
       ) : (
         <fieldset aria-describedby={errorDe(`${base}.dias`) ? `${base}.dias-error` : undefined}>
-          <legend className="sr-only">Días</legend>
-          <div className="space-y-3">
-            {contexto.semanas.map((s) => (
-              <div key={s.id}>
-                <p className="mb-1 text-sm font-semibold text-marino">
-                  {p.singular} {s.numero}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {diasHabilesDeSemanas([s]).map((dia) => {
-                    const elegido = nino.dias.includes(dia);
-                    return (
-                      <button
-                        key={dia}
-                        type="button"
-                        aria-pressed={elegido}
-                        onClick={() => alternarDia(dia)}
-                        className={`min-w-20 rounded-xl border-2 px-3 py-2 text-sm font-medium capitalize transition ${
-                          elegido
-                            ? "border-marino bg-marino text-white"
-                            : "border-marino/20 bg-white hover:border-marino/50"
-                        }`}
-                      >
-                        {formatearDiaCorto(dia)}
-                      </button>
-                    );
-                  })}
+          <legend className="sr-only">Días sueltos</legend>
+          <div className="space-y-4">
+            {precioDia ? (
+              <p className="text-sm">
+                Cada día: <Precio pesos={precioDia} />
+              </p>
+            ) : null}
+            {avisoUnHorario}
+            {contexto.opciones.map((o) => {
+              const bloqueado = otroHorario(claveHorario(o));
+              return (
+                <div key={o.id} className={bloqueado ? "opacity-50" : ""}>
+                  <p className="mb-1 text-sm font-semibold text-marino">
+                    {o.nombre} · {textoHorario(o)}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {diasDeOpcion(o).map((dia) => {
+                      const marcado = nino.dias.some((d) => d.fecha === dia && d.opcion === o.id);
+                      // Un mismo día no se puede elegir dos veces (desde otra opción del mismo horario).
+                      const ocupado = !marcado && nino.dias.some((d) => d.fecha === dia);
+                      return (
+                        <button
+                          key={dia}
+                          type="button"
+                          aria-pressed={marcado}
+                          disabled={bloqueado || ocupado}
+                          onClick={() => alternarDia(dia, o.id)}
+                          className={`min-w-20 rounded-xl border-2 px-3 py-2 text-sm font-medium capitalize transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            marcado ? "border-marino bg-marino text-white" : "border-marino/20 bg-white hover:border-marino/50"
+                          }`}
+                        >
+                          {formatearDiaCorto(dia)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <MensajeError id={`${base}.dias-error`} mensaje={errorDe(`${base}.dias`)} />
         </fieldset>

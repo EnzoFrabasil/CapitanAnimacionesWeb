@@ -7,9 +7,9 @@ import { IconoWhatsapp } from "@/components/marca/iconos";
 import type { FilaInscripto as Fila } from "@/lib/admin/consultas";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { fechaAIso } from "@/lib/dominio/fechas";
-import { ETIQUETA_ESTADO, ETIQUETA_TURNO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
+import { describirAsistencia, type Opcion } from "@/lib/dominio/opciones";
+import { ETIQUETA_ESTADO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { ESTADOS } from "@/lib/validacion/admin";
-import { TURNOS } from "@/lib/validacion/inscripcion";
 import { eliminarInscripto, guardarEdicionRapida } from "./acciones";
 
 const claseCampo = "w-full min-w-0 rounded-lg border-2 border-marino/20 bg-white px-2 py-1 text-sm focus:border-azul focus:outline-none";
@@ -31,16 +31,13 @@ function IconoLapiz({ className }: { className?: string }) {
  */
 export function FilaInscripto({
   fila: f,
-  totalSemanas,
-  inicialPeriodo,
+  opciones,
   grupos,
   seleccionada,
   alternarSeleccion,
 }: {
   fila: Fila;
-  totalSemanas: number;
-  /** "S" de semana, "Q" de quincena: "Q1, Q2" en la columna Asistencia. */
-  inicialPeriodo: string;
+  opciones: Opcion[];
   grupos: { id: number; nombre: string }[];
   seleccionada: boolean;
   alternarSeleccion: (marcada: boolean) => void;
@@ -51,7 +48,6 @@ export function FilaInscripto({
     apellido: f.nino.apellido,
     dni: f.nino.dni,
     grupoEdadId: f.grupoEdadId ? String(f.grupoEdadId) : "",
-    turno: f.turno,
     estado: f.estado,
     contactoNombre: contacto?.responsable.nombre ?? "",
     contactoApellido: contacto?.responsable.apellido ?? "",
@@ -75,7 +71,6 @@ export function FilaInscripto({
       const r = await guardarEdicionRapida(f.id, {
         nino: { nombre: valores.nombre, apellido: valores.apellido, dni: valores.dni },
         grupoEdadId: valores.grupoEdadId,
-        turno: valores.turno,
         estado: valores.estado,
         contacto: contacto
           ? { nombre: valores.contactoNombre, apellido: valores.contactoApellido, whatsapp: valores.contactoWhatsapp }
@@ -96,15 +91,11 @@ export function FilaInscripto({
     iniciar(async () => setResultado(await eliminarInscripto(f.id)));
   };
 
-  const asistencia =
-    f.modalidad === "SEMANAS"
-      ? f.semanas.length === totalSemanas
-        ? "Colonia completa"
-        : f.semanas
-            .map((s) => `${inicialPeriodo}${s.semana.numero}`)
-            .sort()
-            .join(", ")
-      : `${f.dias.length} ${f.dias.length === 1 ? "día" : "días"}`;
+  const asistencia = describirAsistencia(opciones, {
+    modalidad: f.modalidad,
+    opciones: f.semanas.map((s) => s.semanaId),
+    dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+  });
   const detalleDias = f.modalidad === "POR_DIA" ? f.dias.map((d) => formatearDiaCorto(fechaAIso(d.fecha))).join(", ") : undefined;
   const nombreCompleto = `${f.nino.nombre} ${f.nino.apellido}`;
 
@@ -163,19 +154,6 @@ export function FilaInscripto({
             </select>
           ) : (
             (f.grupoEdad?.nombre ?? <InsigniaSinGrupo />)
-          )}
-        </td>
-        <td className="px-3 py-3">
-          {editando ? (
-            <select aria-label="Turno" value={valores.turno} onChange={(e) => cambiar("turno", e.target.value)} className={claseCampo}>
-              {TURNOS.map((t) => (
-                <option key={t} value={t}>
-                  {ETIQUETA_TURNO[t]}
-                </option>
-              ))}
-            </select>
-          ) : (
-            ETIQUETA_TURNO[f.turno]
           )}
         </td>
         <td className="px-3 py-3" title={detalleDias}>
@@ -261,7 +239,7 @@ export function FilaInscripto({
       </tr>
       {resultado && (
         <tr>
-          <td colSpan={11} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
+          <td colSpan={10} className={`px-3 pb-3 text-sm font-medium ${resultado.ok ? "text-marino" : "text-rojo"}`} role={resultado.ok ? "status" : "alert"}>
             {resultado.ok ? `${nombreCompleto}: ${resultado.mensaje}` : resultado.errores.join(" ")}
           </td>
         </tr>

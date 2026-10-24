@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { crearInscripcionSchema, edadParaMostrar, type ContextoInscripcion } from "./inscripcion";
 
+const opcion = (id: number, numero: number, fechaInicio: string, fechaFin: string, horaInicio = "08:30", horaFin = "12:30") => ({
+  id,
+  numero,
+  nombre: `Quincena ${numero}`,
+  fechaInicio,
+  fechaFin,
+  horaInicio,
+  horaFin,
+  precio: 130000,
+});
+
 const contexto: ContextoInscripcion = {
   hoy: "2026-10-23",
-  semanas: [
-    { id: 10, numero: 1, fechaInicio: "2027-01-04", fechaFin: "2027-01-08" },
-    { id: 11, numero: 2, fechaInicio: "2027-01-11", fechaFin: "2027-01-15" },
+  modalidades: ["SEMANAS", "POR_DIA"],
+  opciones: [
+    opcion(10, 1, "2027-01-04", "2027-01-08"),
+    opcion(11, 2, "2027-01-11", "2027-01-15"),
+    opcion(12, 3, "2027-01-04", "2027-01-15", "14:00", "18:00"),
   ],
 };
 const schema = crearInscripcionSchema(contexto);
@@ -25,10 +38,9 @@ const nino = {
   dni: "50.111.222",
   fechaNacimiento: "2019-05-01",
   infoAdicional: "",
-  turno: "MANANA",
   modalidad: "SEMANAS",
   semanas: [11, 10, 10],
-  dias: ["2027-01-05"],
+  dias: [{ fecha: "2027-01-05", opcion: 10 }],
 };
 
 function errores(datos: unknown) {
@@ -38,17 +50,17 @@ function errores(datos: unknown) {
 }
 
 describe("crearInscripcionSchema", () => {
-  it("rechaza turnos y formas de asistir desactivados en la temporada", () => {
-    const soloTarde = crearInscripcionSchema({ ...contexto, turnos: ["TARDE"], modalidades: ["SEMANAS"] });
-    const r = soloTarde.safeParse({
-      contactos: [contacto],
-      ninos: [nino, { ...nino, turno: "TARDE", modalidad: "POR_DIA" }],
-    });
-    expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.path.join("."))).toEqual(
-      expect.arrayContaining(["ninos.0.turno", "ninos.1.modalidad"]),
-    );
-    expect(soloTarde.safeParse({ contactos: [contacto], ninos: [{ ...nino, turno: "TARDE" }] }).success).toBe(true);
+  it("rechaza los días sueltos si la temporada no los permite", () => {
+    const sinDias = crearInscripcionSchema({ ...contexto, modalidades: ["SEMANAS"] });
+    const r = sinDias.safeParse({ contactos: [contacto], ninos: [nino, { ...nino, modalidad: "POR_DIA" }] });
+    expect(r.error?.issues.map((i) => i.path.join("."))).toEqual(["ninos.1.modalidad"]);
+  });
+
+  it("no deja mezclar opciones de distintos horarios", () => {
+    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [10, 12] }] })).toEqual([
+      "ninos.0.semanas: Elegí opciones de un mismo horario.",
+    ]);
+    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [12] }] })).toEqual([]);
   });
 
   it("acepta teléfonos con el código de país del formulario y uno sin número como vacío", () => {
@@ -72,29 +84,33 @@ describe("crearInscripcionSchema", () => {
     });
     expect(r.ninos[0].dni).toBe("50111222");
     expect(r.ninos[0].infoAdicional).toBeUndefined();
-    // Semanas sin repetir y descarta los días porque la modalidad es SEMANAS.
+    // Opciones sin repetir y descarta los días porque la modalidad es SEMANAS.
     expect(r.ninos[0].semanas).toEqual([10, 11]);
     expect(r.ninos[0].dias).toEqual([]);
   });
 
-  it("por día: acepta días hábiles de la temporada y descarta semanas", () => {
+  it("por día: acepta días hábiles de sus opciones y descarta las opciones", () => {
     const r = schema.parse({
       contactos: [contacto],
-      ninos: [{ ...nino, modalidad: "POR_DIA", dias: ["2027-01-15", "2027-01-04"] }],
+      ninos: [{ ...nino, modalidad: "POR_DIA", dias: [{ fecha: "2027-01-15", opcion: 11 }, { fecha: "2027-01-04", opcion: 10 }] }],
     });
-    expect(r.ninos[0].dias).toEqual(["2027-01-04", "2027-01-15"]);
+    expect(r.ninos[0].dias).toEqual([
+      { fecha: "2027-01-04", opcion: 10 },
+      { fecha: "2027-01-15", opcion: 11 },
+    ]);
     expect(r.ninos[0].semanas).toEqual([]);
   });
 
-  it("por día: rechaza fines de semana, días fuera de la temporada y lista vacía", () => {
-    const conDias = (dias: string[]) => ({ contactos: [contacto], ninos: [{ ...nino, modalidad: "POR_DIA", dias }] });
-    expect(errores(conDias(["2027-01-09"]))[0]).toMatch(/^ninos\.0\.dias: Solo se pueden/); // sábado
-    expect(errores(conDias(["2027-01-18"]))[0]).toMatch(/^ninos\.0\.dias/); // fuera
+  it("por día: rechaza fines de semana, días fuera de su opción, horarios mezclados y lista vacía", () => {
+    const conDias = (dias: { fecha: string; opcion: number }[]) => ({ contactos: [contacto], ninos: [{ ...nino, modalidad: "POR_DIA", dias }] });
+    expect(errores(conDias([{ fecha: "2027-01-09", opcion: 10 }]))[0]).toMatch(/^ninos\.0\.dias: Solo se pueden/); // sábado
+    expect(errores(conDias([{ fecha: "2027-01-12", opcion: 10 }]))[0]).toMatch(/^ninos\.0\.dias/); // fuera de la quincena 1
+    expect(errores(conDias([{ fecha: "2027-01-04", opcion: 10 }, { fecha: "2027-01-05", opcion: 12 }]))[0]).toMatch(/mismo horario/);
     expect(errores(conDias([]))[0]).toMatch(/al menos un día/);
   });
 
-  it("semanas: rechaza lista vacía o semanas de otra temporada", () => {
-    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [] }] })[0]).toMatch(/Elegí a qué semanas va a asistir/);
+  it("opciones: rechaza lista vacía u opciones de otra temporada", () => {
+    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [] }] })[0]).toMatch(/Elegí al menos una opción/);
     expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [99] }] })[0]).toMatch(/no es válida/);
   });
 
@@ -116,7 +132,7 @@ describe("crearInscripcionSchema", () => {
   it("valida WhatsApp, email, DNI, fecha de nacimiento y campos obligatorios", () => {
     const e = errores({
       contactos: [{ ...contacto, nombre: "", whatsapp: "123", whatsappAlt: "456", email: "no-es-mail" }],
-      ninos: [{ ...nino, dni: "123", fechaNacimiento: "2026-02-30", turno: "NOCHE" }],
+      ninos: [{ ...nino, dni: "123", fechaNacimiento: "2026-02-30" }],
     });
     expect(e).toEqual(
       expect.arrayContaining([
@@ -126,7 +142,6 @@ describe("crearInscripcionSchema", () => {
         expect.stringMatching(/^contactos\.0\.email:/),
         expect.stringMatching(/^ninos\.0\.dni:/),
         expect.stringMatching(/^ninos\.0\.fechaNacimiento: Ingresá una fecha válida/),
-        expect.stringMatching(/^ninos\.0\.turno:/),
       ]),
     );
   });
@@ -141,7 +156,7 @@ describe("crearInscripcionSchema", () => {
         expect.stringMatching(/^contactos\.1\.nombre:/),
         expect.stringMatching(/^contactos\.1\.whatsapp: Este número ya está cargado/),
         expect.stringMatching(/^ninos\.0\.nombre:/),
-        expect.stringMatching(/^ninos\.0\.semanas: Elegí a qué semanas va a asistir/),
+        expect.stringMatching(/^ninos\.0\.semanas: Elegí al menos una opción/),
       ]),
     );
   });

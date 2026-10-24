@@ -50,7 +50,6 @@ export async function planificarDesdeTexto(texto: string): Promise<PlanImportaci
           ninoId: f.ninoId,
           temporadaId: f.inscripcion.temporadaId,
           estado: f.estado,
-          turno: f.turno,
           grupoEdadId: f.grupoEdadId,
           nino: {
             nombre: f.nino.nombre,

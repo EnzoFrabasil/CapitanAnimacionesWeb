@@ -1,5 +1,6 @@
 import "server-only";
 import { fechaAIso } from "@/lib/dominio/fechas";
+import type { Opcion, Precios } from "@/lib/dominio/opciones";
 import { prisma } from "@/lib/prisma";
 import type { ContextoInscripcion } from "@/lib/validacion/inscripcion";
 
@@ -7,15 +8,43 @@ export interface TemporadaAbierta {
   id: number;
   nombre: string;
   anio: number;
-  /** Solo las semanas activas. */
-  semanas: ContextoInscripcion["semanas"];
-  turnos: NonNullable<ContextoInscripcion["turnos"]>;
+  /** Solo las opciones activas. */
+  opciones: Opcion[];
   modalidades: NonNullable<ContextoInscripcion["modalidades"]>;
   edades: NonNullable<ContextoInscripcion["edades"]>;
-  nombrePeriodo: string;
-  horarios: NonNullable<ContextoInscripcion["horarios"]>;
+  precios: Precios;
   grupos: { id: number; nombre: string; edadMin: number; edadMax: number }[];
 }
+
+/** Opción de inscripción tal como la usa la aplicación (fechas en aaaa-mm-dd). */
+export function aOpcion(s: {
+  id: number;
+  numero: number;
+  nombre: string;
+  fechaInicio: Date;
+  fechaFin: Date;
+  horaInicio: string;
+  horaFin: string;
+  precio: number;
+}): Opcion {
+  return {
+    id: s.id,
+    numero: s.numero,
+    nombre: s.nombre || `Opción ${s.numero}`,
+    fechaInicio: fechaAIso(s.fechaInicio),
+    fechaFin: fechaAIso(s.fechaFin),
+    horaInicio: s.horaInicio,
+    horaFin: s.horaFin,
+    precio: s.precio,
+  };
+}
+
+/** Precios de una temporada. */
+export const preciosDe = (t: { precioColoniaCompleta: number | null; precioDia: number | null; descuentoHermanos: number }): Precios => ({
+  coloniaCompleta: t.precioColoniaCompleta,
+  dia: t.precioDia,
+  descuentoHermanos: t.descuentoHermanos,
+});
 
 /**
  * Temporada con la inscripción abierta (si hubiera más de una, la más reciente),
@@ -36,20 +65,10 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     id: temporada.id,
     nombre: temporada.nombre,
     anio: temporada.anio,
-    turnos: temporada.turnos,
     edades: { minima: temporada.edadMinima, maxima: temporada.edadMaxima },
-    nombrePeriodo: temporada.nombrePeriodo,
-    horarios: { MANANA: temporada.horarioManana, TARDE: temporada.horarioTarde },
-    modalidades: [
-      ...(temporada.permiteSemanas ? (["SEMANAS"] as const) : []),
-      ...(temporada.permitePorDia ? (["POR_DIA"] as const) : []),
-    ],
-    semanas: temporada.semanas.map((s) => ({
-      id: s.id,
-      numero: s.numero,
-      fechaInicio: fechaAIso(s.fechaInicio),
-      fechaFin: fechaAIso(s.fechaFin),
-    })),
+    modalidades: temporada.permitePorDia ? ["SEMANAS", "POR_DIA"] : ["SEMANAS"],
+    precios: preciosDe(temporada),
+    opciones: temporada.semanas.map(aOpcion),
     grupos: temporada.gruposEdad.map(({ id, nombre, edadMin, edadMax }) => ({ id, nombre, edadMin, edadMax })),
   };
 }

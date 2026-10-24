@@ -521,3 +521,34 @@ html:has(.bienvenida) {
     display: none;
   }
 }
+
+/* Aviso de descuento por hermanos en la revisión de la inscripción:
+   aparece suave y la insignia del capitán saluda una vez. */
+.aviso-descuento {
+  animation: aparecer 0.5s ease-out both;
+}
+.aviso-descuento-insignia {
+  animation: descuento-saludo 1.2s ease-in-out 0.3s both;
+}
+@keyframes descuento-saludo {
+  0% {
+    rotate: 0deg;
+    scale: 0.6;
+    opacity: 0;
+  }
+  30% {
+    rotate: -12deg;
+    scale: 1.08;
+    opacity: 1;
+  }
+  55% {
+    rotate: 8deg;
+  }
+  75% {
+    rotate: -4deg;
+  }
+  100% {
+    rotate: 0deg;
+    scale: 1;
+  }
+}

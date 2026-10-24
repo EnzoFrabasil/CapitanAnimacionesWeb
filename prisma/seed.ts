@@ -8,7 +8,7 @@
 
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, Modalidad, Turno } from "../src/generated/prisma/client";
+import { PrismaClient, Modalidad } from "../src/generated/prisma/client";
 import { asignarGrupo, calcularEdad } from "../src/lib/dominio/edad";
 import { hoyEnArgentina, sumarDias } from "../src/lib/dominio/fechas";
 
@@ -53,8 +53,7 @@ interface NinoSeed {
   dni: string;
   fechaNacimiento: Date;
   infoAdicional?: string;
-  turno: Turno;
-  semanas?: number[]; // números de semana (modalidad SEMANAS)
+  semanas?: number[]; // números de opción (modalidad SEMANAS)
   dias?: Date[]; // modalidad POR_DIA
   posibleDuplicado?: boolean;
 }
@@ -75,17 +74,18 @@ async function main() {
 
     const anio = hoy.getUTCFullYear() + 1;
     const lunes1 = primerLunesDeEnero(anio);
-    const lunes2 = sumarDias(lunes1, 7);
+    const lunes2 = sumarDias(lunes1, 14);
 
     const temporada = await tx.temporada.create({
       data: {
         nombre: `Colonia de verano ${anio}`,
         anio,
         inscripcionAbierta: true,
+        precioColoniaCompleta: 230000,
         semanas: {
           create: [
-            { numero: 1, fechaInicio: lunes1, fechaFin: sumarDias(lunes1, 4) },
-            { numero: 2, fechaInicio: lunes2, fechaFin: sumarDias(lunes2, 4) },
+            { numero: 1, nombre: "Quincena 1", fechaInicio: lunes1, fechaFin: sumarDias(lunes1, 11), precio: 130000 },
+            { numero: 2, nombre: "Quincena 2", fechaInicio: lunes2, fechaFin: sumarDias(lunes2, 11), precio: 130000 },
           ],
         },
         gruposEdad: {
@@ -142,13 +142,19 @@ async function main() {
                 inscripcionId: inscripcion.id,
                 grupoEdadId: grupo?.id ?? null,
                 edadAlInscribir: edad,
-                turno: n.turno,
                 modalidad: n.dias ? Modalidad.POR_DIA : Modalidad.SEMANAS,
                 posibleDuplicado: n.posibleDuplicado ?? false,
                 semanas: n.semanas
                   ? { create: n.semanas.map((num) => ({ semanaId: semanaPorNumero.get(num)! })) }
                   : undefined,
-                dias: n.dias ? { create: n.dias.map((fecha) => ({ fecha })) } : undefined,
+                dias: n.dias
+                  ? {
+                      create: n.dias.map((fecha) => ({
+                        fecha,
+                        semanaId: temporada.semanas.find((s) => s.fechaInicio <= fecha && fecha <= s.fechaFin)!.id,
+                      })),
+                    }
+                  : undefined,
               },
             },
           },
@@ -176,7 +182,6 @@ async function main() {
           dni: "50111222",
           fechaNacimiento: nacidoHace(7),
           infoAdicional: "Alérgico al maní.",
-          turno: Turno.MANANA,
           semanas: todas,
         },
         {
@@ -184,13 +189,12 @@ async function main() {
           apellido: "García",
           dni: "52333444",
           fechaNacimiento: nacidoHace(4),
-          turno: Turno.MANANA,
           semanas: todas,
         },
       ],
     );
 
-    // 2) Familia Pérez: un niño por día, turno tarde.
+    // 2) Familia Pérez: un niño por días sueltos.
     const perez = await tx.familia.create({ data: {} });
     const martin = await crearResponsable("Martín", "Pérez", "+5493514567890");
     await inscribir(
@@ -202,7 +206,6 @@ async function main() {
           apellido: "Pérez",
           dni: "47555666",
           fechaNacimiento: nacidoHace(10),
-          turno: Turno.TARDE,
           dias: [lunes1, sumarDias(lunes1, 2), sumarDias(lunes2, 4)],
         },
       ],
@@ -219,7 +222,6 @@ async function main() {
           apellido: "García",
           dni: "46777888",
           fechaNacimiento: nacidoHace(14),
-          turno: Turno.TARDE,
           semanas: [2],
         },
       ],
@@ -237,14 +239,13 @@ async function main() {
           apellido: "Pérez Fernández",
           dni: "47555666",
           fechaNacimiento: nacidoHace(10),
-          turno: Turno.MANANA,
           semanas: todas,
           posibleDuplicado: true,
         },
       ],
     );
 
-    // 5) Familia Rodríguez: la abuela como segundo contacto, solo la semana 1.
+    // 5) Familia Rodríguez: la abuela como segundo contacto, solo la quincena 1.
     const rodriguez = await tx.familia.create({ data: {} });
     const juan = await crearResponsable("Juan", "Rodríguez", "+5491145678901");
     const marta = await crearResponsable("Marta", "Gómez", "+5491156789012");
@@ -261,7 +262,6 @@ async function main() {
           dni: "53999000",
           fechaNacimiento: nacidoHace(5),
           infoAdicional: "Usa anteojos. Toma medicación para el asma (la trae en la mochila).",
-          turno: Turno.TARDE,
           semanas: [1],
         },
       ],

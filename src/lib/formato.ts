@@ -3,8 +3,7 @@ import { ZONA_HORARIA, fechaDesdeIso } from "@/lib/dominio/fechas";
 
 // Formatos para mostrar en pantalla (sirven en cliente y servidor).
 
-export const ETIQUETA_TURNO = { MANANA: "Mañana", TARDE: "Tarde" } as const;
-export const ETIQUETA_MODALIDAD = { SEMANAS: "Por semanas", POR_DIA: "Por día" } as const;
+export const ETIQUETA_MODALIDAD = { SEMANAS: "Opciones", POR_DIA: "Días sueltos" } as const;
 export const ETIQUETA_ESTADO = { EN_ESPERA: "En espera", CONFIRMADO: "Confirmado", CANCELADO: "Cancelado" } as const;
 
 const DIAS_SEMANA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];

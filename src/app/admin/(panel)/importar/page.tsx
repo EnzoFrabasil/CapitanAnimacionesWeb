@@ -13,7 +13,7 @@ export default function PaginaImportar() {
         <h1 className="mt-1 font-titulo text-3xl font-bold text-marino">Importar CSV</h1>
         <p className="mt-1 max-w-3xl text-sm">
           Columnas que se pueden modificar: estado, nombre, apellido, dni, fecha_nacimiento, grupo (por nombre, tiene que
-          existir en la temporada; vacío o &quot;Sin grupo&quot; lo deja sin grupo), turno, info_adicional y los datos del
+          existir en la temporada; vacío o &quot;Sin grupo&quot; lo deja sin grupo), info_adicional y los datos del
           contacto principal. El resto de las columnas se ignora.
         </p>
       </div>

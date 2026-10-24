@@ -41,7 +41,7 @@ export async function guardarEdicionRapida(inscripcionNinoId: number, datos: Edi
       prisma.nino.update({ where: { id: actual.ninoId }, data: d.nino }),
       prisma.inscripcionNino.update({
         where: { id: inscripcionNinoId },
-        data: { grupoEdadId: d.grupoEdadId, turno: d.turno, estado: d.estado },
+        data: { grupoEdadId: d.grupoEdadId, estado: d.estado },
       }),
       ...(principal && d.contacto ? [prisma.responsable.update({ where: { id: principal }, data: d.contacto })] : []),
     ]);

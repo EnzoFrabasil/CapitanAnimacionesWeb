@@ -4,8 +4,8 @@ import { condicionDeFiltros, filtrosAQuery, leerFiltros } from "./filtros";
 describe("leerFiltros", () => {
   it("lee valores válidos e ignora los inválidos", () => {
     expect(
-      leerFiltros({ temporada: "2", grupo: "sin", turno: "MANANA", estado: "NADA", semana: "x", duplicados: "1", q: "  ana  " }),
-    ).toEqual({ temporada: 2, grupo: "sin", turno: "MANANA", estado: undefined, semana: undefined, duplicados: "1", q: "ana" });
+      leerFiltros({ temporada: "2", grupo: "sin", horario: "8:30", estado: "NADA", semana: "x", duplicados: "1", q: "  ana  " }),
+    ).toEqual({ temporada: 2, grupo: "sin", horario: undefined, estado: undefined, semana: undefined, duplicados: "1", q: "ana" });
     expect(leerFiltros({ grupo: ["3", "4"], q: "" })).toMatchObject({ grupo: 3, q: undefined });
   });
 
@@ -36,14 +36,15 @@ describe("condicionDeFiltros", () => {
     ]);
   });
 
-  it("filtro por semana incluye a los que van por día esa semana", () => {
-    const semana = { id: 3, fechaInicio: new Date("2027-01-04"), fechaFin: new Date("2027-01-08") };
-    const where = condicionDeFiltros(leerFiltros({ semana: "3" }), 1, semana);
-    expect((where.AND as unknown[])[1]).toEqual({
-      OR: [
-        { semanas: { some: { semanaId: 3 } } },
-        { dias: { some: { fecha: { gte: semana.fechaInicio, lte: semana.fechaFin } } } },
-      ],
+  it("filtros por opción y por horario incluyen a los que van por días sueltos", () => {
+    const porOpcion = condicionDeFiltros(leerFiltros({ semana: "3" }), 1);
+    expect((porOpcion.AND as unknown[])[1]).toEqual({
+      OR: [{ semanas: { some: { semanaId: 3 } } }, { dias: { some: { semanaId: 3 } } }],
+    });
+    const semana = { horaInicio: "08:30", horaFin: "12:30" };
+    const porHorario = condicionDeFiltros(leerFiltros({ horario: "08:30-12:30" }), 1);
+    expect((porHorario.AND as unknown[])[1]).toEqual({
+      OR: [{ semanas: { some: { semana } } }, { dias: { some: { semana } } }],
     });
   });
 });

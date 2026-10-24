@@ -125,28 +125,37 @@ export function Casilla({
   marcada,
   onCambio,
   destacada,
+  deshabilitada,
+  extra,
 }: {
   id: string;
   etiqueta: ReactNode;
   marcada: boolean;
   onCambio: (marcada: boolean) => void;
   destacada?: boolean;
+  deshabilitada?: boolean;
+  /** Se muestra a la derecha (por ejemplo, el precio). */
+  extra?: ReactNode;
 }) {
   return (
     <label
       htmlFor={id}
-      className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 transition hover:border-marino/50 ${
-        marcada ? "border-marino bg-marino/5" : "border-marino/20 bg-white"
+      className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 transition ${
+        deshabilitada
+          ? "cursor-not-allowed border-marino/10 bg-white/60 opacity-60"
+          : `cursor-pointer hover:border-marino/50 ${marcada ? "border-marino bg-marino/5" : "border-marino/20 bg-white"}`
       } ${destacada ? "font-semibold" : ""}`}
     >
       <input
         id={id}
         type="checkbox"
         checked={marcada}
+        disabled={deshabilitada}
         onChange={(e) => onCambio(e.target.checked)}
-        className="size-5 accent-marino"
+        className="size-5 shrink-0 accent-marino"
       />
-      <span>{etiqueta}</span>
+      <span className="flex-1">{etiqueta}</span>
+      {extra && <span className="shrink-0 text-right">{extra}</span>}
     </label>
   );
 }

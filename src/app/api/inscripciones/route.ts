@@ -58,11 +58,9 @@ export async function POST(request: Request) {
 
   const hoy = hoyEnArgentina();
   const resultado = crearInscripcionSchema({
-    semanas: temporada.semanas,
-    turnos: temporada.turnos,
+    opciones: temporada.opciones,
     modalidades: temporada.modalidades,
     edades: temporada.edades,
-    nombrePeriodo: temporada.nombrePeriodo,
     hoy: fechaAIso(hoy),
   }).safeParse(datos);
   if (!resultado.success) {

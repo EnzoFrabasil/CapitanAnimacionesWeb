@@ -14,14 +14,18 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Turno {
-  MANANA
-  TARDE
-}
-
+// SEMANAS = por opciones de inscripción (ver Semana); POR_DIA = días sueltos.
 enum Modalidad {
   SEMANAS
   POR_DIA
+}
+
+// Descuento por hermanos de una familia: AUTOMATICO lo aplica si hay 2 o más
+// chicos inscriptos en la temporada; SI / NO lo fuerzan desde el panel.
+enum DescuentoHermanos {
+  AUTOMATICO
+  SI
+  NO
 }
 
 enum EstadoInscripcion {
@@ -30,10 +34,11 @@ enum EstadoInscripcion {
   CANCELADO
 }
 
-// Agrupa hermanos (para el futuro descuento por hermanos).
+// Agrupa hermanos (para el descuento por hermanos).
 model Familia {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  id                Int               @id @default(autoincrement())
+  descuentoHermanos DescuentoHermanos @default(AUTOMATICO)
+  createdAt         DateTime          @default(now())
 
   ninos         Nino[]
   inscripciones Inscripcion[]
@@ -89,43 +94,53 @@ model NinoResponsable {
 }
 
 model Temporada {
-  id                 Int      @id @default(autoincrement())
-  nombre             String
-  anio               Int
-  inscripcionAbierta Boolean  @default(false)
+  id                    Int      @id @default(autoincrement())
+  nombre                String
+  anio                  Int
+  inscripcionAbierta    Boolean  @default(false)
   // Cantidad total de lugares (cada niño inscripto ocupa uno, salvo los cancelados).
   // Se muestra como "quedan N lugares" en la página de inicio. Null = sin cupo.
-  cupo               Int?
+  cupo                  Int?
   // Edad permitida para inscribirse (años cumplidos al inscribir, inclusive).
-  edadMinima         Int      @default(2)
-  edadMaxima         Int      @default(17)
-  // Qué se ofrece en el formulario de inscripción (se configura en el panel).
-  turnos             Turno[]  @default([MANANA, TARDE])
-  permiteSemanas     Boolean  @default(true)
-  permitePorDia      Boolean  @default(true)
-  // Cómo se llama cada período en el formulario ("Semana", "Quincena"). En la base son "semanas".
-  nombrePeriodo      String   @default("Semana")
-  // Horario de cada turno para mostrar en el formulario (por ejemplo "8:30 a 12:30 hs").
-  horarioManana      String   @default("")
-  horarioTarde       String   @default("")
-  createdAt          DateTime @default(now())
+  edadMinima            Int      @default(2)
+  edadMaxima            Int      @default(17)
+  // Inscripción por días sueltos (dentro de las fechas de las opciones).
+  permitePorDia         Boolean  @default(false)
+  // Precios en pesos. La colonia completa se cobra cuando un chico tiene todas
+  // las opciones de su horario; null = se suma el precio de cada opción.
+  precioColoniaCompleta Int?
+  precioDia             Int?
+  // Porcentaje sobre el total de la familia cuando hay 2 o más hermanos.
+  descuentoHermanos     Int      @default(10)
+  createdAt             DateTime @default(now())
 
   semanas       Semana[]
   gruposEdad    GrupoEdad[]
   inscripciones Inscripcion[]
 }
 
+// Opción de inscripción ("Quincena 1", "Semana 2"...): nombre libre, fechas,
+// horario y precio. La familia elige una o varias, todas del mismo horario.
+// (La tabla se sigue llamando Semana por historia; en la aplicación son "opciones".)
 model Semana {
   id          Int      @id @default(autoincrement())
   temporadaId Int
+  // Orden en que se muestran.
   numero      Int
+  nombre      String   @default("")
   fechaInicio DateTime @db.Date
   fechaFin    DateTime @db.Date
+  // Horario en formato HH:MM (por ejemplo 08:30 y 12:30).
+  horaInicio  String   @default("08:30")
+  horaFin     String   @default("12:30")
+  // Precio en pesos.
+  precio      Int      @default(0)
   // Si está desactivada no se ofrece en el formulario (las inscripciones existentes se conservan).
   activa      Boolean  @default(true)
 
   temporada     Temporada           @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
   inscripciones InscripcionSemana[]
+  dias          InscripcionDia[]
 
   @@unique([temporadaId, numero])
 }
@@ -146,13 +161,13 @@ model GrupoEdad {
 
 // Un formulario enviado (de 1 a 10 niños).
 model Inscripcion {
-  id                     Int      @id @default(autoincrement())
+  id                     Int       @id @default(autoincrement())
   // Correlativo visible para humanos (se muestra en la pantalla de éxito).
-  numero                 Int      @unique @default(autoincrement())
+  numero                 Int       @unique @default(autoincrement())
   temporadaId            Int
   familiaId              Int
   responsablePrincipalId Int
-  fechaAlta              DateTime @default(now())
+  fechaAlta              DateTime  @default(now())
   // Constancia de que el responsable aceptó las condiciones y la política de
   // privacidad (Ley 25.326), y qué versión del texto aceptó. Null en las
   // inscripciones anteriores a que existiera la casilla.
@@ -176,7 +191,6 @@ model InscripcionNino {
   // null = "sin grupo" (se asigna a mano o con el botón del panel).
   grupoEdadId      Int?
   edadAlInscribir  Int
-  turno            Turno
   modalidad        Modalidad
   estado           EstadoInscripcion @default(EN_ESPERA)
   posibleDuplicado Boolean           @default(false)
@@ -194,7 +208,7 @@ model InscripcionNino {
   @@index([estado])
 }
 
-// Se usa si la modalidad es SEMANAS ("todas las semanas" = una fila por semana).
+// Opciones elegidas si la modalidad es SEMANAS.
 model InscripcionSemana {
   inscripcionNinoId Int
   semanaId          Int
@@ -206,15 +220,19 @@ model InscripcionSemana {
   @@index([semanaId])
 }
 
-// Se usa si la modalidad es POR_DIA.
+// Días sueltos si la modalidad es POR_DIA. Cada día pertenece a una opción
+// (de ahí sale su horario).
 model InscripcionDia {
   inscripcionNinoId Int
   fecha             DateTime @db.Date
+  semanaId          Int
 
   inscripcionNino InscripcionNino @relation(fields: [inscripcionNinoId], references: [id], onDelete: Cascade)
+  semana          Semana          @relation(fields: [semanaId], references: [id], onDelete: Restrict)
 
   @@id([inscripcionNinoId, fecha])
   @@index([fecha])
+  @@index([semanaId])
 }
 
 // ── Contenido editable de la página de inicio ────────────────────────────────
@@ -223,9 +241,9 @@ model InscripcionDia {
 // versión nueva (la última es la publicada). Se conservan las últimas para
 // poder volver atrás. `datos` sigue el esquema de src/lib/contenido/esquema.ts.
 model ContenidoSitio {
-  id        Int      @id @default(autoincrement())
-  datos     Json
-  creadoEn  DateTime @default(now())
+  id       Int      @id @default(autoincrement())
+  datos    Json
+  creadoEn DateTime @default(now())
 
   @@index([creadoEn])
 }

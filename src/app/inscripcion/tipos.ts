@@ -1,5 +1,5 @@
 import { CLASES_ACENTO, ORDEN_ACENTOS } from "@/components/marca/acentos";
-import type { MODALIDADES, TURNOS } from "@/lib/validacion/inscripcion";
+import type { MODALIDADES } from "@/lib/validacion/inscripcion";
 
 // Estado del formulario tal como lo edita la persona (todo texto, sin normalizar).
 
@@ -19,10 +19,10 @@ export interface NinoForm {
   dni: string;
   fechaNacimiento: string;
   infoAdicional: string;
-  turno: (typeof TURNOS)[number] | "";
   modalidad: (typeof MODALIDADES)[number];
   semanas: number[];
-  dias: string[];
+  /** Días sueltos, cada uno con la opción a la que pertenece. */
+  dias: { fecha: string; opcion: number }[];
 }
 
 /** Devuelve el error visible de un campo (por ejemplo "ninos.0.dni"), si corresponde mostrarlo. */

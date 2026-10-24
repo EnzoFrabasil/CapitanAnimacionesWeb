@@ -6,10 +6,8 @@ import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/adm
 import { exigirAdmin } from "@/lib/auth/admin";
 import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
-import { mensajesDeError, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
+import { mensajesDeError, preciosTemporadaSchema, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
-import { LARGO_MAXIMO_PERIODO } from "@/lib/dominio/periodo";
-import { TURNOS } from "@/lib/validacion/inscripcion";
 
 type Previo = ResultadoAccion | null;
 
@@ -70,40 +68,24 @@ export async function guardarSemana(
       await prisma.semana.create({ data: { ...r.data, temporadaId } });
     }
   } catch (e) {
-    return falloPorExcepcion(e, { unico: `Ya existe el período ${r.data.numero} en esta temporada.` });
+    return falloPorExcepcion(e, { unico: `Ya hay otra opción con el orden ${r.data.numero}. Usá otro número.` });
   }
   refresh();
-  return exito(semanaId ? "Semana guardada." : "Semana agregada.");
+  return exito(semanaId ? "Opción guardada." : "Opción agregada.");
 }
 
-/** Turnos y formas de asistir que se ofrecen en el formulario de inscripción. */
-export async function guardarOpciones(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+/** Precios generales, descuento por hermanos y días sueltos. */
+export async function guardarPrecios(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
   await exigirAdmin();
-  const turnos = TURNOS.filter((t) => datos.getAll("turnos").includes(t));
-  const permiteSemanas = datos.get("permiteSemanas") === "on";
-  const permitePorDia = datos.get("permitePorDia") === "on";
-  const nombrePeriodo = String(datos.get("nombrePeriodo") ?? "").trim();
-  const horario = (campo: string) => String(datos.get(campo) ?? "").trim().slice(0, 60);
-  const horarioManana = horario("horarioManana");
-  const horarioTarde = horario("horarioTarde");
-  const errores = [
-    ...(!nombrePeriodo || nombrePeriodo.length > LARGO_MAXIMO_PERIODO
-      ? [`Escribí cómo se llama cada período (hasta ${LARGO_MAXIMO_PERIODO} letras), por ejemplo Semana o Quincena.`]
-      : []),
-    ...(turnos.length === 0 ? ["Tiene que haber al menos un turno activo."] : []),
-    ...(!permiteSemanas && !permitePorDia ? ["Tiene que haber al menos una forma de asistir."] : []),
-  ];
-  if (errores.length) return fallo(...errores);
+  const r = preciosTemporadaSchema.safeParse(Object.fromEntries(datos));
+  if (!r.success) return fallo(...mensajesDeError(r.error));
   try {
-    await prisma.temporada.update({
-      where: { id: temporadaId },
-      data: { turnos, permiteSemanas, permitePorDia, nombrePeriodo, horarioManana, horarioTarde },
-    });
+    await prisma.temporada.update({ where: { id: temporadaId }, data: r.data });
   } catch (e) {
     return falloPorExcepcion(e);
   }
   refresh();
-  return exito("Opciones guardadas.");
+  return exito("Precios guardados.");
 }
 
 export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion> {
@@ -111,10 +93,10 @@ export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion>
   try {
     await prisma.semana.delete({ where: { id: semanaId } });
   } catch (e) {
-    return falloPorExcepcion(e, { enUso: "No se puede borrar: hay niños inscriptos en ese período." });
+    return falloPorExcepcion(e, { enUso: "No se puede borrar: hay niños inscriptos en esa opción. Desactivala en su lugar." });
   }
   refresh();
-  return exito("Período eliminado.");
+  return exito("Opción eliminada.");
 }
 
 /**

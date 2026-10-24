@@ -3,7 +3,8 @@ import { LARGO_MAXIMO } from "@/config/inscripcion";
 import { normalizarDni } from "@/lib/dominio/dni";
 import { fechaAIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp } from "@/lib/dominio/telefono";
-import { ETIQUETA_ESTADO, ETIQUETA_MODALIDAD, ETIQUETA_TURNO, formatearFecha, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
+import { describirAsistencia, precioChico, textoHorario, type Asistencia, type Opcion, type Precios } from "@/lib/dominio/opciones";
+import { ETIQUETA_ESTADO, ETIQUETA_MODALIDAD, formatearFecha, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { generarCsv, parsearCsv, quitarProteccionFormula } from "./formato";
 
 // Exportación e importación del listado de inscriptos (una fila por niño inscripto).
@@ -19,9 +20,11 @@ export const COLUMNAS = [
   "fecha_nacimiento",
   "edad_al_inscribir",
   "grupo",
-  "turno",
+  "horario",
   "modalidad",
-  "semanas_o_dias",
+  "asistencia",
+  "dias",
+  "precio",
   "info_adicional",
   "posible_duplicado",
   "contacto_nombre",
@@ -39,7 +42,6 @@ export const COLUMNAS_EDITABLES = [
   "dni",
   "fecha_nacimiento",
   "grupo",
-  "turno",
   "info_adicional",
   "contacto_nombre",
   "contacto_apellido",
@@ -49,7 +51,6 @@ export const COLUMNAS_EDITABLES = [
 ] as const;
 
 type Estado = keyof typeof ETIQUETA_ESTADO;
-type Turno = keyof typeof ETIQUETA_TURNO;
 type Modalidad = keyof typeof ETIQUETA_MODALIDAD;
 
 // ---------------------------------------------------------------------------
@@ -58,14 +59,13 @@ type Modalidad = keyof typeof ETIQUETA_MODALIDAD;
 export interface InscriptoExport {
   id: number;
   estado: Estado;
-  turno: Turno;
   modalidad: Modalidad;
   edadAlInscribir: number;
   posibleDuplicado: boolean;
   inscripcion: { numero: number; fechaAlta: Date };
   grupoEdad: { nombre: string } | null;
-  semanas: { semana: { numero: number } }[];
-  dias: { fecha: Date }[];
+  semanas: { semanaId: number }[];
+  dias: { fecha: Date; semanaId: number }[];
   nino: {
     nombre: string;
     apellido: string;
@@ -77,20 +77,29 @@ export interface InscriptoExport {
   };
 }
 
-export function filaExport(f: InscriptoExport, nombrePeriodo = "Semana"): (string | number)[] {
+/** Opciones y precios de la temporada, para describir la asistencia y el precio de cada fila. */
+export interface ContextoExport {
+  opciones: readonly Opcion[];
+  precios: Precios;
+}
+
+export function filaExport(f: InscriptoExport, ctx: ContextoExport): (string | number)[] {
   const contacto = f.nino.responsables[0];
-  const asistencia =
-    f.modalidad === "SEMANAS"
-      ? f.semanas
-          .map((s) => s.semana.numero)
-          .sort((a, b) => a - b)
-          .map((n) => `${nombrePeriodo} ${n}`)
-          .join(", ")
-      : f.dias
-          .map((d) => fechaAIso(d.fecha))
-          .sort()
-          .map(formatearFecha)
-          .join(", ");
+  const a: Asistencia = {
+    modalidad: f.modalidad,
+    opciones: f.semanas.map((s) => s.semanaId),
+    dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+  };
+  const ids = f.modalidad === "SEMANAS" ? a.opciones : a.dias.map((d) => d.opcion);
+  const opcion = ctx.opciones.find((o) => ids.includes(o.id));
+  // "Colonia completa · 8:30 a 12:30 hs" → "Colonia completa" (el horario va en su columna).
+  const asistencia = describirAsistencia(ctx.opciones, a).split(" · ")[0];
+  const dias = a.dias
+    .map((d) => d.fecha)
+    .sort()
+    .map(formatearFecha)
+    .join(", ");
+  const precio = precioChico(ctx.opciones, ctx.precios, a);
   return [
     f.id,
     f.inscripcion.numero,
@@ -102,9 +111,11 @@ export function filaExport(f: InscriptoExport, nombrePeriodo = "Semana"): (strin
     formatearFecha(fechaAIso(f.nino.fechaNacimiento)),
     f.edadAlInscribir,
     f.grupoEdad?.nombre ?? "",
-    ETIQUETA_TURNO[f.turno],
+    opcion ? textoHorario(opcion) : "",
     ETIQUETA_MODALIDAD[f.modalidad],
     asistencia,
+    dias,
+    precio ?? "",
     f.nino.infoAdicional ?? "",
     f.posibleDuplicado ? "Sí" : "No",
     contacto?.responsable.nombre ?? "",
@@ -115,10 +126,10 @@ export function filaExport(f: InscriptoExport, nombrePeriodo = "Semana"): (strin
   ];
 }
 
-export function generarCsvInscriptos(filas: readonly InscriptoExport[], nombrePeriodo?: string): string {
+export function generarCsvInscriptos(filas: readonly InscriptoExport[], ctx: ContextoExport): string {
   return generarCsv(
     COLUMNAS,
-    filas.map((f) => filaExport(f, nombrePeriodo)),
+    filas.map((f) => filaExport(f, ctx)),
   );
 }
 
@@ -150,13 +161,6 @@ export function leerEstado(texto: string): Estado | null {
   return null;
 }
 
-export function leerTurno(texto: string): Turno | null {
-  const t = sinTildes(texto);
-  if (t === "manana") return "MANANA";
-  if (t === "tarde") return "TARDE";
-  return null;
-}
-
 // ---------------------------------------------------------------------------
 // Planificar la importación (sin tocar la base)
 
@@ -165,7 +169,6 @@ export interface EstadoActual {
   ninoId: number;
   temporadaId: number;
   estado: Estado;
-  turno: Turno;
   grupoEdadId: number | null;
   nino: { nombre: string; apellido: string; dni: string; fechaNacimiento: string; infoAdicional: string | null };
   contacto: {
@@ -193,7 +196,7 @@ export interface DatosAplicar {
   inscripcionNinoId: number;
   ninoId: number;
   nino: Partial<{ nombre: string; apellido: string; dni: string; fechaNacimiento: string; infoAdicional: string | null }>;
-  inscripcion: Partial<{ estado: Estado; turno: Turno; grupoEdadId: number | null }>;
+  inscripcion: Partial<{ estado: Estado; grupoEdadId: number | null }>;
   responsableId: number | null;
   responsable: Partial<{ nombre: string; apellido: string; whatsapp: string; email: string | null }>;
   parentesco: string | null;
@@ -366,15 +369,6 @@ export function planificarImportacion(archivo: ArchivoLeido, ctx: ContextoImport
       else if (estado !== actual.estado) {
         datos.inscripcion.estado = estado;
         registrar("estado", ETIQUETA_ESTADO[actual.estado], ETIQUETA_ESTADO[estado], null, "");
-      }
-    }
-
-    if (hay("turno")) {
-      const turno = leerTurno(v.turno);
-      if (!turno) errores.push(`Turno inválido: "${v.turno}" (Mañana o Tarde).`);
-      else if (turno !== actual.turno) {
-        datos.inscripcion.turno = turno;
-        registrar("turno", ETIQUETA_TURNO[actual.turno], ETIQUETA_TURNO[turno], null, "");
       }
     }
 

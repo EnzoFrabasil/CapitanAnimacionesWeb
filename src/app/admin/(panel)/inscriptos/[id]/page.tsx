@@ -8,13 +8,16 @@ import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/component
 import { IconoWhatsapp } from "@/components/marca/iconos";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { fechaAIso } from "@/lib/dominio/fechas";
+import { describirAsistencia, formatearPrecio, precioChico, totalFamilia, type Asistencia } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { prisma } from "@/lib/prisma";
+import { aOpcion, preciosDe } from "@/lib/temporada";
 import {
   actualizarInscripcion,
   actualizarNino,
   actualizarResponsable,
   agregarResponsable,
+  cambiarDescuentoHermanos,
   hacerPrincipal,
   moverAFamilia,
   quitarResponsable,
@@ -88,6 +91,30 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
   const { nino, inscripcion } = f;
   const temporada = inscripcion.temporada;
   const hermanos = nino.familia.ninos.filter((n) => n.id !== nino.id);
+  const opciones = temporada.semanas.map(aOpcion);
+  const precios = preciosDe(temporada);
+
+  // Chicos de la familia en esta temporada (sin los cancelados): base del total y del descuento.
+  const deLaFamilia = await prisma.inscripcionNino.findMany({
+    where: { nino: { familiaId: nino.familiaId }, inscripcion: { temporadaId: temporada.id }, estado: { not: "CANCELADO" } },
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      modalidad: true,
+      semanas: { select: { semanaId: true } },
+      dias: { select: { fecha: true, semanaId: true } },
+      nino: { select: { nombre: true, apellido: true } },
+    },
+  });
+  const asistencias = deLaFamilia.map(
+    (x): Asistencia => ({
+      modalidad: x.modalidad,
+      opciones: x.semanas.map((s) => s.semanaId),
+      dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+    }),
+  );
+  const preciosChicos = asistencias.map((a) => precioChico(opciones, precios, a));
+  const total = totalFamilia(preciosChicos, precios.descuentoHermanos, nino.familia.descuentoHermanos);
 
   return (
     <div className="space-y-6">
@@ -173,16 +200,6 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                   ...temporada.gruposEdad.map((g) => ({ valor: g.id, texto: `${g.nombre} (${g.edadMin} a ${g.edadMax})` })),
                 ]}
               />
-              <Selector
-                nombre="turno"
-                etiqueta="Turno"
-                valor={f.turno}
-                idPrefijo="insc"
-                opciones={[
-                  { valor: "MANANA", texto: "Mañana" },
-                  { valor: "TARDE", texto: "Tarde" },
-                ]}
-              />
               <div className="flex items-end">
                 <label className="flex items-center gap-2 py-2 text-sm font-medium text-marino">
                   <input type="checkbox" name="posibleDuplicado" defaultChecked={f.posibleDuplicado} className="size-4 accent-marino" />
@@ -190,16 +207,10 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                 </label>
               </div>
               <EditorAsistencia
-                nombrePeriodo={temporada.nombrePeriodo}
                 modalidad={f.modalidad}
-                semanas={temporada.semanas.map((s) => ({
-                  id: s.id,
-                  numero: s.numero,
-                  fechaInicio: fechaAIso(s.fechaInicio),
-                  fechaFin: fechaAIso(s.fechaFin),
-                }))}
-                semanasElegidas={f.semanas.map((s) => s.semanaId)}
-                diasElegidos={f.dias.map((d) => fechaAIso(d.fecha))}
+                opciones={opciones}
+                opcionesElegidas={f.semanas.map((s) => s.semanaId)}
+                diasElegidos={f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId }))}
               />
               <div className="sm:col-span-2">
                 <label htmlFor="insc-notasAdmin" className={claseEtiqueta}>
@@ -298,6 +309,52 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
         ) : (
           <p className="mb-4 text-sm">No hay otros niños en esta familia.</p>
         )}
+        <div className="mb-6 rounded-xl border border-marino/10 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-marino">Total de la familia en {temporada.nombre}</h3>
+          {deLaFamilia.length === 0 ? (
+            <p className="text-sm">No hay chicos activos de esta familia en la temporada.</p>
+          ) : (
+            <dl className="space-y-1 text-sm">
+              {deLaFamilia.map((x, i) => (
+                <div key={x.id} className="flex justify-between gap-3">
+                  <dt>
+                    {x.nino.nombre} {x.nino.apellido}{" "}
+                    <span className="text-texto/80">· {describirAsistencia(opciones, asistencias[i])}</span>
+                  </dt>
+                  <dd className="tabular-nums">{preciosChicos[i] === null ? "A confirmar" : formatearPrecio(preciosChicos[i] ?? 0)}</dd>
+                </div>
+              ))}
+              {total.descuento > 0 && (
+                <div className="flex justify-between gap-3 font-medium text-verde">
+                  <dt>Descuento por hermanos ({precios.descuentoHermanos}%)</dt>
+                  <dd className="tabular-nums">−{formatearPrecio(total.descuento)}</dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-3 border-t border-marino/10 pt-1 font-semibold text-marino">
+                <dt>Total{total.incompleto && " (sin los días a confirmar)"}</dt>
+                <dd className="tabular-nums">{formatearPrecio(total.total)}</dd>
+              </div>
+            </dl>
+          )}
+          <FormAccion
+            accion={cambiarDescuentoHermanos.bind(null, nino.familiaId)}
+            textoBoton="Guardar descuento"
+            variante="secundario"
+            className="mt-4"
+          >
+            <Selector
+              nombre="descuentoHermanos"
+              etiqueta="Descuento por hermanos"
+              valor={nino.familia.descuentoHermanos}
+              idPrefijo="familia"
+              opciones={[
+                { valor: "AUTOMATICO", texto: "Automático (con 2 o más chicos en la temporada)" },
+                { valor: "SI", texto: "Aplicar siempre" },
+                { valor: "NO", texto: "No aplicar" },
+              ]}
+            />
+          </FormAccion>
+        </div>
         <div className="grid gap-6 md:grid-cols-2">
           <FormAccion accion={moverAFamilia.bind(null, nino.id)} textoBoton="Mover" textoPendiente="Moviendo…" variante="secundario">
             <Campo

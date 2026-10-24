@@ -3,7 +3,8 @@ import { EDAD_MAXIMA, EDAD_MINIMA, LARGO_MAXIMO } from "@/config/inscripcion";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp } from "@/lib/dominio/telefono";
-import { MODALIDADES, TURNOS } from "./inscripcion";
+import { HORA_VALIDA } from "@/lib/dominio/opciones";
+import { MODALIDADES } from "./inscripcion";
 
 // Validaciones de las ediciones del panel. Son más flexibles que las del
 // formulario público (por ejemplo, no se exige el rango de edad).
@@ -94,7 +95,6 @@ export const inscripcionAdminSchema = z.object({
     .optional()
     .transform((v) => (v ? Number(v) : null))
     .pipe(z.number().int().positive().nullable()),
-  turno: z.enum(TURNOS, "Turno inválido."),
   estado: z.enum(ESTADOS, "Estado inválido."),
   modalidad: z.enum(MODALIDADES, "Modalidad inválida."),
   semanas: z.array(z.coerce.number().int().positive()),
@@ -145,15 +145,48 @@ export const temporadaSchema = z.object({
   path: ["edadMaxima"],
 });
 
+// Casillas: el navegador manda "on" si están marcadas y nada si no.
+const casilla = z.preprocess((v) => v === "on", z.boolean());
+
+const pesos = (nombre: string) =>
+  z.coerce
+    .number(`${nombre} inválido.`)
+    .int(`${nombre}: sin centavos.`)
+    .min(0, `${nombre} no puede ser negativo.`)
+    .max(100_000_000, `${nombre} inválido.`);
+
+// Vacío = sin precio definido.
+const pesosOpcional = (nombre: string) =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), pesos(nombre).nullable().default(null));
+
+const hora = (mensaje: string) => z.string().trim().regex(HORA_VALIDA, mensaje);
+
+/** Una opción de inscripción (se guarda en la tabla Semana). */
 export const semanaSchema = z
   .object({
-    numero: z.coerce.number("Número inválido.").int("Número inválido.").min(1, "El número tiene que ser 1 o más."),
-    // Casilla "Activa": el navegador manda "on" si está marcada y nada si no.
-    activa: z.preprocess((v) => v === "on", z.boolean()),
+    numero: z.coerce.number("Orden inválido.").int("Orden inválido.").min(1, "El orden tiene que ser 1 o más."),
+    nombre: texto(40, "Falta el nombre de la opción."),
+    activa: casilla,
     fechaInicio: fechaSchema("Fecha de inicio inválida."),
     fechaFin: fechaSchema("Fecha de fin inválida."),
+    horaInicio: hora("Hora de inicio inválida."),
+    horaFin: hora("Hora de fin inválida."),
+    precio: pesos("Precio"),
   })
-  .refine((s) => s.fechaInicio <= s.fechaFin, { message: "La fecha de fin no puede ser anterior al inicio.", path: ["fechaFin"] });
+  .refine((s) => s.fechaInicio <= s.fechaFin, { message: "La fecha de fin no puede ser anterior al inicio.", path: ["fechaFin"] })
+  .refine((s) => s.horaInicio < s.horaFin, { message: "La hora de fin tiene que ser posterior a la de inicio.", path: ["horaFin"] });
+
+/** Precios generales, descuento por hermanos y días sueltos de la temporada. */
+export const preciosTemporadaSchema = z.object({
+  precioColoniaCompleta: pesosOpcional("Precio de colonia completa"),
+  precioDia: pesosOpcional("Precio por día"),
+  descuentoHermanos: z.coerce
+    .number("Descuento inválido.")
+    .int("El descuento tiene que ser un número entero.")
+    .min(0, "El descuento no puede ser negativo.")
+    .max(100, "El descuento no puede pasar de 100%."),
+  permitePorDia: casilla,
+});
 
 /** Primer mensaje de cada error de Zod, para mostrar en el panel. */
 export function mensajesDeError(error: z.ZodError): string[] {
@@ -164,7 +197,6 @@ export function mensajesDeError(error: z.ZodError): string[] {
 export const edicionRapidaSchema = z.object({
   nino: ninoAdminSchema.pick({ nombre: true, apellido: true, dni: true }),
   grupoEdadId: inscripcionAdminSchema.shape.grupoEdadId,
-  turno: inscripcionAdminSchema.shape.turno,
   estado: inscripcionAdminSchema.shape.estado,
   contacto: responsableAdminSchema.pick({ nombre: true, apellido: true, whatsapp: true }).nullable(),
 });

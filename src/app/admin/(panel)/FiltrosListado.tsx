@@ -4,18 +4,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { claseBoton, claseEtiqueta, claseInput } from "@/components/admin/estilos";
 import { filtrosAQuery, type Filtros } from "@/lib/admin/filtros";
+import { horarios, type Opcion } from "@/lib/dominio/opciones";
 
 interface Props {
   filtros: Filtros;
   temporadaId: number;
   temporadas: { id: number; nombre: string }[];
   grupos: { id: number; nombre: string }[];
-  semanas: { id: number; numero: number }[];
-  /** "Semana", "Quincena" */
-  nombrePeriodo: string;
+  opciones: Opcion[];
 }
 
-export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, semanas, nombrePeriodo }: Props) {
+export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opciones }: Props) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState(filtros.q ?? "");
 
@@ -53,7 +52,7 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, seman
         temporadaId,
         temporadas.map((t) => ({ valor: t.id, texto: t.nombre })),
         // Al cambiar de temporada, el grupo y la semana dejan de tener sentido.
-        (v) => aplicar({ temporada: Number(v), grupo: undefined, semana: undefined }),
+        (v) => aplicar({ temporada: Number(v), grupo: undefined, semana: undefined, horario: undefined }),
       )}
       {selector(
         "grupo",
@@ -63,21 +62,17 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, seman
         (v) => aplicar({ grupo: v === "" ? undefined : v === "sin" ? "sin" : Number(v) }),
       )}
       {selector(
-        "turno",
-        "Turno",
-        filtros.turno,
-        [
-          { valor: "", texto: "Todos" },
-          { valor: "MANANA", texto: "Mañana" },
-          { valor: "TARDE", texto: "Tarde" },
-        ],
-        (v) => aplicar({ turno: (v || undefined) as Filtros["turno"] }),
+        "horario",
+        "Horario",
+        filtros.horario,
+        [{ valor: "", texto: "Todos" }, ...horarios(opciones).map((h) => ({ valor: h.clave, texto: h.texto }))],
+        (v) => aplicar({ horario: v || undefined }),
       )}
       {selector(
         "semana",
-        nombrePeriodo,
+        "Opción",
         filtros.semana,
-        [{ valor: "", texto: "Todas" }, ...semanas.map((s) => ({ valor: s.id, texto: `${nombrePeriodo} ${s.numero}` }))],
+        [{ valor: "", texto: "Todas" }, ...opciones.map((o) => ({ valor: o.id, texto: o.nombre }))],
         (v) => aplicar({ semana: v ? Number(v) : undefined }),
       )}
       {selector(

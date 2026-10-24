@@ -3,9 +3,10 @@
 import { refresh } from "next/cache";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
 import { exigirAdmin } from "@/lib/auth/admin";
-import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
-import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
+import { fechaDesdeIso } from "@/lib/dominio/fechas";
+import { diasDeOpcion, horariosElegidos, type ModoDescuento } from "@/lib/dominio/opciones";
 import { prisma } from "@/lib/prisma";
+import { aOpcion } from "@/lib/temporada";
 import { inscripcionAdminSchema, mensajesDeError, ninoAdminSchema, responsableAdminSchema } from "@/lib/validacion/admin";
 
 type Previo = ResultadoAccion | null;
@@ -27,7 +28,6 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
   await exigirAdmin();
   const r = inscripcionAdminSchema.safeParse({
     grupoEdadId: datos.get("grupoEdadId") ?? "",
-    turno: datos.get("turno"),
     estado: datos.get("estado"),
     modalidad: datos.get("modalidad"),
     semanas: datos.getAll("semanas"),
@@ -46,15 +46,27 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
   const { semanas, gruposEdad } = actual.inscripcion.temporada;
 
   if (d.grupoEdadId !== null && !gruposEdad.some((g) => g.id === d.grupoEdadId)) return fallo("El grupo no es de esta temporada.");
+  const opciones = semanas.map(aOpcion);
   const semanasElegidas = [...new Set(d.semanas)];
-  const diasElegidos = [...new Set(d.dias)];
+  // Cada día llega como "aaaa-mm-dd@idOpcion"; un mismo día se guarda una sola vez.
+  const porFecha = new Map<string, number>();
+  for (const valor of d.dias) {
+    const [fecha, opcion] = valor.split("@");
+    if (!porFecha.has(fecha)) porFecha.set(fecha, Number(opcion));
+  }
+  const diasElegidos = [...porFecha].map(([fecha, opcion]) => ({ fecha, opcion }));
   if (d.modalidad === "SEMANAS") {
-    if (semanasElegidas.length === 0) return fallo(`Elegí al menos un período (${actual.inscripcion.temporada.nombrePeriodo.toLowerCase()}).`);
-    if (semanasElegidas.some((id) => !semanas.some((s) => s.id === id))) return fallo("Algún período elegido no es de esta temporada.");
+    if (semanasElegidas.length === 0) return fallo("Elegí al menos una opción.");
+    if (semanasElegidas.some((id) => !opciones.some((o) => o.id === id))) return fallo("Alguna opción elegida no es de esta temporada.");
+    if (horariosElegidos(opciones, semanasElegidas).length > 1) return fallo("Elegí opciones de un mismo horario.");
   } else {
-    const validos = new Set(diasHabilesDeSemanas(semanas.map((s) => ({ fechaInicio: fechaAIso(s.fechaInicio), fechaFin: fechaAIso(s.fechaFin) }))));
     if (diasElegidos.length === 0) return fallo("Elegí al menos un día.");
-    if (diasElegidos.some((dia) => !validos.has(dia))) return fallo("Algún día no es hábil o está fuera de las fechas de la colonia.");
+    const valido = (dia: { fecha: string; opcion: number }) => {
+      const opcion = opciones.find((o) => o.id === dia.opcion);
+      return opcion !== undefined && diasDeOpcion(opcion).includes(dia.fecha);
+    };
+    if (!diasElegidos.every(valido)) return fallo("Algún día no es hábil o está fuera de las fechas de su opción.");
+    if (horariosElegidos(opciones, diasElegidos.map((x) => x.opcion)).length > 1) return fallo("Elegí días de un mismo horario.");
   }
 
   try {
@@ -63,7 +75,6 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
         where: { id: inscripcionNinoId },
         data: {
           grupoEdadId: d.grupoEdadId,
-          turno: d.turno,
           estado: d.estado,
           modalidad: d.modalidad,
           notasAdmin: d.notasAdmin,
@@ -74,7 +85,7 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
       prisma.inscripcionDia.deleteMany({ where: { inscripcionNinoId } }),
       ...(d.modalidad === "SEMANAS"
         ? [prisma.inscripcionSemana.createMany({ data: semanasElegidas.map((semanaId) => ({ inscripcionNinoId, semanaId })) })]
-        : [prisma.inscripcionDia.createMany({ data: diasElegidos.map((dia) => ({ inscripcionNinoId, fecha: fechaDesdeIso(dia) })) })]),
+        : [prisma.inscripcionDia.createMany({ data: diasElegidos.map((dia) => ({ inscripcionNinoId, fecha: fechaDesdeIso(dia.fecha), semanaId: dia.opcion })) })]),
     ]);
   } catch (e) {
     return falloPorExcepcion(e);
@@ -220,4 +231,20 @@ export async function unirFamilias(familiaId: number, _previo: Previo, datos: Fo
   }
   refresh();
   return exito(`La familia #${otra} se unió a la familia #${familiaId}.`);
+}
+
+const MODOS_DESCUENTO: readonly ModoDescuento[] = ["AUTOMATICO", "SI", "NO"];
+
+/** Descuento por hermanos de la familia: automático (2 o más chicos), forzado o quitado. */
+export async function cambiarDescuentoHermanos(familiaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  await exigirAdmin();
+  const modo = MODOS_DESCUENTO.find((m) => m === datos.get("descuentoHermanos"));
+  if (!modo) return fallo("Elegí una opción de descuento.");
+  try {
+    await prisma.familia.update({ where: { id: familiaId }, data: { descuentoHermanos: modo } });
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  refresh();
+  return exito("Descuento guardado.");
 }

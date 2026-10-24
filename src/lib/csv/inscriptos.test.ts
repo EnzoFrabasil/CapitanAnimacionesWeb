@@ -6,9 +6,9 @@ import {
   leerArchivo,
   leerEstado,
   leerFecha,
-  leerTurno,
   planificarImportacion,
   referenciasDelArchivo,
+  type ContextoExport,
   type ContextoImportacion,
   type EstadoActual,
   type InscriptoExport,
@@ -16,16 +16,31 @@ import {
 
 const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
+const opcion = (id: number, numero: number, fechaInicio: string, fechaFin: string) => ({
+  id,
+  numero,
+  nombre: `Quincena ${numero}`,
+  fechaInicio,
+  fechaFin,
+  horaInicio: "08:30",
+  horaFin: "12:30",
+  precio: 130000,
+});
+const ctxExport: ContextoExport = {
+  opciones: [opcion(10, 1, "2027-01-04", "2027-01-15"), opcion(11, 2, "2027-01-18", "2027-01-29")],
+  precios: { coloniaCompleta: 230000, dia: null, descuentoHermanos: 10 },
+};
+const csvDe = (filas: InscriptoExport[]) => generarCsvInscriptos(filas, ctxExport);
+
 const tomas: InscriptoExport = {
   id: 1,
   estado: "EN_ESPERA",
-  turno: "MANANA",
   modalidad: "SEMANAS",
   edadAlInscribir: 7,
   posibleDuplicado: false,
   inscripcion: { numero: 1, fechaAlta: new Date("2026-10-23T03:47:00Z") },
   grupoEdad: { nombre: "Marineros (6 a 8)" },
-  semanas: [{ semana: { numero: 2 } }, { semana: { numero: 1 } }],
+  semanas: [{ semanaId: 11 }, { semanaId: 10 }],
   dias: [],
   nino: {
     nombre: "Tomás",
@@ -40,12 +55,11 @@ const tomas: InscriptoExport = {
 const lucas: InscriptoExport = {
   ...tomas,
   id: 3,
-  turno: "TARDE",
   modalidad: "POR_DIA",
   posibleDuplicado: true,
   grupoEdad: null,
   semanas: [],
-  dias: [{ fecha: d("2027-01-15") }, { fecha: d("2027-01-04") }],
+  dias: [{ fecha: d("2027-01-15"), semanaId: 10 }, { fecha: d("2027-01-04"), semanaId: 10 }],
   inscripcion: { numero: 2, fechaAlta: new Date("2026-10-24T15:00:00Z") },
   nino: {
     ...tomas.nino,
@@ -58,7 +72,7 @@ const lucas: InscriptoExport = {
 };
 
 describe("generarCsvInscriptos", () => {
-  const csv = generarCsvInscriptos([tomas, lucas]);
+  const csv = csvDe([tomas, lucas]);
   const lineas = csv.slice(1).split("\r\n");
 
   it("empieza con BOM, usa ; y tiene las columnas pedidas", () => {
@@ -75,15 +89,17 @@ describe("generarCsvInscriptos", () => {
       estado: "En espera",
       fecha_nacimiento: "10/03/2019",
       grupo: "Marineros (6 a 8)",
-      turno: "Mañana",
-      modalidad: "Por semanas",
-      semanas_o_dias: "Semana 1, Semana 2",
+      horario: "8:30 a 12:30 hs",
+      modalidad: "Opciones",
+      asistencia: "Colonia completa",
+      dias: "",
+      precio: "230000",
       info_adicional: tomas.nino.infoAdicional,
       posible_duplicado: "No",
       contacto_whatsapp: "+5491123456789",
     });
     const fila2 = leerArchivo(csv).filas[1].valores;
-    expect(fila2).toMatchObject({ grupo: "", modalidad: "Por día", semanas_o_dias: "04/01/2027, 15/01/2027", posible_duplicado: "Sí", contacto_email: "" });
+    expect(fila2).toMatchObject({ grupo: "", modalidad: "Días sueltos", asistencia: "2 días", dias: "04/01/2027, 15/01/2027", precio: "", posible_duplicado: "Sí", contacto_email: "" });
   });
 
   it("protege el WhatsApp (empieza con +) contra fórmulas y escapa el texto con ; y saltos de línea", () => {
@@ -102,14 +118,11 @@ describe("lectores de valores", () => {
     expect(leerFecha("ayer")).toBeNull();
   });
 
-  it("leerEstado y leerTurno aceptan etiquetas o códigos, sin importar tildes ni mayúsculas", () => {
+  it("leerEstado acepta etiquetas o códigos, sin importar tildes ni mayúsculas", () => {
     expect(leerEstado("confirmado")).toBe("CONFIRMADO");
     expect(leerEstado("EN_ESPERA")).toBe("EN_ESPERA");
     expect(leerEstado(" En espera ")).toBe("EN_ESPERA");
     expect(leerEstado("pagado")).toBeNull();
-    expect(leerTurno("MAÑANA")).toBe("MANANA");
-    expect(leerTurno("manana")).toBe("MANANA");
-    expect(leerTurno("noche")).toBeNull();
   });
 });
 
@@ -120,7 +133,6 @@ const actualDe = (f: InscriptoExport, extra: Partial<EstadoActual> = {}): Estado
   ninoId: f.id * 10,
   temporadaId: 1,
   estado: f.estado,
-  turno: f.turno,
   grupoEdadId: f.grupoEdad ? 2 : null,
   nino: {
     nombre: f.nino.nombre,
@@ -156,7 +168,7 @@ const contexto = (actuales: EstadoActual[], whatsapps: [string, number][] = []):
 
 /** Genera el CSV exportado y le aplica modificaciones como si se editara en Excel. */
 function editar(filas: InscriptoExport[], cambios: Record<number, Partial<Record<(typeof COLUMNAS)[number], string>>> = {}, extra = "") {
-  const archivo = leerArchivo(generarCsvInscriptos(filas));
+  const archivo = leerArchivo(csvDe(filas));
   const lineas = [COLUMNAS.join(";")];
   for (const { valores } of archivo.filas) {
     const v = { ...valores, ...cambios[Number(valores.id)] };
@@ -169,13 +181,13 @@ describe("planificarImportacion", () => {
   const ctx = contexto([actualDe(tomas), actualDe(lucas)]);
 
   it("el CSV exportado sin cambios no genera cambios", () => {
-    const plan = planificarImportacion(leerArchivo(generarCsvInscriptos([tomas, lucas])), ctx);
+    const plan = planificarImportacion(leerArchivo(csvDe([tomas, lucas])), ctx);
     expect(plan).toMatchObject({ errorGeneral: null, filasLeidas: 2, cambios: [], sinCambios: 2, errores: [], ignoradas: [] });
   });
 
   it("muestra los cambios campo por campo con valor anterior y nuevo", () => {
     const texto = editar([tomas, lucas], {
-      1: { estado: "Confirmado", grupo: "piratas (9 a 12)", turno: "Tarde", dni: "50.111.223", fecha_nacimiento: "9/3/2019" },
+      1: { estado: "Confirmado", grupo: "piratas (9 a 12)", horario: "14 a 18 hs", dni: "50.111.223", fecha_nacimiento: "9/3/2019" },
       3: { contacto_whatsapp: "351 456-7891", contacto_email: "martin@example.com", info_adicional: "Celíaco", grupo: "Sin grupo" },
     });
     const plan = planificarImportacion(leerArchivo(texto), ctx);
@@ -187,7 +199,6 @@ describe("planificarImportacion", () => {
           { columna: "dni", anterior: "50111222", nuevo: "50111223" },
           { columna: "fecha_nacimiento", anterior: "10/03/2019", nuevo: "09/03/2019" },
           { columna: "estado", anterior: "En espera", nuevo: "Confirmado" },
-          { columna: "turno", anterior: "Mañana", nuevo: "Tarde" },
           { columna: "grupo", anterior: "Marineros (6 a 8)", nuevo: "Piratas (9 a 12)" },
         ],
       ],
@@ -202,7 +213,7 @@ describe("planificarImportacion", () => {
     ]);
     expect(plan.cambios[0].datos).toMatchObject({
       nino: { dni: "50111223", fechaNacimiento: "2019-03-09" },
-      inscripcion: { estado: "CONFIRMADO", turno: "TARDE", grupoEdadId: 3 },
+      inscripcion: { estado: "CONFIRMADO", grupoEdadId: 3 },
       responsable: {},
     });
     expect(plan.cambios[1].datos).toMatchObject({
@@ -226,13 +237,13 @@ describe("planificarImportacion", () => {
   it("informa errores por fila y no aplica esas filas", () => {
     const texto = editar([tomas, lucas], {
       1: { estado: "Pagado", dni: "123", grupo: "Delfines", fecha_nacimiento: "30/02/2019", nombre: "" },
-      3: { contacto_whatsapp: "123", contacto_email: "no-es-mail", turno: "Noche" },
+      3: { contacto_whatsapp: "123", contacto_email: "no-es-mail" },
     });
     const plan = planificarImportacion(leerArchivo(texto), ctx);
     expect(plan.cambios).toEqual([]);
     expect(plan.errores.map((e) => [e.fila, e.id, e.mensajes.length])).toEqual([
       [2, 1, 5],
-      [3, 3, 3],
+      [3, 3, 2],
     ]);
   });
 

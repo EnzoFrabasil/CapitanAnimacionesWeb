@@ -6,6 +6,7 @@ import { FormAccion } from "@/components/admin/FormAccion";
 import { contarSinGrupo, listarInscriptos, listarTemporadas, temporadaParaListado } from "@/lib/admin/consultas";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirAdmin } from "@/lib/auth/admin";
+import { aOpcion } from "@/lib/temporada";
 import { TablaInscriptos } from "./TablaInscriptos";
 import { FiltrosListado } from "./FiltrosListado";
 
@@ -35,7 +36,8 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
   }
 
   const [filas, sinGrupo] = await Promise.all([listarInscriptos(filtros, temporada), contarSinGrupo(temporada.id)]);
-  const hayFiltros = Boolean(filtros.grupo || filtros.turno || filtros.semana || filtros.estado || filtros.duplicados || filtros.q);
+  const opciones = temporada.semanas.map(aOpcion);
+  const hayFiltros = Boolean(filtros.grupo || filtros.horario || filtros.semana || filtros.estado || filtros.duplicados || filtros.q);
 
   return (
     <div className="space-y-5">
@@ -64,8 +66,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           temporadaId={temporada.id}
           temporadas={temporadas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
-          semanas={temporada.semanas.map((s) => ({ id: s.id, numero: s.numero }))}
-          nombrePeriodo={temporada.nombrePeriodo}
+          opciones={opciones}
         />
       </section>
 
@@ -93,8 +94,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
       {filas.length > 0 && (
         <TablaInscriptos
           filas={filas}
-          totalSemanas={temporada.semanas.length}
-          nombrePeriodo={temporada.nombrePeriodo}
+          opciones={opciones}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
         />
       )}

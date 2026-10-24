@@ -59,12 +59,10 @@ async function Contenido() {
       temporadaId={temporada.id}
       nombreTemporada={temporada.nombre}
       contexto={{
-        semanas: temporada.semanas,
-        turnos: temporada.turnos,
+        opciones: temporada.opciones,
         modalidades: temporada.modalidades,
         edades: temporada.edades,
-        nombrePeriodo: temporada.nombrePeriodo,
-        horarios: temporada.horarios,
+        precios: temporada.precios,
         hoy: fechaAIso(hoyEnArgentina()),
       }}
     />

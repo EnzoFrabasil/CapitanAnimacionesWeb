@@ -26,15 +26,14 @@ export type TemporadaListado = NonNullable<Awaited<ReturnType<typeof temporadaPa
 
 /** Una fila por niño inscripto, en orden de lista de espera, con su contacto principal. */
 export async function listarInscriptos(filtros: Filtros, temporada: TemporadaListado) {
-  const semana = filtros.semana ? temporada.semanas.find((s) => s.id === filtros.semana) : undefined;
   return prisma.inscripcionNino.findMany({
-    where: condicionDeFiltros(filtros, temporada.id, semana ?? null),
+    where: condicionDeFiltros(filtros, temporada.id),
     orderBy: ORDEN_LISTA_ESPERA,
     include: {
       inscripcion: { select: { numero: true, fechaAlta: true } },
       grupoEdad: { select: { nombre: true } },
-      semanas: { select: { semana: { select: { numero: true } } } },
-      dias: { select: { fecha: true }, orderBy: { fecha: "asc" } },
+      semanas: { select: { semanaId: true } },
+      dias: { select: { fecha: true, semanaId: true }, orderBy: { fecha: "asc" } },
       nino: {
         include: {
           responsables: {

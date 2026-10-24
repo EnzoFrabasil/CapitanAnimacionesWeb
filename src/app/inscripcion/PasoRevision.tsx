@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
+import { sitio } from "@/config/sitio";
+import { describirAsistencia, formatearPrecio, precioChico, totalFamilia } from "@/lib/dominio/opciones";
 import { formatearDiaCorto, formatearFecha, formatearWhatsapp } from "@/lib/formato";
-import { etiquetaModalidad, etiquetaTurno, periodo } from "@/lib/dominio/periodo";
 import { edadParaMostrar, type ContextoInscripcion, type InscripcionValidada } from "@/lib/validacion/inscripcion";
 import { ACENTOS } from "./tipos";
 
@@ -30,8 +32,10 @@ function Editar({ onClick }: { onClick: () => void }) {
 }
 
 export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
-  const semanaPorId = new Map(contexto.semanas.map((s) => [s.id, s]));
-  const p = periodo(contexto.nombrePeriodo);
+  const precios = contexto.precios;
+  const asistencias = datos.ninos.map((n) => ({ modalidad: n.modalidad, opciones: n.semanas, dias: n.dias }));
+  const preciosChicos = precios ? asistencias.map((a) => precioChico(contexto.opciones, precios, a)) : [];
+  const total = precios ? totalFamilia(preciosChicos, precios.descuentoHermanos) : null;
 
   return (
     <div className="space-y-6">
@@ -61,6 +65,7 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
 
       {datos.ninos.map((n, i) => {
         const edad = edadParaMostrar(n.fechaNacimiento, contexto.hoy);
+        const precio = preciosChicos[i];
         return (
           <section
             key={i}
@@ -77,19 +82,70 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
               <Dato etiqueta="Fecha de nacimiento">
                 {formatearFecha(n.fechaNacimiento)} ({edad} años)
               </Dato>
-              <Dato etiqueta="Turno">{etiquetaTurno(n.turno, contexto.horarios)}</Dato>
-              <Dato etiqueta={etiquetaModalidad(n.modalidad, p)}>
-                {n.modalidad === "SEMANAS"
-                  ? n.semanas.length === contexto.semanas.length
-                    ? "Colonia completa"
-                    : n.semanas.map((id) => `${p.singular} ${semanaPorId.get(id)?.numero}`).join(", ")
-                  : n.dias.map(formatearDiaCorto).join(", ")}
-              </Dato>
+              <Dato etiqueta="Asistencia">{describirAsistencia(contexto.opciones, asistencias[i])}</Dato>
+              {n.modalidad === "POR_DIA" && (
+                <Dato etiqueta="Días">{n.dias.map((d) => formatearDiaCorto(d.fecha)).join(", ")}</Dato>
+              )}
+              {precios && <Dato etiqueta="Precio">{precio === null ? "A confirmar" : formatearPrecio(precio ?? 0)}</Dato>}
               {n.infoAdicional && <Dato etiqueta="Información adicional">{n.infoAdicional}</Dato>}
             </dl>
           </section>
         );
       })}
+
+      {total && precios && (
+        <section
+          aria-labelledby="total-titulo"
+          className="rounded-3xl border-2 border-marino bg-white p-5 shadow-[0_4px_0_0_#093651] sm:p-6"
+        >
+          <h3 id="total-titulo" className="font-titulo text-xl font-semibold text-marino">
+            Total estimado
+          </h3>
+
+          {total.descuento > 0 && (
+            <div className="aviso-descuento mt-3 flex items-center gap-3 rounded-2xl bg-verde/10 p-3" role="status">
+              <Image
+                src={sitio.logos.circular}
+                alt=""
+                width={615}
+                height={615}
+                sizes="48px"
+                className="aviso-descuento-insignia size-12 shrink-0 rounded-full bg-white ring-2 ring-verde"
+              />
+              <p className="text-sm text-marino">
+                <strong className="font-titulo text-base">¡Tienen descuento por hermanos!</strong>
+                <br />
+                Se aplica un {precios.descuentoHermanos}% sobre el total de la familia.
+              </p>
+            </div>
+          )}
+
+          <dl className="mt-4 space-y-1">
+            {total.descuento > 0 && (
+              <>
+                <div className="flex justify-between gap-3 text-sm">
+                  <dt>Subtotal</dt>
+                  <dd className="tabular-nums">{formatearPrecio(total.subtotal)}</dd>
+                </div>
+                <div className="flex justify-between gap-3 text-sm font-medium text-verde">
+                  <dt>Descuento por hermanos ({precios.descuentoHermanos}%)</dt>
+                  <dd className="tabular-nums">−{formatearPrecio(total.descuento)}</dd>
+                </div>
+              </>
+            )}
+            <div className="flex items-baseline justify-between gap-3 border-t border-marino/10 pt-2">
+              <dt className="font-titulo text-lg font-semibold text-marino">Total</dt>
+              <dd className="font-titulo text-2xl font-bold text-naranja tabular-nums">{formatearPrecio(total.total)}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-xs text-texto/80">
+            {total.incompleto && "Los días sueltos se cotizan aparte. "}
+            El total se confirma al momento del pago.
+            {datos.ninos.length === 1 &&
+              " Si ya inscribiste a un hermano o hermana con el mismo teléfono, el descuento por hermanos se aplica igual."}
+          </p>
+        </section>
+      )}
     </div>
   );
 }

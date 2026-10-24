@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FilaInscripto as Fila } from "@/lib/admin/consultas";
-import { periodo } from "@/lib/dominio/periodo";
+import type { Opcion } from "@/lib/dominio/opciones";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { eliminarInscriptos } from "./acciones";
 import { FilaInscripto } from "./FilaInscripto";
@@ -10,13 +10,12 @@ import { FilaInscripto } from "./FilaInscripto";
 /** Tabla del listado con selección múltiple para eliminar varios inscriptos juntos. */
 export function TablaInscriptos({
   filas,
-  totalSemanas,
-  nombrePeriodo,
+  opciones,
   grupos,
 }: {
   filas: Fila[];
-  totalSemanas: number;
-  nombrePeriodo: string;
+  /** Todas las opciones de la temporada (también las desactivadas). */
+  opciones: Opcion[];
   grupos: { id: number; nombre: string }[];
 }) {
   const [seleccion, setSeleccion] = useState<ReadonlySet<number>>(new Set());
@@ -83,7 +82,7 @@ export function TablaInscriptos({
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-marino/10">
-        <table className="w-full min-w-[1120px] text-left text-sm">
+        <table className="w-full min-w-[1080px] text-left text-sm">
           <thead className="bg-marino/5 text-xs tracking-wide text-marino uppercase">
             <tr>
               <th scope="col" className="py-3 pl-3">
@@ -103,7 +102,6 @@ export function TablaInscriptos({
               <th scope="col" className="px-3 py-3">Documento</th>
               <th scope="col" className="px-3 py-3">Edad</th>
               <th scope="col" className="px-3 py-3">Grupo</th>
-              <th scope="col" className="px-3 py-3">Turno</th>
               <th scope="col" className="px-3 py-3">Asistencia</th>
               <th scope="col" className="px-3 py-3">Estado</th>
               <th scope="col" className="px-3 py-3">Contacto principal</th>
@@ -117,8 +115,7 @@ export function TablaInscriptos({
               <FilaInscripto
                 key={f.id}
                 fila={f}
-                totalSemanas={totalSemanas}
-                inicialPeriodo={periodo(nombrePeriodo).inicial}
+                opciones={opciones}
                 grupos={grupos}
                 seleccionada={seleccion.has(f.id)}
                 alternarSeleccion={(marcada) => alternar(f.id, marcada)}

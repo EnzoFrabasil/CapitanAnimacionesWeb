@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { ESTADOS } from "@/lib/validacion/admin";
-import { TURNOS } from "@/lib/validacion/inscripcion";
 
 // Filtros del listado del panel (vienen de la URL). Los mismos filtros se usan
 // para exportar el CSV. Un valor inválido se ignora en lugar de dar error.
@@ -11,7 +10,9 @@ const entero = z.coerce.number().int().positive();
 export const filtrosSchema = z.object({
   temporada: entero.optional().catch(undefined),
   grupo: z.union([z.literal("sin"), entero]).optional().catch(undefined),
-  turno: z.enum(TURNOS).optional().catch(undefined),
+  /** Horario "08:30-12:30". */
+  horario: z.string().regex(/^\d{2}:\d{2}-\d{2}:\d{2}$/).optional().catch(undefined),
+  /** Opción de inscripción. */
   semana: entero.optional().catch(undefined),
   estado: z.enum(ESTADOS).optional().catch(undefined),
   duplicados: z.literal("1").optional().catch(undefined),
@@ -35,34 +36,24 @@ export function filtrosAQuery(filtros: Filtros): string {
   return params.toString();
 }
 
-/**
- * Condición de Prisma para el listado de una temporada.
- * `semana` necesita sus fechas para incluir también a los que van por día esa semana.
- */
-export function condicionDeFiltros(
-  filtros: Filtros,
-  temporadaId: number,
-  semana?: { id: number; fechaInicio: Date; fechaFin: Date } | null,
-): Prisma.InscripcionNinoWhereInput {
+/** Condición de Prisma para el listado de una temporada. */
+export function condicionDeFiltros(filtros: Filtros, temporadaId: number): Prisma.InscripcionNinoWhereInput {
   const y: Prisma.InscripcionNinoWhereInput[] = [{ inscripcion: { temporadaId } }];
 
   if (filtros.grupo === "sin") y.push({ grupoEdadId: null });
   else if (filtros.grupo !== undefined) y.push({ grupoEdadId: filtros.grupo });
-  if (filtros.turno) y.push({ turno: filtros.turno });
   if (filtros.estado) y.push({ estado: filtros.estado });
   if (filtros.duplicados) y.push({ posibleDuplicado: true });
 
+  // Incluye a los que van por días sueltos dentro de la opción u horario.
   if (filtros.semana !== undefined) {
-    y.push(
-      semana
-        ? {
-            OR: [
-              { semanas: { some: { semanaId: semana.id } } },
-              { dias: { some: { fecha: { gte: semana.fechaInicio, lte: semana.fechaFin } } } },
-            ],
-          }
-        : { id: -1 }, // semana inexistente: sin resultados
-    );
+    const semanaId = filtros.semana;
+    y.push({ OR: [{ semanas: { some: { semanaId } } }, { dias: { some: { semanaId } } }] });
+  }
+  if (filtros.horario) {
+    const [horaInicio, horaFin] = filtros.horario.split("-");
+    const semana = { horaInicio, horaFin };
+    y.push({ OR: [{ semanas: { some: { semana } } }, { dias: { some: { semana } } }] });
   }
 
   // Cada palabra tiene que aparecer en el nombre, el apellido o el DNI.
