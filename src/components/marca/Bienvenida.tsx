@@ -17,6 +17,13 @@ const sinSuscripcion = () => () => {};
 /** true si el script de arriba marcó que la animación ya se vio (en el servidor, siempre false). */
 const leerYaVista = () => "bienvenidaVista" in document.documentElement.dataset;
 
+/** Rayos del sol (coordenadas redondeadas para que servidor y navegador generen el mismo HTML). */
+const RAYOS = Array.from({ length: 12 }, (_, i) => {
+  const a = (i * Math.PI) / 6;
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return [r(100 + Math.cos(a) * 66), r(100 + Math.sin(a) * 66), r(100 + Math.cos(a) * 88), r(100 + Math.sin(a) * 88)];
+});
+
 /** Dirección de cada gota del salpicón cuando el capitán cae al agua. */
 const GOTAS = [
   [-90, -120],
@@ -67,6 +74,35 @@ export function Bienvenida() {
           if (e.target === e.currentTarget) terminar();
         }}
       >
+        {/* Cielo: sol y nubes con el mismo borde celeste del logo. */}
+        <svg className="bienvenida-sol" viewBox="0 0 200 200" aria-hidden>
+          <g className="bienvenida-rayos" stroke="#fba445" strokeWidth="10" strokeLinecap="round">
+            {RAYOS.map(([x1, y1, x2, y2], i) => (
+              <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />
+            ))}
+          </g>
+          <circle cx="100" cy="100" r="52" fill="#fba445" stroke="#fff4db" strokeWidth="6" />
+          <circle cx="100" cy="100" r="40" fill="#fdbd6a" />
+        </svg>
+        <svg className="bienvenida-nube bienvenida-nube-1" viewBox="0 0 200 90" aria-hidden>
+          <path
+            d="M40 78C18 78 8 62 14 48 20 34 38 30 50 36 54 18 72 8 92 12 108 4 132 8 140 26 156 20 178 28 180 46 196 50 198 78 176 78Z"
+            fill="white"
+            stroke="#b8e5fc"
+            strokeWidth="7"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <svg className="bienvenida-nube bienvenida-nube-2" viewBox="0 0 200 90" aria-hidden>
+          <path
+            d="M40 78C18 78 8 62 14 48 20 34 38 30 50 36 54 18 72 8 92 12 108 4 132 8 140 26 156 20 178 28 180 46 196 50 198 78 176 78Z"
+            fill="white"
+            stroke="#b8e5fc"
+            strokeWidth="7"
+            strokeLinejoin="round"
+          />
+        </svg>
+
         <svg className="bienvenida-mar" viewBox="0 0 1440 200" preserveAspectRatio="none">
           <path
             className="bienvenida-ola"

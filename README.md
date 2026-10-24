@@ -119,7 +119,7 @@ Otros comandos:
   - `logo-texto.png`: logotipo del encabezado.
   - `logo-circular.png`: favicon e imagen para compartir en redes.
   - `capitan-timon.png`, `capitan-barco.png` (banner principal), `capitan-colgado.png` (pantalla de éxito).
-  - Ilustraciones decorativas: `timon.png`, `ola.png`, `ancla.png`, `botella.png`, `barco.png`.
+  - Ilustraciones decorativas: `timon.png`, `estrella.svg`, `ancla.png`, `botella.png`, `barco.png`.
 
 ## 8. Cómo funciona
 

@@ -206,8 +206,8 @@ function ImagenEnEdicion({
   );
 }
 
-/** Mapa de Google. En el editor espera a que se termine de escribir la dirección para recargarlo. */
-export function Mapa({ direccion }: { direccion: string }) {
+/** Mapa de Google. En el editor espera a que se termine de escribir para recargarlo. */
+export function Mapa({ busqueda: direccion }: { busqueda: string }) {
   const edicion = useEdicion();
   const [mostrada, setMostrada] = useState(direccion);
 

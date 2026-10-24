@@ -21,11 +21,11 @@ export default function LayoutPanel({ children }: LayoutProps<"/admin">) {
             <Link href="/admin" className="hover:text-amarillo">
               Inscriptos
             </Link>
-            <Link href="/admin/inicio" className="hover:text-amarillo">
-              Página de inicio
-            </Link>
             <Link href="/admin/configuracion" className="hover:text-amarillo">
               Configuración
+            </Link>
+            <Link href="/admin/inicio" className="hover:text-amarillo">
+              Editar página de inicio
             </Link>
           </nav>
           <form action={cerrarSesion}>

@@ -190,7 +190,7 @@ export function EditorInicio({
       <div data-editor-ui="" className="sticky top-0 z-50 border-b-4 border-naranja bg-white px-4 py-3 shadow-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3">
           <div className="mr-auto">
-            <h1 className="font-titulo text-2xl font-bold text-marino">Página de inicio</h1>
+            <h1 className="font-titulo text-2xl font-bold text-marino">Editar página de inicio</h1>
             <p className="text-sm" aria-live="polite">
               {hayCambios
                 ? "Tenés cambios sin publicar. Hacé clic en cualquier texto para editarlo."

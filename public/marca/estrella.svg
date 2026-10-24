@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <!-- Estrella de mar decorativa (paleta de la marca). Reemplaza a ola.png, que tenía fondo negro. -->
+  <g transform="rotate(-12 120 124)">
+    <path d="M120.0 24.0L145.9 88.4L215.1 93.1L161.8 137.6L178.8 204.9L120.0 168.0L61.2 204.9L78.2 137.6L24.9 93.1L94.1 88.4Z" fill="#7a2a10" stroke="#7a2a10" stroke-width="30" stroke-linejoin="round"/>
+    <path d="M120.0 24.0L145.9 88.4L215.1 93.1L161.8 137.6L178.8 204.9L120.0 168.0L61.2 204.9L78.2 137.6L24.9 93.1L94.1 88.4Z" fill="#f15a23" stroke="#f15a23" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M120.0 24.0L145.9 88.4L215.1 93.1L161.8 137.6L178.8 204.9L120.0 168.0L61.2 204.9L78.2 137.6L24.9 93.1L94.1 88.4Z" fill="none" stroke="#fba445" stroke-width="4" stroke-linejoin="round" opacity="0.55" transform="translate(-3 -4)"/>
+    <g fill="#ffd6b0"><circle cx="120.0" cy="86.0" r="6"/><circle cx="120.0" cy="62.0" r="5"/><circle cx="120.0" cy="42.0" r="3.5"/><circle cx="156.1" cy="112.3" r="6"/><circle cx="179.0" cy="104.8" r="5"/><circle cx="198.0" cy="98.7" r="3.5"/><circle cx="142.3" cy="154.7" r="6"/><circle cx="156.4" cy="174.2" r="5"/><circle cx="168.2" cy="190.3" r="3.5"/><circle cx="97.7" cy="154.7" r="6"/><circle cx="83.6" cy="174.2" r="5"/><circle cx="71.8" cy="190.3" r="3.5"/><circle cx="83.9" cy="112.3" r="6"/><circle cx="61.0" cy="104.8" r="5"/><circle cx="42.0" cy="98.7" r="3.5"/><circle cx="120" cy="124" r="9"/></g>
+  </g>
+</svg>

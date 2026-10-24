@@ -31,6 +31,7 @@ export function Decoracion({
         alt=""
         width={240}
         height={240}
+        unoptimized={src.endsWith(".svg")}
         className="w-16 animate-flotar opacity-50 sm:w-20 md:w-28 md:opacity-90"
       />
     </div>

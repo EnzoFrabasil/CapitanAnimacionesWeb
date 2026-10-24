@@ -8,7 +8,7 @@ import { Encabezado } from "@/components/marca/Encabezado";
 import { PiePagina } from "@/components/marca/PiePagina";
 import { sitio } from "@/config/sitio";
 import type { Contenido } from "@/lib/contenido/esquema";
-import { urlComoLlegar, urlWhatsapp } from "@/lib/contenido/urls";
+import { busquedaUbicacion, urlComoLlegar, urlWhatsapp } from "@/lib/contenido/urls";
 import { AgregarSeccion, AjusteDescripcion, ControlesSeccion, ListaPreguntas, Redes } from "./controles";
 import { ImagenEditable, Mapa, SoloPublico, Texto } from "./editables";
 
@@ -65,7 +65,7 @@ export function VistaInicio({
         {/* Banner principal */}
         <section className="relative overflow-hidden" aria-labelledby="titulo-principal">
           <Decoracion src={sitio.decoraciones.timon} posicion="arriba-izquierda" className="top-4! left-2!" />
-          <Decoracion src={sitio.decoraciones.ola} posicion="abajo-derecha" />
+          <Decoracion src={sitio.decoraciones.estrella} posicion="abajo-derecha" className="right-4! bottom-6! z-10" />
           <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 pt-10 pb-16 md:grid-cols-2 md:pt-16 md:pb-24">
             <div className="text-center md:text-left">
               <p className="inline-block rounded-full bg-amarillo px-4 py-1 font-semibold text-marino">
@@ -164,13 +164,13 @@ export function VistaInicio({
                   <Texto ruta={["ubicacion", "titulo"]} valor={c.ubicacion.titulo} etiqueta="Nombre del lugar" />
                 </p>
                 <p className="mt-2 text-lg">
-                  <Texto ruta={["ubicacion", "direccion"]} valor={c.ubicacion.direccion} etiqueta="Dirección (se usa para el mapa)" />
+                  <Texto ruta={["ubicacion", "direccion"]} valor={c.ubicacion.direccion} etiqueta="Dirección (el mapa busca el nombre del lugar + la dirección)" />
                 </p>
                 <p className="mt-3 whitespace-pre-line">
                   <Texto ruta={["ubicacion", "detalle"]} valor={c.ubicacion.detalle} etiqueta="Cómo llegar" multilinea />
                 </p>
                 <a
-                  href={urlComoLlegar(c.ubicacion.direccion)}
+                  href={urlComoLlegar(busquedaUbicacion(c.ubicacion))}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-5 inline-block rounded-full border-2 border-marino px-5 py-2 font-semibold text-marino transition hover:bg-marino hover:text-white"
@@ -178,7 +178,7 @@ export function VistaInicio({
                   Cómo llegar
                 </a>
               </div>
-              <Mapa direccion={c.ubicacion.direccion} />
+              <Mapa busqueda={busquedaUbicacion(c.ubicacion)} />
             </div>
           </Aparecer>
         </section>

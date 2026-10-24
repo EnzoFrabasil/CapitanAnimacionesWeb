@@ -26,7 +26,7 @@ export const sitio = {
   // Ilustraciones decorativas para las esquinas de las secciones.
   decoraciones: {
     timon: "/marca/timon.png",
-    ola: "/marca/ola.png",
+    estrella: "/marca/estrella.svg",
     ancla: "/marca/ancla.png",
     botella: "/marca/botella.png",
     barco: "/marca/barco.png",

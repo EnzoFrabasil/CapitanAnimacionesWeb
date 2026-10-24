@@ -181,8 +181,51 @@ html:has(.bienvenida) {
 .bienvenida-mar {
   position: absolute;
   inset: auto 0 0 0;
+  width: 100%; /* un SVG absoluto no se estira solo con left/right */
   height: 22vh;
   animation: bienvenida-sube-mar 0.6s ease-out 0.1s both;
+}
+.bienvenida-sol {
+  position: absolute;
+  top: 7vh;
+  left: 7vw;
+  width: clamp(80px, 13vw, 170px);
+  animation: bienvenida-cielo 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+.bienvenida-rayos {
+  transform-origin: 100px 100px;
+  animation: bienvenida-gira 18s linear infinite;
+}
+.bienvenida-nube {
+  position: absolute;
+  width: clamp(90px, 14vw, 190px);
+  animation:
+    bienvenida-cielo 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both,
+    bienvenida-nube 7s ease-in-out infinite alternate;
+}
+.bienvenida-nube-1 {
+  top: 12vh;
+  right: 12vw;
+}
+.bienvenida-nube-2 {
+  top: 52vh;
+  left: 8vw;
+  width: clamp(70px, 10vw, 140px);
+  opacity: 0.85;
+  animation-duration: 0.8s, 9s;
+  animation-direction: normal, alternate-reverse;
+}
+/* En el celular las nubes van arriba, para no tapar el logo. */
+@media (max-aspect-ratio: 1/1) {
+  .bienvenida-nube-1 {
+    top: 9vh;
+    right: 6vw;
+  }
+  .bienvenida-nube-2 {
+    top: 20vh;
+    left: auto;
+    right: 30vw;
+  }
 }
 .bienvenida-ola {
   animation: bienvenida-oleaje 3s ease-in-out infinite alternate;
@@ -210,6 +253,22 @@ html:has(.bienvenida) {
   color: var(--color-marino);
 }
 
+@keyframes bienvenida-cielo {
+  from {
+    opacity: 0;
+    translate: 0 -24px;
+  }
+}
+@keyframes bienvenida-gira {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes bienvenida-nube {
+  to {
+    translate: 28px 0;
+  }
+}
 @keyframes bienvenida-caida-logo {
   0% {
     transform: translateY(-110vh) rotate(-8deg);

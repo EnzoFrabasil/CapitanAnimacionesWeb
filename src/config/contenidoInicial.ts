@@ -55,12 +55,12 @@ export const contenidoInicial: Contenido = {
     },
   ],
 
-  // La dirección se usa como texto y para generar el mapa de Google Maps.
+  // El mapa de Google Maps busca "nombre del lugar, dirección".
   ubicacion: {
     tituloSeccion: "¿Dónde zarpamos?",
-    titulo: "TODO: Nombre del lugar (club, escuela, etc.)",
-    direccion: "TODO: Av. Siempreviva 742, Buenos Aires, Argentina",
-    detalle: "TODO: Cómo llegar, estacionamiento, colectivos que pasan cerca.",
+    titulo: "Liga Mercedina de Padres de Familia",
+    direccion: "Mercedes, Provincia de Buenos Aires",
+    detalle: "",
   },
 
   preguntas: {
