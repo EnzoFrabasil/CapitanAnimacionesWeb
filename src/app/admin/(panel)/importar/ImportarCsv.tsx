@@ -29,6 +29,15 @@ export function ImportarCsv() {
     setTexto(null);
     if (!archivo) return;
     setNombreArchivo(archivo.name);
+    // Excel guarda por defecto en .xlsx: ese formato no se puede leer como texto.
+    if (/.xlsx?$/i.test(archivo.name)) {
+      setMensaje({
+        ok: false,
+        texto:
+          "Ese archivo es un libro de Excel (.xlsx), no un CSV. En Excel andá a Archivo → Guardar como, elegí el tipo \"CSV UTF-8 (delimitado por comas)\" y subí ese archivo.",
+      });
+      return;
+    }
     const contenido = await leerTexto(archivo);
     setTexto(contenido);
     iniciar(async () => {
@@ -66,7 +75,7 @@ export function ImportarCsv() {
         <input
           id="archivo-csv"
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,text/csv,.txt,.xlsx,.xls"
           onChange={(e) => {
             void elegirArchivo(e.target.files?.[0]);
             e.target.value = "";

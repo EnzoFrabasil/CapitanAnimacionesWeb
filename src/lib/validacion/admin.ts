@@ -159,3 +159,13 @@ export const semanaSchema = z
 export function mensajesDeError(error: z.ZodError): string[] {
   return [...new Set(error.issues.map((i) => i.message))];
 }
+
+/** Edición rápida desde el listado de inscriptos (sin asistencia ni datos secundarios). */
+export const edicionRapidaSchema = z.object({
+  nino: ninoAdminSchema.pick({ nombre: true, apellido: true, dni: true }),
+  grupoEdadId: inscripcionAdminSchema.shape.grupoEdadId,
+  turno: inscripcionAdminSchema.shape.turno,
+  estado: inscripcionAdminSchema.shape.estado,
+  contacto: responsableAdminSchema.pick({ nombre: true, apellido: true, whatsapp: true }).nullable(),
+});
+export type EdicionRapida = z.input<typeof edicionRapidaSchema>;
