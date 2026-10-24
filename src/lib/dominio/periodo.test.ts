@@ -10,6 +10,13 @@ describe("periodo", () => {
     expect(etiquetaModalidad("POR_DIA", periodo("Quincena"))).toBe("Por día");
   });
 
+  it("acepta cualquier nombre y arma el plural en castellano", () => {
+    expect(periodo("Mes").plural).toBe("Meses");
+    expect(periodo("Vez").plural).toBe("Veces");
+    expect(periodo("  Turno  ")).toEqual({ singular: "Turno", plural: "Turnos", inicial: "T" });
+    expect(periodo("").singular).toBe("Semana");
+  });
+
   it("muestra el horario del turno si está cargado", () => {
     expect(etiquetaTurno("MANANA", { MANANA: "8:30 a 12:30 hs" })).toBe("Mañana (8:30 a 12:30 hs)");
     expect(etiquetaTurno("TARDE", { MANANA: "8:30 a 12:30 hs", TARDE: " " })).toBe("Tarde");
@@ -25,6 +32,6 @@ describe("periodo", () => {
       contactos: [{ nombre: "Ana", apellido: "Paz", parentesco: "", whatsapp: "11 2345-6789", whatsappAlt: "", email: "" }],
       ninos: [{ nombre: "Leo", apellido: "Paz", dni: "50111222", fechaNacimiento: "2019-05-01", infoAdicional: "", turno: "MANANA", modalidad: "SEMANAS", semanas: [], dias: [] }],
     });
-    expect(r.error?.issues.map((i) => i.message)).toContain("Elegí al menos una quincena.");
+    expect(r.error?.issues.map((i) => i.message)).toContain("Elegí a qué quincenas va a asistir.");
   });
 });

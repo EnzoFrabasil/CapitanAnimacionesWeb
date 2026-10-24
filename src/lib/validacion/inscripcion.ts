@@ -147,9 +147,9 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
       (nino, ctx) => {
         if (nino.modalidad === "SEMANAS") {
           if (nino.semanas.length === 0) {
-            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Elegí al menos una ${p.singular.toLowerCase()}.` });
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Elegí a qué ${p.plural.toLowerCase()} va a asistir.` });
           } else if (nino.semanas.some((id) => !semanaIds.has(id))) {
-            ctx.addIssue({ code: "custom", path: ["semanas"], message: `Alguna de las ${p.plural.toLowerCase()} elegidas no es válida.` });
+            ctx.addIssue({ code: "custom", path: ["semanas"], message: "Alguna de las opciones elegidas no es válida." });
           }
         } else {
           if (nino.dias.length === 0) {

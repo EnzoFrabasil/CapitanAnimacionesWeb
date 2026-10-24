@@ -3,8 +3,9 @@ import { ETIQUETA_TURNO } from "@/lib/formato";
 // Cómo se llama cada período de la colonia (las "semanas" de la base) y los
 // horarios de los turnos. Se configuran por temporada desde el panel.
 
-export const NOMBRES_PERIODO = ["Semana", "Quincena"] as const;
-export type NombrePeriodo = (typeof NOMBRES_PERIODO)[number];
+/** Sugerencias para el panel; se puede escribir cualquier nombre. */
+export const NOMBRES_PERIODO_SUGERIDOS = ["Semana", "Quincena"] as const;
+export const LARGO_MAXIMO_PERIODO = 30;
 
 export interface Periodo {
   /** "Semana", "Quincena" */
@@ -15,8 +16,16 @@ export interface Periodo {
   inicial: string;
 }
 
+/** Plural en castellano: "Semana" → "Semanas", "Mes" → "Meses", "Vez" → "Veces". */
+export function pluralizar(palabra: string): string {
+  if (/[aeiouáéíóú]$/i.test(palabra)) return `${palabra}s`;
+  if (/z$/i.test(palabra)) return `${palabra.slice(0, -1)}ces`;
+  return `${palabra}es`;
+}
+
 export function periodo(nombre: string = "Semana"): Periodo {
-  return { singular: nombre, plural: `${nombre}s`, inicial: nombre.charAt(0).toUpperCase() };
+  const singular = nombre.trim() || "Semana";
+  return { singular, plural: pluralizar(singular), inicial: singular.charAt(0).toUpperCase() };
 }
 
 /** "Por quincenas" / "Por día" */

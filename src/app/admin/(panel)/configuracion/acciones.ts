@@ -8,7 +8,7 @@ import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
 import { mensajesDeError, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
-import { NOMBRES_PERIODO } from "@/lib/dominio/periodo";
+import { LARGO_MAXIMO_PERIODO } from "@/lib/dominio/periodo";
 import { TURNOS } from "@/lib/validacion/inscripcion";
 
 type Previo = ResultadoAccion | null;
@@ -82,12 +82,14 @@ export async function guardarOpciones(temporadaId: number, _previo: Previo, dato
   const turnos = TURNOS.filter((t) => datos.getAll("turnos").includes(t));
   const permiteSemanas = datos.get("permiteSemanas") === "on";
   const permitePorDia = datos.get("permitePorDia") === "on";
-  const nombrePeriodo = String(datos.get("nombrePeriodo") ?? "");
+  const nombrePeriodo = String(datos.get("nombrePeriodo") ?? "").trim();
   const horario = (campo: string) => String(datos.get(campo) ?? "").trim().slice(0, 60);
   const horarioManana = horario("horarioManana");
   const horarioTarde = horario("horarioTarde");
   const errores = [
-    ...(!(NOMBRES_PERIODO as readonly string[]).includes(nombrePeriodo) ? ["Elegí cómo se llama cada período."] : []),
+    ...(!nombrePeriodo || nombrePeriodo.length > LARGO_MAXIMO_PERIODO
+      ? [`Escribí cómo se llama cada período (hasta ${LARGO_MAXIMO_PERIODO} letras), por ejemplo Semana o Quincena.`]
+      : []),
     ...(turnos.length === 0 ? ["Tiene que haber al menos un turno activo."] : []),
     ...(!permiteSemanas && !permitePorDia ? ["Tiene que haber al menos una forma de asistir."] : []),
   ];

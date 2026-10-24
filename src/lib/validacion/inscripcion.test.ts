@@ -94,7 +94,7 @@ describe("crearInscripcionSchema", () => {
   });
 
   it("semanas: rechaza lista vacía o semanas de otra temporada", () => {
-    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [] }] })[0]).toMatch(/al menos una semana/);
+    expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [] }] })[0]).toMatch(/Elegí a qué semanas va a asistir/);
     expect(errores({ contactos: [contacto], ninos: [{ ...nino, semanas: [99] }] })[0]).toMatch(/no es válida/);
   });
 
@@ -141,7 +141,7 @@ describe("crearInscripcionSchema", () => {
         expect.stringMatching(/^contactos\.1\.nombre:/),
         expect.stringMatching(/^contactos\.1\.whatsapp: Este número ya está cargado/),
         expect.stringMatching(/^ninos\.0\.nombre:/),
-        expect.stringMatching(/^ninos\.0\.semanas: Elegí al menos una semana/),
+        expect.stringMatching(/^ninos\.0\.semanas: Elegí a qué semanas va a asistir/),
       ]),
     );
   });

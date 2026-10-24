@@ -6,7 +6,7 @@ import { claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { fechaAIso, sumarDias } from "@/lib/dominio/fechas";
-import { NOMBRES_PERIODO, periodo } from "@/lib/dominio/periodo";
+import { LARGO_MAXIMO_PERIODO, NOMBRES_PERIODO_SUGERIDOS, periodo } from "@/lib/dominio/periodo";
 import { ETIQUETA_TURNO } from "@/lib/formato";
 import { TURNOS } from "@/lib/validacion/inscripcion";
 import { prisma } from "@/lib/prisma";
@@ -144,16 +144,23 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
             </fieldset>
             <fieldset className="space-y-2">
               <legend className="mb-1 text-sm font-semibold text-marino">Formas de asistir</legend>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex flex-wrap items-center gap-2 text-sm">
                 Cada período se llama
-                <select name="nombrePeriodo" defaultValue={temporada.nombrePeriodo} className="rounded-lg border border-marino/30 px-2 py-1 text-sm">
-                  {NOMBRES_PERIODO.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
+                <input
+                  name="nombrePeriodo"
+                  list="nombres-periodo"
+                  defaultValue={temporada.nombrePeriodo}
+                  required
+                  maxLength={LARGO_MAXIMO_PERIODO}
+                  className="w-36 rounded-lg border border-marino/30 px-2 py-1 text-sm"
+                />
+                <datalist id="nombres-periodo">
+                  {NOMBRES_PERIODO_SUGERIDOS.map((n) => (
+                    <option key={n} value={n} />
                   ))}
-                </select>
+                </datalist>
               </label>
+              <p className="text-xs">En singular, por ejemplo Semana o Quincena. El formulario lo usa tal cual.</p>
               <Casilla nombre="permiteSemanas" etiqueta={`Por ${p.plural.toLowerCase()} (y "Colonia completa")`} marcada={temporada.permiteSemanas} />
               <Casilla nombre="permitePorDia" etiqueta="Por día" marcada={temporada.permitePorDia} />
             </fieldset>
@@ -161,7 +168,7 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
         </FormAccion>
         {(temporada.permiteSemanas || temporada.permitePorDia) && !temporada.semanas.some((s) => s.activa) && (
           <p role="alert" className="mt-3 text-sm font-medium text-rojo">
-            No hay ninguna {p.singular.toLowerCase()} activa: las familias no van a poder elegir {p.plural.toLowerCase()} ni días.
+            No hay ningún período activo ({p.plural.toLowerCase()}): las familias no van a poder elegir ni períodos ni días.
           </p>
         )}
       </Seccion>
@@ -183,12 +190,12 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
                 </div>
               </FormAccion>
               <FormAccion accion={eliminarSemana.bind(null, s.id)} textoBoton="Eliminar" textoPendiente="Eliminando…" variante="peligro" />
-              <p className="w-full text-xs">{s._count.inscripciones} inscriptos en esta {p.singular.toLowerCase()} completa</p>
+              <p className="w-full text-xs">{s._count.inscripciones} inscriptos para este período completo</p>
             </div>
           ))}
         </div>
-        <h3 className="mt-5 mb-2 text-sm font-semibold text-marino">Agregar {p.singular.toLowerCase()}</h3>
-        <FormAccion accion={guardarSemana.bind(null, id, null)} textoBoton={`Agregar ${p.singular.toLowerCase()}`} className="flex flex-wrap items-end gap-3 [&>div:last-child]:mt-0">
+        <h3 className="mt-5 mb-2 text-sm font-semibold text-marino">Agregar período ({p.singular.toLowerCase()})</h3>
+        <FormAccion accion={guardarSemana.bind(null, id, null)} textoBoton="Agregar" className="flex flex-wrap items-end gap-3 [&>div:last-child]:mt-0">
           <Campo nombre="numero" etiqueta="N.º" tipo="number" min={1} valor={(ultima?.numero ?? 0) + 1} requerido idPrefijo="semana-nueva" className="w-20" />
           <Campo nombre="fechaInicio" etiqueta="Desde" tipo="date" valor={proximoLunes ? fechaAIso(proximoLunes) : ""} requerido idPrefijo="semana-nueva" />
           <Campo nombre="fechaFin" etiqueta="Hasta" tipo="date" valor={proximoLunes ? fechaAIso(sumarDias(proximoLunes, 4)) : ""} requerido idPrefijo="semana-nueva" />

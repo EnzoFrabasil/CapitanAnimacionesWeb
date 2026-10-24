@@ -49,7 +49,7 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
   const semanasElegidas = [...new Set(d.semanas)];
   const diasElegidos = [...new Set(d.dias)];
   if (d.modalidad === "SEMANAS") {
-    if (semanasElegidas.length === 0) return fallo(`Elegí al menos una ${actual.inscripcion.temporada.nombrePeriodo.toLowerCase()}.`);
+    if (semanasElegidas.length === 0) return fallo(`Elegí al menos un período (${actual.inscripcion.temporada.nombrePeriodo.toLowerCase()}).`);
     if (semanasElegidas.some((id) => !semanas.some((s) => s.id === id))) return fallo("Algún período elegido no es de esta temporada.");
   } else {
     const validos = new Set(diasHabilesDeSemanas(semanas.map((s) => ({ fechaInicio: fechaAIso(s.fechaInicio), fechaFin: fechaAIso(s.fechaFin) }))));
