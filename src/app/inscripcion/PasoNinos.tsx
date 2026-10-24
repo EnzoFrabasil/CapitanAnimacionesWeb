@@ -213,7 +213,7 @@ function Asistencia({
           <div className="space-y-2">
             <Casilla
               id={`${base}.semanas.todas`}
-              etiqueta="Todas las semanas"
+              etiqueta="Colonia completa"
               destacada
               marcada={todas}
               onCambio={(marcada) => {

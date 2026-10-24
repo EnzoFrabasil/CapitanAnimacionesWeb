@@ -79,7 +79,7 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
               <Dato etiqueta={ETIQUETA_MODALIDAD[n.modalidad]}>
                 {n.modalidad === "SEMANAS"
                   ? n.semanas.length === contexto.semanas.length
-                    ? "Todas las semanas"
+                    ? "Colonia completa"
                     : n.semanas.map((id) => `Semana ${semanaPorId.get(id)?.numero}`).join(", ")
                   : n.dias.map(formatearDiaCorto).join(", ")}
               </Dato>

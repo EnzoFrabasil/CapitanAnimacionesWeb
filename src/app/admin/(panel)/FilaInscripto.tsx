@@ -92,7 +92,7 @@ export function FilaInscripto({
   const asistencia =
     f.modalidad === "SEMANAS"
       ? f.semanas.length === totalSemanas
-        ? "Todas las semanas"
+        ? "Colonia completa"
         : f.semanas
             .map((s) => `S${s.semana.numero}`)
             .sort()
