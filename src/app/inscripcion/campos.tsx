@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { CODIGO_PAIS_INICIAL, paisesDelCodigo, separarTelefono, unirTelefono } from "@/lib/dominio/telefono";
 
 // Piezas de formulario accesibles: etiqueta asociada, ayuda y error leídos por lectores de pantalla.
 
@@ -147,5 +148,85 @@ export function Casilla({
       />
       <span>{etiqueta}</span>
     </label>
+  );
+}
+
+const nombresDePais = typeof Intl.DisplayNames === "function" ? new Intl.DisplayNames(["es"], { type: "region" }) : null;
+
+/** "Argentina", "Estados Unidos, Canadá y otros", etc. según el código de país. */
+function paisDelCodigo(codigo: string): string {
+  const paises = paisesDelCodigo(codigo);
+  if (paises.length === 0) return codigo ? "Código desconocido" : "Código de país";
+  const nombres = paises.map((p) => nombresDePais?.of(p) ?? p);
+  return nombres.length > 2 ? `${nombres.slice(0, 2).join(", ")} y otros` : nombres.join(" o ");
+}
+
+/**
+ * Teléfono en dos partes: código de país (arranca en 54, con el país debajo) y
+ * el resto del número. Hacia afuera trabaja con un solo texto "+54 11 2345-6789".
+ */
+export function CampoTelefono(p: {
+  id: string;
+  etiqueta: string;
+  valor: string;
+  onCambio: (valor: string) => void;
+  onSalir: () => void;
+  error?: string;
+  ayuda?: string;
+  opcional?: boolean;
+  autoComplete?: string;
+}) {
+  const { codigo, numero } = separarTelefono(p.valor);
+  const descripcion = [p.ayuda && `${p.id}-ayuda`, p.error && `${p.id}-error`].filter(Boolean).join(" ");
+  return (
+    <div>
+      <label htmlFor={p.id} className="mb-1 block font-medium text-marino">
+        {p.etiqueta}
+        {p.opcional && <span className="font-normal text-texto/70"> (opcional)</span>}
+      </label>
+      <div className="flex items-start gap-2">
+        <div className="w-24 shrink-0">
+          <div className="relative">
+            <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-texto/70">
+              +
+            </span>
+            <input
+              id={`${p.id}-codigo`}
+              aria-label={`Código de país de ${p.etiqueta.toLowerCase()}`}
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              value={codigo}
+              onChange={(e) => p.onCambio(unirTelefono(e.target.value.replace(/\D/g, ""), numero))}
+              onBlur={p.onSalir}
+              aria-describedby={`${p.id}-pais`}
+              className={`${claseInput(Boolean(p.error))} pl-6!`}
+            />
+          </div>
+          <p id={`${p.id}-pais`} className="mt-1 truncate text-xs text-texto/80" title={paisDelCodigo(codigo)}>
+            {paisDelCodigo(codigo)}
+          </p>
+        </div>
+        <input
+          id={p.id}
+          type="tel"
+          inputMode="tel"
+          autoComplete={p.autoComplete}
+          placeholder={codigo === CODIGO_PAIS_INICIAL ? "11 2345-6789" : undefined}
+          value={numero}
+          onChange={(e) => p.onCambio(unirTelefono(codigo, e.target.value))}
+          onBlur={p.onSalir}
+          aria-invalid={p.error ? true : undefined}
+          aria-describedby={descripcion || undefined}
+          className={claseInput(Boolean(p.error))}
+        />
+      </div>
+      {p.ayuda && (
+        <p id={`${p.id}-ayuda`} className="mt-1 text-sm text-texto/80">
+          {p.ayuda}
+        </p>
+      )}
+      <MensajeError id={`${p.id}-error`} mensaje={p.error} />
+    </div>
   );
 }

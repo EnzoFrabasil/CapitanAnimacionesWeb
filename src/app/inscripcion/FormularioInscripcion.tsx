@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TextosInscripcion } from "@/lib/contenido/esquema";
+import { CODIGO_PAIS_INICIAL, unirTelefono } from "@/lib/dominio/telefono";
 import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CasillaPrivacidad } from "./CasillaPrivacidad";
 import { Exito } from "./Exito";
@@ -15,8 +16,8 @@ const contactoVacio = (): ContactoForm => ({
   nombre: "",
   apellido: "",
   parentesco: "",
-  whatsapp: "",
-  whatsappAlt: "",
+  whatsapp: unirTelefono(CODIGO_PAIS_INICIAL, ""),
+  whatsappAlt: unirTelefono(CODIGO_PAIS_INICIAL, ""),
   email: "",
 });
 

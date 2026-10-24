@@ -19,6 +19,10 @@ describe("normalizarWhatsapp", () => {
     ["0351 15 456 7890", "+5493514567890"],
     ["2614 56 7891", "+5492614567891"],
     ["02944 15 123456", "+5492944123456"],
+    // Otros países (con el código de país adelante)
+    ["+598 94 123 456", "+59894123456"],
+    ["+55 11 91234 5678", "+5511912345678"],
+    ["+56 9 6123 4567", "+56961234567"],
   ])("normaliza %j a %s", (entrada, esperado) => {
     expect(normalizarWhatsapp(entrada)).toBe(esperado);
   });
@@ -29,8 +33,9 @@ describe("normalizarWhatsapp", () => {
     ["123"],
     ["11 2345 678"], // falta un dígito
     ["15 2345 6789"], // sin código de área
-    ["+1 415 555 2671"], // no es de Argentina
-    ["+598 94 123 456"], // Uruguay
+    ["+598 12 345"], // Uruguay, demasiado corto
+    ["+54"], // solo el código de país
+    ["+999 1234 5678"], // código de país inexistente
     ["hola"],
     ["11 2345 67890 1"], // sobran dígitos
   ])("rechaza %j", (entrada) => {

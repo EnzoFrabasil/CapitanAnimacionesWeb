@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { LARGO_MAXIMO, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
-import { normalizarDni } from "@/lib/dominio/dni";
+import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { calcularEdad, validarFechaNacimiento } from "@/lib/dominio/edad";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
-import { normalizarWhatsapp } from "@/lib/dominio/telefono";
+import { normalizarWhatsapp, separarTelefono, soloCodigoDePais } from "@/lib/dominio/telefono";
 
 // El mismo esquema valida en el formulario (en vivo) y en la API.
 // No importa nada de Prisma para poder usarse en el navegador.
@@ -36,20 +36,26 @@ const textoOpcional = (max: number) =>
     .optional()
     .transform((v) => v || undefined);
 
+/** Mensaje de error de un teléfono escrito como "+código número" (o sin "+", y entonces es de Argentina). */
+function errorTelefono(valor: string): string | null {
+  if (valor.startsWith("+") && !separarTelefono(valor).codigo) return "Falta el código de país (54 para Argentina).";
+  if (normalizarWhatsapp(valor)) return null;
+  return separarTelefono(valor).codigo === "54" || !valor.startsWith("+")
+    ? "No parece un celular válido. Escribilo con el código de área, por ejemplo 11 2345-6789."
+    : "No parece un celular válido para ese código de país.";
+}
+
 const whatsapp = z
   .string()
   .trim()
-  .min(1, "Ingresá un número de teléfono.")
+  .refine((v) => v !== "" && !soloCodigoDePais(v), "Ingresá un número de teléfono.")
   .transform((valor, ctx) => {
-    const normalizado = normalizarWhatsapp(valor);
-    if (!normalizado) {
-      ctx.addIssue({
-        code: "custom",
-        message: "No parece un celular argentino válido. Probá con el código de área, por ejemplo 11 2345-6789.",
-      });
+    const error = errorTelefono(valor);
+    if (error) {
+      ctx.addIssue({ code: "custom", message: error });
       return z.NEVER;
     }
-    return normalizado;
+    return normalizarWhatsapp(valor) as string;
   });
 
 const whatsappOpcional = z
@@ -57,13 +63,13 @@ const whatsappOpcional = z
   .trim()
   .optional()
   .transform((valor, ctx) => {
-    if (!valor) return undefined;
-    const normalizado = normalizarWhatsapp(valor);
-    if (!normalizado) {
-      ctx.addIssue({ code: "custom", message: "No parece un celular argentino válido." });
+    if (!valor || soloCodigoDePais(valor)) return undefined;
+    const error = errorTelefono(valor);
+    if (error) {
+      ctx.addIssue({ code: "custom", message: error });
       return z.NEVER;
     }
-    return normalizado;
+    return normalizarWhatsapp(valor) as string;
   });
 
 const emailOpcional = z
@@ -101,7 +107,7 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
         .transform((valor, ctx) => {
           const dni = normalizarDni(valor);
           if (!dni) {
-            ctx.addIssue({ code: "custom", message: "El DNI tiene que tener 7 u 8 números." });
+            ctx.addIssue({ code: "custom", message: MENSAJE_DNI_INVALIDO });
             return z.NEVER;
           }
           return dni;

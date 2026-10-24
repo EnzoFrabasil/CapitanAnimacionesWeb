@@ -4,6 +4,12 @@ import { normalizarDni } from "./dni";
 import { elegirFamilia } from "./familia";
 
 describe("normalizarDni", () => {
+  it("acepta documentos de otros países y pasaportes", () => {
+    expect(normalizarDni("ab-123 456")).toBe("AB123456");
+    expect(normalizarDni("4.567.890-1")).toBe("45678901");
+    expect(normalizarDni("123456789")).toBe("123456789");
+  });
+
   it("acepta puntos y espacios y guarda solo dígitos", () => {
     expect(normalizarDni("45.123.456")).toBe("45123456");
     expect(normalizarDni(" 45 123 456 ")).toBe("45123456");
@@ -11,10 +17,10 @@ describe("normalizarDni", () => {
   });
 
   it("rechaza largos inválidos u otros caracteres", () => {
-    expect(normalizarDni("123456")).toBeNull();
-    expect(normalizarDni("123456789")).toBeNull();
-    expect(normalizarDni("45-123-456")).toBeNull();
-    expect(normalizarDni("45a23456")).toBeNull();
+    expect(normalizarDni("1234")).toBeNull();
+    expect(normalizarDni("ABCDEF")).toBeNull(); // sin números
+    expect(normalizarDni("45/123/456")).toBeNull();
+    expect(normalizarDni("1".repeat(21))).toBeNull();
     expect(normalizarDni("")).toBeNull();
   });
 });

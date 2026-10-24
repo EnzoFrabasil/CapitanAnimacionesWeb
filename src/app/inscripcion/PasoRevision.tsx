@@ -71,7 +71,7 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
               <Editar onClick={() => irAPaso(1)} />
             </div>
             <dl className="space-y-1 text-sm">
-              <Dato etiqueta="DNI">{n.dni}</Dato>
+              <Dato etiqueta="Documento">{n.dni}</Dato>
               <Dato etiqueta="Fecha de nacimiento">
                 {formatearFecha(n.fechaNacimiento)} ({edad} años)
               </Dato>

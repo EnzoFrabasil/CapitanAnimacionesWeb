@@ -1,6 +1,6 @@
 "use client";
 
-import { CampoTexto, MensajeError } from "./campos";
+import { CampoTelefono, CampoTexto, MensajeError } from "./campos";
 import type { ContactoForm, ErrorDe } from "./tipos";
 
 interface Props {
@@ -60,23 +60,13 @@ export function PasoContactos({ intro, contactos, cambiar, tocar, agregar, quita
               <div className="sm:col-span-2">
                 <CampoTexto {...props("parentesco")} etiqueta="Descripción" opcional placeholder="Por ejemplo: mamá" />
               </div>
-              <CampoTexto
+              <CampoTelefono
                 {...props("whatsapp")}
                 etiqueta="Teléfono / WhatsApp"
-                tipo="tel"
-                inputMode="tel"
                 autoComplete={i === 0 ? "tel-national" : "off"}
-                placeholder="11 2345-6789"
-                ayuda="Con código de área, como lo escribas."
+                ayuda="Con código de área. Si no es de Argentina, cambiá el 54 por el código de tu país."
               />
-              <CampoTexto
-                {...props("whatsappAlt")}
-                etiqueta="Otro teléfono"
-                opcional
-                tipo="tel"
-                inputMode="tel"
-                autoComplete="off"
-              />
+              <CampoTelefono {...props("whatsappAlt")} etiqueta="Otro teléfono" opcional autoComplete="off" />
               <div className="sm:col-span-2">
                 <CampoTexto
                   {...props("email")}

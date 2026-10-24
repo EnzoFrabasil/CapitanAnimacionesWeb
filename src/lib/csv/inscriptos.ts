@@ -331,7 +331,7 @@ export function planificarImportacion(archivo: ArchivoLeido, ctx: ContextoImport
 
     if (hay("dni")) {
       const dni = normalizarDni(v.dni);
-      if (!dni) errores.push(`DNI inválido: "${v.dni}" (tiene que tener 7 u 8 números).`);
+      if (!dni) errores.push(`Documento inválido: "${v.dni}".`);
       else if (dni !== actual.nino.dni) {
         datos.nino.dni = dni;
         registrar("dni", actual.nino.dni, dni, `nino:${actual.ninoId}:dni`, dni);

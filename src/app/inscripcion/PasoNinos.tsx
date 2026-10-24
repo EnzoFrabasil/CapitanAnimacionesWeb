@@ -67,7 +67,13 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
             <div className="grid gap-4 sm:grid-cols-2">
               <CampoTexto {...texto("nombre")} etiqueta="Nombre" autoComplete="off" />
               <CampoTexto {...texto("apellido")} etiqueta="Apellido" autoComplete="off" />
-              <CampoTexto {...texto("dni")} etiqueta="DNI" inputMode="numeric" autoComplete="off" placeholder="45.123.456" />
+              <CampoTexto
+                {...texto("dni")}
+                etiqueta="DNI o documento"
+                autoComplete="off"
+                placeholder="45.123.456"
+                ayuda="Si no tiene DNI argentino, el número de su documento o pasaporte."
+              />
               <CampoTexto
                 {...texto("fechaNacimiento")}
                 etiqueta="Fecha de nacimiento"

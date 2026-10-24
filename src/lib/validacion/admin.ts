@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LARGO_MAXIMO } from "@/config/inscripcion";
-import { normalizarDni } from "@/lib/dominio/dni";
+import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp } from "@/lib/dominio/telefono";
 import { MODALIDADES, TURNOS } from "./inscripcion";
@@ -22,7 +22,7 @@ const opcional = (max: number) =>
 export const dniSchema = z.string().transform((v, ctx) => {
   const dni = normalizarDni(v);
   if (!dni) {
-    ctx.addIssue({ code: "custom", message: "El DNI tiene que tener 7 u 8 números." });
+    ctx.addIssue({ code: "custom", message: MENSAJE_DNI_INVALIDO });
     return z.NEVER;
   }
   return dni;
@@ -41,7 +41,7 @@ export const fechaSchema = (mensaje = "Fecha inválida.") =>
 const whatsapp = z.string().transform((v, ctx) => {
   const n = normalizarWhatsapp(v);
   if (!n) {
-    ctx.addIssue({ code: "custom", message: "El WhatsApp no es un celular argentino válido." });
+    ctx.addIssue({ code: "custom", message: "El WhatsApp no es un celular válido (con código de área, y +código de país si no es de Argentina)." });
     return z.NEVER;
   }
   return n;
@@ -74,7 +74,7 @@ const dniOpcional = z
     if (!v?.trim()) return null;
     const dni = normalizarDni(v);
     if (!dni) {
-      ctx.addIssue({ code: "custom", message: "El DNI tiene que tener 7 u 8 números." });
+      ctx.addIssue({ code: "custom", message: MENSAJE_DNI_INVALIDO });
       return z.NEVER;
     }
     return dni;

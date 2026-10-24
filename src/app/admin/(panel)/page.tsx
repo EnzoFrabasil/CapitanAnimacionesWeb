@@ -99,7 +99,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
               <tr>
                 <th scope="col" className="px-3 py-3">Alta</th>
                 <th scope="col" className="px-3 py-3">Niño/a</th>
-                <th scope="col" className="px-3 py-3">DNI</th>
+                <th scope="col" className="px-3 py-3">Documento</th>
                 <th scope="col" className="px-3 py-3">Edad</th>
                 <th scope="col" className="px-3 py-3">Grupo</th>
                 <th scope="col" className="px-3 py-3">Turno</th>
