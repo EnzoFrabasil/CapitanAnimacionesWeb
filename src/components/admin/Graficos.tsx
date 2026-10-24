@@ -136,9 +136,10 @@ export function ColumnasPorDia({ titulo, dias }: { titulo: string; dias: { fecha
             key={d.fecha}
             tabIndex={0}
             aria-label={`${fechaCorta(d.fecha)}: ${d.cantidad} inscriptos`}
-            className="group relative flex h-full max-w-6 flex-1 items-end outline-none focus-visible:ring-2 focus-visible:ring-azul"
+            className="group relative flex h-full flex-1 items-end justify-center outline-none focus-visible:ring-2 focus-visible:ring-azul"
           >
-            <span className="block w-full rounded-t bg-marino" style={{ height: `${(d.cantidad / maximo) * 100}%` }} />
+            {/* Cada día ocupa el mismo ancho; la columna se limita a 24px y queda centrada. */}
+            <span className="block w-full max-w-6 rounded-t bg-marino" style={{ height: `${(d.cantidad / maximo) * 100}%` }} />
             {d === pico && d.cantidad > 0 && (
               <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-marino tabular-nums">
                 {d.cantidad}
@@ -150,9 +151,13 @@ export function ColumnasPorDia({ titulo, dias }: { titulo: string; dias: { fecha
           </span>
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-xs text-texto/70">
-        <span>{fechaCorta(dias[0].fecha)}</span>
-        {dias.length > 1 && <span>{fechaCorta(dias.at(-1)!.fecha)}</span>}
+      {/* Primera y última fecha, centradas bajo su columna. */}
+      <div className="mt-1 flex gap-[2px] text-xs text-texto/70">
+        {dias.map((d, i) => (
+          <span key={d.fecha} className="flex flex-1 justify-center whitespace-nowrap">
+            {i === 0 || (i === dias.length - 1 && dias.length > 1) ? fechaCorta(d.fecha) : ""}
+          </span>
+        ))}
       </div>
       <TablaDatos
         titulo={titulo}
