@@ -38,6 +38,28 @@ function errores(datos: unknown) {
 }
 
 describe("crearInscripcionSchema", () => {
+  it("rechaza turnos y formas de asistir desactivados en la temporada", () => {
+    const soloTarde = crearInscripcionSchema({ ...contexto, turnos: ["TARDE"], modalidades: ["SEMANAS"] });
+    const r = soloTarde.safeParse({
+      contactos: [contacto],
+      ninos: [nino, { ...nino, turno: "TARDE", modalidad: "POR_DIA" }],
+    });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.path.join("."))).toEqual(
+      expect.arrayContaining(["ninos.0.turno", "ninos.1.modalidad"]),
+    );
+    expect(soloTarde.safeParse({ contactos: [contacto], ninos: [{ ...nino, turno: "TARDE" }] }).success).toBe(true);
+  });
+
+  it("acepta teléfonos con el código de país del formulario y uno sin número como vacío", () => {
+    const r = schema.parse({
+      contactos: [{ ...contacto, whatsapp: "+598 94 123 456", whatsappAlt: "+54 " }],
+      ninos: [nino],
+    });
+    expect(r.contactos[0].whatsapp).toBe("+59894123456");
+    expect(r.contactos[0].whatsappAlt).toBeUndefined();
+  });
+
   it("normaliza los datos válidos", () => {
     const r = schema.parse({ contactos: [contacto], ninos: [nino] });
     expect(r.contactos[0]).toEqual({

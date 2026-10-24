@@ -21,15 +21,16 @@ const contactoVacio = (): ContactoForm => ({
   email: "",
 });
 
-const ninoVacio = (clave: number, apellido = ""): NinoForm => ({
+/** Niño/a nuevo. Si hay un solo turno o una sola forma de asistir, ya viene elegida. */
+const ninoVacio = (clave: number, contexto: ContextoInscripcion, apellido = ""): NinoForm => ({
   clave,
   nombre: "",
   apellido,
   dni: "",
   fechaNacimiento: "",
   infoAdicional: "",
-  turno: "",
-  modalidad: "SEMANAS",
+  turno: contexto.turnos?.length === 1 ? contexto.turnos[0] : "",
+  modalidad: contexto.modalidades?.length === 1 ? contexto.modalidades[0] : "SEMANAS",
   semanas: [],
   dias: [],
 });
@@ -52,7 +53,7 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
 
   const [paso, setPaso] = useState(0);
   const [contactos, setContactos] = useState<ContactoForm[]>([contactoVacio()]);
-  const [ninos, setNinos] = useState<NinoForm[]>([ninoVacio(0)]);
+  const [ninos, setNinos] = useState<NinoForm[]>(() => [ninoVacio(0, contexto)]);
   const [sitioWeb, setSitioWeb] = useState(""); // honeypot
   const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
@@ -229,7 +230,7 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
             }}
             agregar={() =>
               // El apellido del primero suele repetirse entre hermanos.
-              setNinos((ns) => [...ns, ninoVacio(proximaClave.current++, ns[0]?.apellido ?? "")])
+              setNinos((ns) => [...ns, ninoVacio(proximaClave.current++, contexto, ns[0]?.apellido ?? "")])
             }
             quitar={(i) => setNinos((ns) => ns.filter((_, j) => j !== i))}
           />

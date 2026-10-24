@@ -3,8 +3,8 @@
 import { EDAD_MAXIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
-import { formatearDiaCorto } from "@/lib/formato";
-import { edadParaMostrar, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
+import { ETIQUETA_MODALIDAD, ETIQUETA_TURNO, formatearDiaCorto } from "@/lib/formato";
+import { MODALIDADES, TURNOS, edadParaMostrar, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CampoTexto, Casilla, MensajeError, OpcionesBotones, claseInput } from "./campos";
 import { ACENTOS, type ErrorDe, type NinoForm } from "./tipos";
 
@@ -23,6 +23,7 @@ interface Props {
 
 export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar, tocar, agregar, quitar, errorDe }: Props) {
   const hoy = fechaDesdeIso(contexto.hoy);
+  const turnos = contexto.turnos ?? TURNOS;
   const fechaMinima = new Date(hoy);
   fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - EDAD_MAXIMA - 1);
 
@@ -112,20 +113,23 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
               </div>
 
               <div className="sm:col-span-2">
-                <OpcionesBotones
-                  nombre={id("turno")}
-                  leyenda="Turno"
-                  opciones={[
-                    { valor: "MANANA", etiqueta: "Mañana" },
-                    { valor: "TARDE", etiqueta: "Tarde" },
-                  ]}
-                  valor={n.turno}
-                  onCambio={(turno) => {
-                    cambiar(i, { turno });
-                    tocar(id("turno"));
-                  }}
-                  error={errorDe(id("turno"))}
-                />
+                {turnos.length === 1 ? (
+                  <p>
+                    <span className="font-medium text-marino">Turno:</span> {ETIQUETA_TURNO[turnos[0]]}
+                  </p>
+                ) : (
+                  <OpcionesBotones
+                    nombre={id("turno")}
+                    leyenda="Turno"
+                    opciones={turnos.map((t) => ({ valor: t, etiqueta: ETIQUETA_TURNO[t] }))}
+                    valor={n.turno}
+                    onCambio={(turno) => {
+                      cambiar(i, { turno });
+                      tocar(id("turno"));
+                    }}
+                    error={errorDe(id("turno"))}
+                  />
+                )}
               </div>
 
               <div className="sm:col-span-2">
@@ -169,6 +173,7 @@ function Asistencia({
   errorDe: ErrorDe;
 }) {
   const base = `ninos.${indice}`;
+  const modalidades = contexto.modalidades ?? MODALIDADES;
   const todasIds = contexto.semanas.map((s) => s.id);
   const todas = todasIds.length > 0 && todasIds.every((sid) => nino.semanas.includes(sid));
 
@@ -188,16 +193,17 @@ function Asistencia({
 
   return (
     <div className="space-y-3">
-      <OpcionesBotones
-        nombre={`${base}.modalidad`}
-        leyenda="¿Cómo va a asistir?"
-        opciones={[
-          { valor: "SEMANAS", etiqueta: "Por semanas" },
-          { valor: "POR_DIA", etiqueta: "Por día" },
-        ]}
-        valor={nino.modalidad}
-        onCambio={(modalidad) => cambiar(indice, { modalidad })}
-      />
+      {modalidades.length > 1 ? (
+        <OpcionesBotones
+          nombre={`${base}.modalidad`}
+          leyenda="¿Cómo va a asistir?"
+          opciones={modalidades.map((m) => ({ valor: m, etiqueta: ETIQUETA_MODALIDAD[m] }))}
+          valor={nino.modalidad}
+          onCambio={(modalidad) => cambiar(indice, { modalidad })}
+        />
+      ) : (
+        <p className="font-medium text-marino">{nino.modalidad === "SEMANAS" ? "¿Qué semanas va a asistir?" : "¿Qué días va a asistir?"}</p>
+      )}
 
       {nino.modalidad === "SEMANAS" ? (
         <fieldset aria-describedby={errorDe(`${base}.semanas`) ? `${base}.semanas-error` : undefined}>

@@ -132,6 +132,8 @@ export const temporadaSchema = z.object({
 export const semanaSchema = z
   .object({
     numero: z.coerce.number("Número inválido.").int("Número inválido.").min(1, "El número tiene que ser 1 o más."),
+    // Casilla "Activa": el navegador manda "on" si está marcada y nada si no.
+    activa: z.preprocess((v) => v === "on", z.boolean()),
     fechaInicio: fechaSchema("Fecha de inicio inválida."),
     fechaFin: fechaSchema("Fecha de fin inválida."),
   })

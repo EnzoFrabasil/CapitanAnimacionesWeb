@@ -6,6 +6,8 @@ import { claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { fechaAIso, sumarDias } from "@/lib/dominio/fechas";
+import { ETIQUETA_TURNO } from "@/lib/formato";
+import { TURNOS } from "@/lib/validacion/inscripcion";
 import { prisma } from "@/lib/prisma";
 import {
   actualizarTemporada,
@@ -13,6 +15,7 @@ import {
   cambiarInscripcion,
   eliminarSemana,
   guardarGrupos,
+  guardarOpciones,
   guardarSemana,
 } from "../acciones";
 import { EditorGrupos } from "./EditorGrupos";
@@ -22,6 +25,15 @@ export default function PaginaTemporada({ params }: PageProps<"/admin/configurac
     <Suspense fallback={<p>Cargando temporada…</p>}>
       <Temporada params={params} />
     </Suspense>
+  );
+}
+
+function Casilla({ nombre, valor, etiqueta, marcada }: { nombre: string; valor?: string; etiqueta: string; marcada: boolean }) {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input type="checkbox" name={nombre} value={valor} defaultChecked={marcada} className="size-4 accent-marino" />
+      {etiqueta}
+    </label>
   );
 }
 
@@ -100,9 +112,34 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
         </Seccion>
       </div>
 
+      <Seccion titulo="Turnos y formas de asistir">
+        <p className="mb-3 text-sm">Lo que no esté marcado no aparece en el formulario de inscripción.</p>
+        <FormAccion accion={guardarOpciones.bind(null, id)} textoBoton="Guardar">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-semibold text-marino">Turnos</legend>
+              {TURNOS.map((t) => (
+                <Casilla key={t} nombre="turnos" valor={t} etiqueta={`Turno ${ETIQUETA_TURNO[t].toLowerCase()}`} marcada={temporada.turnos.includes(t)} />
+              ))}
+            </fieldset>
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-semibold text-marino">Formas de asistir</legend>
+              <Casilla nombre="permiteSemanas" etiqueta="Por semanas" marcada={temporada.permiteSemanas} />
+              <Casilla nombre="permitePorDia" etiqueta="Por día" marcada={temporada.permitePorDia} />
+            </fieldset>
+          </div>
+        </FormAccion>
+        {(temporada.permiteSemanas || temporada.permitePorDia) && !temporada.semanas.some((s) => s.activa) && (
+          <p role="alert" className="mt-3 text-sm font-medium text-rojo">
+            No hay ninguna semana activa: las familias no van a poder elegir semanas ni días.
+          </p>
+        )}
+      </Seccion>
+
       <Seccion titulo="Semanas">
         <p className="mb-3 text-sm">
-          Las familias que eligen &quot;por día&quot; ven los días de lunes a viernes dentro de estas semanas.
+          Solo se ofrecen las semanas activas. Las familias que eligen &quot;por día&quot; ven los días de lunes a viernes
+          dentro de las semanas activas. Desactivar una semana no cambia a los que ya se inscribieron.
         </p>
         <div className="space-y-3">
           {temporada.semanas.map((s) => (
@@ -111,6 +148,9 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
                 <Campo nombre="numero" etiqueta="N.º" tipo="number" min={1} valor={s.numero} requerido idPrefijo={`semana-${s.id}`} className="w-20" />
                 <Campo nombre="fechaInicio" etiqueta="Desde" tipo="date" valor={fechaAIso(s.fechaInicio)} requerido idPrefijo={`semana-${s.id}`} />
                 <Campo nombre="fechaFin" etiqueta="Hasta" tipo="date" valor={fechaAIso(s.fechaFin)} requerido idPrefijo={`semana-${s.id}`} />
+                <div className="pb-2.5">
+                  <Casilla nombre="activa" etiqueta="Activa" marcada={s.activa} />
+                </div>
               </FormAccion>
               <FormAccion accion={eliminarSemana.bind(null, s.id)} textoBoton="Eliminar" textoPendiente="Eliminando…" variante="peligro" />
               <p className="w-full text-xs">{s._count.inscripciones} inscriptos por semana completa</p>
@@ -122,6 +162,9 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
           <Campo nombre="numero" etiqueta="N.º" tipo="number" min={1} valor={(ultima?.numero ?? 0) + 1} requerido idPrefijo="semana-nueva" className="w-20" />
           <Campo nombre="fechaInicio" etiqueta="Desde" tipo="date" valor={proximoLunes ? fechaAIso(proximoLunes) : ""} requerido idPrefijo="semana-nueva" />
           <Campo nombre="fechaFin" etiqueta="Hasta" tipo="date" valor={proximoLunes ? fechaAIso(sumarDias(proximoLunes, 4)) : ""} requerido idPrefijo="semana-nueva" />
+          <div className="pb-2.5">
+            <Casilla nombre="activa" etiqueta="Activa" marcada />
+          </div>
         </FormAccion>
       </Seccion>
 

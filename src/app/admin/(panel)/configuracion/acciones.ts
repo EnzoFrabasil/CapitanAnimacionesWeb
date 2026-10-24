@@ -8,6 +8,7 @@ import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
 import { mensajesDeError, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
+import { TURNOS } from "@/lib/validacion/inscripcion";
 
 type Previo = ResultadoAccion | null;
 
@@ -72,6 +73,26 @@ export async function guardarSemana(
   }
   refresh();
   return exito(semanaId ? "Semana guardada." : "Semana agregada.");
+}
+
+/** Turnos y formas de asistir que se ofrecen en el formulario de inscripción. */
+export async function guardarOpciones(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  await exigirAdmin();
+  const turnos = TURNOS.filter((t) => datos.getAll("turnos").includes(t));
+  const permiteSemanas = datos.get("permiteSemanas") === "on";
+  const permitePorDia = datos.get("permitePorDia") === "on";
+  const errores = [
+    ...(turnos.length === 0 ? ["Tiene que haber al menos un turno activo."] : []),
+    ...(!permiteSemanas && !permitePorDia ? ["Tiene que haber al menos una forma de asistir (por semanas o por día)."] : []),
+  ];
+  if (errores.length) return fallo(...errores);
+  try {
+    await prisma.temporada.update({ where: { id: temporadaId }, data: { turnos, permiteSemanas, permitePorDia } });
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  refresh();
+  return exito("Opciones guardadas.");
 }
 
 export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion> {

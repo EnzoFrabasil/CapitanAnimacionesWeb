@@ -7,7 +7,10 @@ export interface TemporadaAbierta {
   id: number;
   nombre: string;
   anio: number;
+  /** Solo las semanas activas. */
   semanas: ContextoInscripcion["semanas"];
+  turnos: NonNullable<ContextoInscripcion["turnos"]>;
+  modalidades: NonNullable<ContextoInscripcion["modalidades"]>;
   grupos: { id: number; nombre: string; edadMin: number; edadMax: number }[];
 }
 
@@ -20,7 +23,7 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     where: { inscripcionAbierta: true },
     orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
     include: {
-      semanas: { orderBy: { numero: "asc" } },
+      semanas: { where: { activa: true }, orderBy: { numero: "asc" } },
       gruposEdad: { orderBy: { edadMin: "asc" } },
     },
   });
@@ -30,6 +33,11 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     id: temporada.id,
     nombre: temporada.nombre,
     anio: temporada.anio,
+    turnos: temporada.turnos,
+    modalidades: [
+      ...(temporada.permiteSemanas ? (["SEMANAS"] as const) : []),
+      ...(temporada.permitePorDia ? (["POR_DIA"] as const) : []),
+    ],
     semanas: temporada.semanas.map((s) => ({
       id: s.id,
       numero: s.numero,

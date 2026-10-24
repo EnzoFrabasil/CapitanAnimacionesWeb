@@ -16,7 +16,12 @@ export const MODALIDADES = ["SEMANAS", "POR_DIA"] as const;
 export const MENSAJE_FALTA_ACEPTAR = "Marcá esta casilla para poder enviar la inscripción.";
 
 export interface ContextoInscripcion {
+  /** Semanas que se ofrecen (solo las activas). */
   semanas: { id: number; numero: number; fechaInicio: string; fechaFin: string }[];
+  /** Turnos que se ofrecen. Si no se indica, todos. */
+  turnos?: readonly (typeof TURNOS)[number][];
+  /** Modalidades que se ofrecen. Si no se indica, todas. */
+  modalidades?: readonly (typeof MODALIDADES)[number][];
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
   hoy: string;
 }
@@ -95,6 +100,8 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
   const hoy = fechaDesdeIso(contexto.hoy);
   const semanaIds = new Set(contexto.semanas.map((s) => s.id));
   const diasValidos = new Set(diasHabilesDeSemanas(contexto.semanas));
+  const turnos = contexto.turnos ?? TURNOS;
+  const modalidades = contexto.modalidades ?? MODALIDADES;
 
   return z
     .object({
@@ -121,8 +128,10 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
           if (error) ctx.addIssue({ code: "custom", message: error });
         }),
       infoAdicional: textoOpcional(LARGO_MAXIMO.infoAdicional),
-      turno: z.enum(TURNOS, "Elegí el turno."),
-      modalidad: z.enum(MODALIDADES, "Elegí cómo va a asistir."),
+      turno: z.enum(TURNOS, "Elegí el turno.").refine((t) => turnos.includes(t), "Ese turno no está disponible."),
+      modalidad: z
+        .enum(MODALIDADES, "Elegí cómo va a asistir.")
+        .refine((m) => modalidades.includes(m), "Esa forma de asistir no está disponible."),
       semanas: z.array(z.number().int()).default([]),
       dias: z.array(z.string()).default([]),
     })
