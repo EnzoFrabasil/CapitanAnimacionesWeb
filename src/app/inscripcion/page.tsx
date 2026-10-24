@@ -62,6 +62,7 @@ async function Contenido() {
         semanas: temporada.semanas,
         turnos: temporada.turnos,
         modalidades: temporada.modalidades,
+        edades: temporada.edades,
         hoy: fechaAIso(hoyEnArgentina()),
       }}
     />

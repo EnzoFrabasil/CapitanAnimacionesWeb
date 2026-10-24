@@ -2,7 +2,7 @@ import { z } from "zod";
 import { LARGO_MAXIMO, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
-import { calcularEdad, validarFechaNacimiento } from "@/lib/dominio/edad";
+import { calcularEdad, validarFechaNacimiento, type RangoEdadPermitida } from "@/lib/dominio/edad";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp, separarTelefono, soloCodigoDePais } from "@/lib/dominio/telefono";
 
@@ -22,6 +22,8 @@ export interface ContextoInscripcion {
   turnos?: readonly (typeof TURNOS)[number][];
   /** Modalidades que se ofrecen. Si no se indica, todas. */
   modalidades?: readonly (typeof MODALIDADES)[number][];
+  /** Edad permitida en la temporada. Si no se indica, la de src/config/inscripcion.ts. */
+  edades?: RangoEdadPermitida;
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
   hoy: string;
 }
@@ -124,7 +126,7 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
         .min(1, "Ingresá la fecha de nacimiento.")
         .superRefine((valor, ctx) => {
           const fecha = fechaDesdeIsoONull(valor);
-          const error = fecha ? validarFechaNacimiento(fecha, hoy) : "Ingresá una fecha válida.";
+          const error = fecha ? validarFechaNacimiento(fecha, hoy, contexto.edades) : "Ingresá una fecha válida.";
           if (error) ctx.addIssue({ code: "custom", message: error });
         }),
       infoAdicional: textoOpcional(LARGO_MAXIMO.infoAdicional),

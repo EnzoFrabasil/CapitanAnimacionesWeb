@@ -147,7 +147,7 @@ describe("crearInscripcionSchema", () => {
   });
 
   it("rechaza edades fuera del rango", () => {
-    expect(errores({ contactos: [contacto], ninos: [{ ...nino, fechaNacimiento: "2025-01-01" }] })[0]).toMatch(/edad/);
+    expect(errores({ contactos: [contacto], ninos: [{ ...nino, fechaNacimiento: "2025-01-01" }] })[0]).toMatch(/es para chicos de/);
   });
 });
 

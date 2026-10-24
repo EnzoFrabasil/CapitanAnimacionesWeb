@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LARGO_MAXIMO } from "@/config/inscripcion";
+import { EDAD_MAXIMA, EDAD_MINIMA, LARGO_MAXIMO } from "@/config/inscripcion";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { fechaDesdeIsoONull } from "@/lib/dominio/fechas";
 import { normalizarWhatsapp } from "@/lib/dominio/telefono";
@@ -113,6 +113,17 @@ export const responsableAdminSchema = z.object({
   parentesco: z.string().trim().max(LARGO_MAXIMO.parentesco, `Hasta ${LARGO_MAXIMO.parentesco} caracteres.`).default(""),
 });
 
+const edadTemporada = (nombre: string, porDefecto: number) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    z.coerce
+      .number(`${nombre} inválida.`)
+      .int(`${nombre}: tiene que ser un número entero.`)
+      .min(0, `${nombre} inválida.`)
+      .max(25, `${nombre} inválida.`)
+      .default(porDefecto),
+  );
+
 export const temporadaSchema = z.object({
   nombre: texto(80, "Falta el nombre."),
   anio: z.coerce.number("Año inválido.").int("Año inválido.").min(2000, "Año inválido.").max(2100, "Año inválido."),
@@ -127,6 +138,11 @@ export const temporadaSchema = z.object({
       .nullable()
       .default(null),
   ),
+  edadMinima: edadTemporada("Edad mínima", EDAD_MINIMA),
+  edadMaxima: edadTemporada("Edad máxima", EDAD_MAXIMA),
+}).refine((t) => t.edadMinima <= t.edadMaxima, {
+  message: "La edad mínima no puede ser mayor que la máxima.",
+  path: ["edadMaxima"],
 });
 
 export const semanaSchema = z

@@ -32,6 +32,16 @@ describe("hoyEnArgentina", () => {
 });
 
 describe("validarFechaNacimiento", () => {
+  it("usa la edad permitida de la temporada", () => {
+    const rango = { minima: 4, maxima: 13 };
+    expect(validarFechaNacimiento(f("2022-10-23"), hoy, rango)).toBeNull(); // 4 años
+    expect(validarFechaNacimiento(f("2012-10-24"), hoy, rango)).toBeNull(); // 13 años
+    expect(validarFechaNacimiento(f("2022-10-24"), hoy, rango)).toBe(
+      "La colonia es para chicos de 4 a 13 años (hoy tendría 3).",
+    );
+    expect(validarFechaNacimiento(f("2012-10-23"), hoy, rango)).toMatch(/hoy tendría 14/);
+  });
+
   const hoy = f("2026-10-23");
 
   it("acepta edades dentro del rango", () => {
@@ -46,8 +56,8 @@ describe("validarFechaNacimiento", () => {
   });
 
   it("rechaza edades fuera del rango", () => {
-    expect(validarFechaNacimiento(f(`${2026 - EDAD_MINIMA}-10-24`), hoy)).toMatch(/edad/);
-    expect(validarFechaNacimiento(f(`${2026 - EDAD_MAXIMA - 1}-10-23`), hoy)).toMatch(/edad/);
+    expect(validarFechaNacimiento(f(`${2026 - EDAD_MINIMA}-10-24`), hoy)).toMatch(/es para chicos de/);
+    expect(validarFechaNacimiento(f(`${2026 - EDAD_MAXIMA - 1}-10-23`), hoy)).toMatch(/es para chicos de/);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { EDAD_MAXIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
+import { EDAD_MAXIMA, EDAD_MINIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
 import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
 import { ETIQUETA_MODALIDAD, ETIQUETA_TURNO, formatearDiaCorto } from "@/lib/formato";
@@ -25,7 +25,8 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
   const hoy = fechaDesdeIso(contexto.hoy);
   const turnos = contexto.turnos ?? TURNOS;
   const fechaMinima = new Date(hoy);
-  fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - EDAD_MAXIMA - 1);
+  const edades = contexto.edades ?? { minima: EDAD_MINIMA, maxima: EDAD_MAXIMA };
+  fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - edades.maxima - 1);
 
   return (
     <div className="space-y-6">
@@ -79,6 +80,7 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
                 {...texto("fechaNacimiento")}
                 etiqueta="Fecha de nacimiento"
                 tipo="date"
+                ayuda={`La colonia es para chicos de ${edades.minima} a ${edades.maxima} años.`}
                 min={fechaAIso(fechaMinima)}
                 max={contexto.hoy}
                 extra={

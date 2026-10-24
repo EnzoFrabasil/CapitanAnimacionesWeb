@@ -11,6 +11,7 @@ export interface TemporadaAbierta {
   semanas: ContextoInscripcion["semanas"];
   turnos: NonNullable<ContextoInscripcion["turnos"]>;
   modalidades: NonNullable<ContextoInscripcion["modalidades"]>;
+  edades: NonNullable<ContextoInscripcion["edades"]>;
   grupos: { id: number; nombre: string; edadMin: number; edadMax: number }[];
 }
 
@@ -34,6 +35,7 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     nombre: temporada.nombre,
     anio: temporada.anio,
     turnos: temporada.turnos,
+    edades: { minima: temporada.edadMinima, maxima: temporada.edadMaxima },
     modalidades: [
       ...(temporada.permiteSemanas ? (["SEMANAS"] as const) : []),
       ...(temporada.permitePorDia ? (["POR_DIA"] as const) : []),

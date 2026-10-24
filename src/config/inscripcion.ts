@@ -1,7 +1,10 @@
 // Límites del formulario de inscripción. Cambiarlos acá alcanza para que
 // se apliquen en el formulario y en la API.
 
-/** Edad mínima y máxima (en años cumplidos, inclusive) para poder inscribir. */
+/**
+ * Edad mínima y máxima (en años cumplidos, inclusive) por defecto. Cada
+ * temporada tiene las suyas (Configuración → temporada).
+ */
 export const EDAD_MINIMA = 2;
 export const EDAD_MAXIMA = 17;
 

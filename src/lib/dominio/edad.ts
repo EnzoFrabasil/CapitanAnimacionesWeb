@@ -11,13 +11,23 @@ export function calcularEdad(fechaNacimiento: Date, alDia: Date): number {
 }
 
 /** Mensaje de error si la fecha de nacimiento no es válida para inscribir, o null si está bien. */
-export function validarFechaNacimiento(fechaNacimiento: Date, hoy: Date): string | null {
+export function validarFechaNacimiento(
+  fechaNacimiento: Date,
+  hoy: Date,
+  { minima, maxima }: RangoEdadPermitida = { minima: EDAD_MINIMA, maxima: EDAD_MAXIMA },
+): string | null {
   if (fechaNacimiento >= hoy) return "La fecha de nacimiento tiene que ser anterior a hoy.";
   const edad = calcularEdad(fechaNacimiento, hoy);
-  if (edad < EDAD_MINIMA || edad > EDAD_MAXIMA) {
-    return `La edad tiene que estar entre ${EDAD_MINIMA} y ${EDAD_MAXIMA} años (hoy tendría ${edad}).`;
+  if (edad < minima || edad > maxima) {
+    return `La colonia es para chicos de ${minima} a ${maxima} años (hoy tendría ${edad}).`;
   }
   return null;
+}
+
+/** Edad permitida para inscribirse (años cumplidos, inclusive). */
+export interface RangoEdadPermitida {
+  minima: number;
+  maxima: number;
 }
 
 export interface RangoEdad {

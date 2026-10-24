@@ -96,6 +96,9 @@ model Temporada {
   // Cantidad total de lugares (cada niño inscripto ocupa uno, salvo los cancelados).
   // Se muestra como "quedan N lugares" en la página de inicio. Null = sin cupo.
   cupo               Int?
+  // Edad permitida para inscribirse (años cumplidos al inscribir, inclusive).
+  edadMinima         Int      @default(2)
+  edadMaxima         Int      @default(17)
   // Qué se ofrece en el formulario de inscripción (se configura en el panel).
   turnos             Turno[]  @default([MANANA, TARDE])
   permiteSemanas     Boolean  @default(true)

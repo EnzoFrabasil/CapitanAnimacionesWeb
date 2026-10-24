@@ -91,6 +91,11 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
                 className="sm:col-span-3"
                 ayuda="Cantidad de lugares. En la página de inicio se muestra cuántos quedan (cada niño inscripto ocupa uno, salvo los cancelados). Dejalo vacío para no mostrar el contador."
               />
+              <Campo nombre="edadMinima" etiqueta="Edad mínima" tipo="number" min={0} max={25} valor={temporada.edadMinima} requerido />
+              <Campo nombre="edadMaxima" etiqueta="Edad máxima" tipo="number" min={0} max={25} valor={temporada.edadMaxima} requerido />
+              <p className="self-end pb-2 text-xs sm:col-span-1">
+                Años cumplidos al inscribirse, incluidos los dos extremos. Fuera de ese rango el formulario no deja inscribir.
+              </p>
             </div>
           </FormAccion>
         </Seccion>
