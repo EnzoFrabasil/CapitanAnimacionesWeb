@@ -52,6 +52,22 @@ const GRUPOS: { titulo: string; descripcion: string; campos: Campo[] }[] = [
     ],
   },
   {
+    titulo: "Paso 3: total",
+    descripcion: "Debajo de la revisión. Solo se muestra si hay precios mayores a $0 (en preinscripción no aparece).",
+    campos: [
+      { clave: "totalTitulo", etiqueta: "Título del total" },
+      { clave: "totalNota", etiqueta: "Nota debajo del total", multilinea: true },
+      { clave: "notaDiasSueltos", etiqueta: "Nota si hay días sueltos sin precio" },
+      { clave: "descuentoTitulo", etiqueta: "Título del aviso de descuento por hermanos" },
+      {
+        clave: "descuentoTexto",
+        etiqueta: "Texto del aviso de descuento",
+        ayuda: "{porcentaje} se reemplaza por el porcentaje de descuento configurado.",
+      },
+      { clave: "notaHermano", etiqueta: "Nota para quien inscribe a un solo chico", multilinea: true },
+    ],
+  },
+  {
     titulo: "Al terminar",
     descripcion: "Pantalla que se ve después de enviar (debajo va el número de inscripción).",
     campos: [

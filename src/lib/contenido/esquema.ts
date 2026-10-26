@@ -66,6 +66,14 @@ export const textosInscripcionSchema = z.object({
   exitoTexto: textoOpcional(600, "el texto"),
   cerradasTitulo: texto(80, "el título"),
   cerradasTexto: textoOpcional(400, "el texto"),
+  // Textos del total (solo se muestran si hay precios mayores a $0). Cada uno
+  // tiene su valor por defecto para las versiones publicadas antes de que existieran.
+  totalTitulo: texto(60, "el título del total").default(textosInscripcionIniciales.totalTitulo),
+  totalNota: textoOpcional(300, "la nota del total").default(textosInscripcionIniciales.totalNota),
+  notaDiasSueltos: textoOpcional(200, "la nota de días sueltos").default(textosInscripcionIniciales.notaDiasSueltos),
+  descuentoTitulo: texto(80, "el título del descuento").default(textosInscripcionIniciales.descuentoTitulo),
+  descuentoTexto: textoOpcional(200, "el texto del descuento").default(textosInscripcionIniciales.descuentoTexto),
+  notaHermano: textoOpcional(300, "la nota de hermanos").default(textosInscripcionIniciales.notaHermano),
 });
 export type TextosInscripcion = z.output<typeof textosInscripcionSchema>;
 

@@ -237,7 +237,7 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
 
         {paso === 2 && resultado.success && (
           <>
-            <PasoRevision intro={textos.introRevision} datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
+            <PasoRevision textos={textos} datos={resultado.data} contexto={contexto} irAPaso={irAPaso} />
             <CasillaPrivacidad
               texto={textos.textoAceptacion}
               marcada={aceptaPrivacidad}

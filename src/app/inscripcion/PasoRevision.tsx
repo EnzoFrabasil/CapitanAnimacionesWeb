@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { sitio } from "@/config/sitio";
+import type { TextosInscripcion } from "@/lib/contenido/esquema";
 import { describirAsistencia, formatearPrecio, precioChico, totalFamilia } from "@/lib/dominio/opciones";
 import { formatearDiaCorto, formatearFecha, formatearWhatsapp } from "@/lib/formato";
 import { edadParaMostrar, type ContextoInscripcion, type InscripcionValidada } from "@/lib/validacion/inscripcion";
 import { ACENTOS } from "./tipos";
 
 interface Props {
-  intro: string;
+  textos: TextosInscripcion;
   datos: InscripcionValidada;
   contexto: ContextoInscripcion;
   irAPaso: (paso: number) => void;
@@ -31,10 +32,12 @@ function Editar({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
-  const precios = contexto.precios;
+export function PasoRevision({ textos, datos, contexto, irAPaso }: Props) {
+  const intro = textos.introRevision;
   const asistencias = datos.ninos.map((n) => ({ modalidad: n.modalidad, opciones: n.semanas, dias: n.dias }));
-  const preciosChicos = precios ? asistencias.map((a) => precioChico(contexto.opciones, precios, a)) : [];
+  const preciosChicos = contexto.precios ? asistencias.map((a) => precioChico(contexto.opciones, contexto.precios!, a)) : [];
+  // En preinscripción los precios están en $0: no se muestran precios ni totales.
+  const precios = preciosChicos.some((p) => (p ?? 0) > 0) ? contexto.precios : undefined;
   const total = precios ? totalFamilia(preciosChicos, precios.descuentoHermanos) : null;
 
   return (
@@ -93,13 +96,13 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
         );
       })}
 
-      {total && precios && (
+      {total && precios && total.total > 0 && (
         <section
           aria-labelledby="total-titulo"
           className="rounded-3xl border-2 border-marino bg-white p-5 shadow-[0_4px_0_0_#093651] sm:p-6"
         >
           <h3 id="total-titulo" className="font-titulo text-xl font-semibold text-marino">
-            Total estimado
+            {textos.totalTitulo}
           </h3>
 
           {total.descuento > 0 && (
@@ -113,9 +116,13 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
                 className="aviso-descuento-insignia size-12 shrink-0 rounded-full bg-white ring-2 ring-verde"
               />
               <p className="text-sm text-marino">
-                <strong className="font-titulo text-base">¡Tienen descuento por hermanos!</strong>
-                <br />
-                Se aplica un {precios.descuentoHermanos}% sobre el total de la familia.
+                <strong className="font-titulo text-base">{textos.descuentoTitulo}</strong>
+                {textos.descuentoTexto && (
+                  <>
+                    <br />
+                    {textos.descuentoTexto.replaceAll("{porcentaje}", String(precios.descuentoHermanos))}
+                  </>
+                )}
               </p>
             </div>
           )}
@@ -139,10 +146,13 @@ export function PasoRevision({ intro, datos, contexto, irAPaso }: Props) {
             </div>
           </dl>
           <p className="mt-3 text-xs text-texto/80">
-            {total.incompleto && "Los días sueltos se cotizan aparte. "}
-            El total se confirma al momento del pago.
-            {datos.ninos.length === 1 &&
-              " Si ya inscribiste a un hermano o hermana con el mismo teléfono, el descuento por hermanos se aplica igual."}
+            {[
+              total.incompleto && textos.notaDiasSueltos,
+              textos.totalNota,
+              datos.ninos.length === 1 && precios.descuentoHermanos > 0 && textos.notaHermano,
+            ]
+              .filter(Boolean)
+              .join(" ")}
           </p>
         </section>
       )}

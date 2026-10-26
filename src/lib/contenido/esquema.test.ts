@@ -57,6 +57,13 @@ describe("validarContenido", () => {
     if (r.ok) expect(r.contenido.inscripcion.titulo).toBe(contenidoInicial.inscripcion.titulo);
   });
 
+  it("completa los textos del total en versiones publicadas antes de que existieran", () => {
+    const { totalTitulo: _t, totalNota: _n, descuentoTexto: _d, ...textosViejos } = valido.inscripcion;
+    const r = validarContenido({ ...valido, inscripcion: textosViejos });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.contenido.inscripcion.totalTitulo).toBe(contenidoInicial.inscripcion.totalTitulo);
+  });
+
   it("marca los textos de la inscripción vacíos", () => {
     expect(errores({ ...valido, inscripcion: { ...valido.inscripcion, botonEnviar: " " } })).toEqual([
       "inscripcion.botonEnviar",

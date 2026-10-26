@@ -1,11 +1,11 @@
-import type { TextosInscripcion } from "@/lib/contenido/esquema";
-
 // Textos del formulario de inscripción que se editan desde el panel
 // (Editar página de inicio → Textos de la inscripción). Estos son los valores
 // iniciales, que se usan también para las versiones publicadas antes de que
 // existieran estos textos.
 
-export const textosInscripcionIniciales: TextosInscripcion = {
+// Sin anotar el tipo: el esquema (src/lib/contenido/esquema.ts) usa estos valores
+// como valores por defecto, y el tipo TextosInscripcion sale de ese esquema.
+export const textosInscripcionIniciales = {
   titulo: "¡Sumate a la tripulación!",
   pasoContactos: "Contactos",
   pasoNinos: "Niños",
@@ -22,4 +22,10 @@ export const textosInscripcionIniciales: TextosInscripcion = {
     "Quedaron anotados en la lista de espera. Te vamos a contactar por WhatsApp o por teléfono para confirmar el lugar. ¡Gracias por sumarte a la tripulación!",
   cerradasTitulo: "Las inscripciones están cerradas",
   cerradasTexto: "Por ahora no estamos tomando inscripciones. Seguinos en Instagram para enterarte cuando abramos.",
+  totalTitulo: "Total estimado",
+  totalNota: "El total se confirma al momento del pago.",
+  notaDiasSueltos: "Los días sueltos se cotizan aparte.",
+  descuentoTitulo: "¡Tienen descuento por hermanos!",
+  descuentoTexto: "Se aplica un {porcentaje}% sobre el total de la familia.",
+  notaHermano: "Si ya inscribiste a un hermano o hermana con el mismo teléfono, el descuento por hermanos se aplica igual.",
 };
