@@ -73,6 +73,7 @@ export async function resumenFamilias(
       select: {
         id: true,
         modalidad: true,
+        precioAcordado: true,
         grupoEdad: { select: { nombre: true } },
         semanas: { select: { semanaId: true } },
         dias: { select: { fecha: true, semanaId: true } },
@@ -88,6 +89,7 @@ export async function resumenFamilias(
     const asistencias = chicos.map(
       (x): Asistencia => ({
         modalidad: x.modalidad,
+        precioAcordado: x.precioAcordado,
         opciones: x.semanas.map((s) => s.semanaId),
         dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
       }),

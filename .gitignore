@@ -45,3 +45,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# backups de la base (tienen datos personales)
+/backups

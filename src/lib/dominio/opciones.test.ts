@@ -50,6 +50,12 @@ describe("opciones", () => {
     expect(precioChico(todas, { ...precios, coloniaCompleta: null }, porOpciones([1, 2]))).toBe(260_000);
   });
 
+  it("el precio acordado desde el panel reemplaza al calculado", () => {
+    expect(precioChico(todas, precios, { ...porOpciones([1, 2]), precioAcordado: 180_000 })).toBe(180_000);
+    expect(precioChico(todas, precios, { ...porOpciones([1, 2]), precioAcordado: 0 })).toBe(0);
+    expect(precioChico(todas, precios, { ...porOpciones([1, 2]), precioAcordado: null })).toBe(230_000);
+  });
+
   it("días sueltos: precio por día o a confirmar", () => {
     const dias = { modalidad: "POR_DIA" as const, opciones: [], dias: [{ fecha: "2027-01-05", opcion: 1 }, { fecha: "2027-01-06", opcion: 1 }] };
     expect(precioChico(todas, precios, dias)).toBeNull();

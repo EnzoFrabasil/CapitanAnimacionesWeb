@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:seed:reset": "prisma db seed -- --reset"
+    "db:seed:reset": "prisma db seed -- --reset",
+    "db:backup": "tsx --env-file=.env --conditions=react-server scripts/backup.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

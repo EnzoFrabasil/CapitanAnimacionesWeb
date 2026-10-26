@@ -195,6 +195,9 @@ model InscripcionNino {
   estado           EstadoInscripcion @default(EN_ESPERA)
   posibleDuplicado Boolean           @default(false)
   notasAdmin       String?           @db.Text
+  // Precio acordado con la familia (por ejemplo por WhatsApp). Si está cargado
+  // reemplaza al que se calcula con los precios de la temporada.
+  precioAcordado   Int?
 
   inscripcion Inscripcion         @relation(fields: [inscripcionId], references: [id], onDelete: Cascade)
   nino        Nino                @relation(fields: [ninoId], references: [id])

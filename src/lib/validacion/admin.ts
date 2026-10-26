@@ -100,6 +100,17 @@ export const inscripcionAdminSchema = z.object({
   semanas: z.array(z.coerce.number().int().positive()),
   dias: z.array(z.string()),
   notasAdmin: opcional(5000),
+  // Vacío = se usa el precio calculado con los de la temporada.
+  precioAcordado: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+    z.coerce
+      .number("Precio acordado inválido.")
+      .int("El precio acordado tiene que ser un número entero, sin centavos.")
+      .min(0, "El precio acordado no puede ser negativo.")
+      .max(100_000_000, "Precio acordado inválido.")
+      .nullable()
+      .default(null),
+  ),
   posibleDuplicado: z.boolean(),
 });
 

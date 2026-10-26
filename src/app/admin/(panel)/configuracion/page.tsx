@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Campo } from "@/components/admin/Campo";
-import { claseTarjeta } from "@/components/admin/estilos";
+import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { exigirAdmin } from "@/lib/auth/admin";
 import { hoyEnArgentina } from "@/lib/dominio/fechas";
@@ -87,6 +87,20 @@ async function Temporadas() {
           </div>
           <p className="mt-2 text-xs">Se crea con la inscripción cerrada. Después cargás semanas y grupos, y la abrís.</p>
         </FormAccion>
+      </section>
+
+      <section aria-labelledby="backups-titulo" className={claseTarjeta}>
+        <h2 id="backups-titulo" className="mb-2 text-lg font-semibold text-marino">
+          Backups
+        </h2>
+        <p className="text-sm">
+          Descarga una copia completa de la base: temporadas, inscriptos, contactos, la página de inicio y sus imágenes.
+          Guardala en un lugar seguro (tiene datos personales de los chicos) y bajá una nueva cada tanto, por ejemplo una
+          vez por semana mientras haya inscripciones.
+        </p>
+        <a href="/api/admin/backup" download className={`${claseBoton.secundario} mt-3 inline-block`}>
+          Descargar backup
+        </a>
       </section>
     </>
   );

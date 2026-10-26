@@ -101,6 +101,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
     select: {
       id: true,
       modalidad: true,
+      precioAcordado: true,
       semanas: { select: { semanaId: true } },
       dias: { select: { fecha: true, semanaId: true } },
       nino: { select: { nombre: true, apellido: true } },
@@ -111,6 +112,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
       modalidad: x.modalidad,
       opciones: x.semanas.map((s) => s.semanaId),
       dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+      precioAcordado: x.precioAcordado,
     }),
   );
   const preciosChicos = asistencias.map((a) => precioChico(opciones, precios, a));
@@ -212,6 +214,25 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                 opcionesElegidas={f.semanas.map((s) => s.semanaId)}
                 diasElegidos={f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId }))}
               />
+              <div className="sm:col-span-2">
+                <label htmlFor="insc-precioAcordado" className={claseEtiqueta}>
+                  Precio acordado (opcional)
+                </label>
+                <input
+                  id="insc-precioAcordado"
+                  name="precioAcordado"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  defaultValue={f.precioAcordado ?? ""}
+                  className={claseInput}
+                />
+                <p className="mt-1 text-xs">
+                  En pesos, sin puntos. Si lo cargás, reemplaza al precio calculado con los precios de la temporada (por
+                  ejemplo, lo que se acordó por WhatsApp). Dejalo vacío para usar el calculado.
+                </p>
+              </div>
               <div className="sm:col-span-2">
                 <label htmlFor="insc-notasAdmin" className={claseEtiqueta}>
                   Notas internas

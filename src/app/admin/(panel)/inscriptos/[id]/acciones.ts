@@ -33,6 +33,7 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
     semanas: datos.getAll("semanas"),
     dias: datos.getAll("dias"),
     notasAdmin: datos.get("notasAdmin") ?? "",
+    precioAcordado: datos.get("precioAcordado") ?? "",
     posibleDuplicado: datos.get("posibleDuplicado") === "on",
   });
   if (!r.success) return fallo(...mensajesDeError(r.error));
@@ -78,6 +79,7 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
           estado: d.estado,
           modalidad: d.modalidad,
           notasAdmin: d.notasAdmin,
+          precioAcordado: d.precioAcordado,
           posibleDuplicado: d.posibleDuplicado,
         },
       }),

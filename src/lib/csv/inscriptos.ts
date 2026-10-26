@@ -60,6 +60,7 @@ export interface InscriptoExport {
   id: number;
   estado: Estado;
   modalidad: Modalidad;
+  precioAcordado?: number | null;
   edadAlInscribir: number;
   posibleDuplicado: boolean;
   inscripcion: { numero: number; fechaAlta: Date };
@@ -89,6 +90,7 @@ export function filaExport(f: InscriptoExport, ctx: ContextoExport): (string | n
     modalidad: f.modalidad,
     opciones: f.semanas.map((s) => s.semanaId),
     dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+    precioAcordado: f.precioAcordado,
   };
   const ids = f.modalidad === "SEMANAS" ? a.opciones : a.dias.map((d) => d.opcion);
   const opcion = ctx.opciones.find((o) => ids.includes(o.id));

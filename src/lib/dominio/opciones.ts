@@ -92,6 +92,8 @@ export interface Asistencia {
   opciones: readonly number[];
   /** Días sueltos, cada uno con su opción (modalidad POR_DIA). */
   dias: readonly { fecha: string; opcion: number }[];
+  /** Precio acordado a mano desde el panel; si está, reemplaza al calculado. */
+  precioAcordado?: number | null;
 }
 
 /**
@@ -115,6 +117,7 @@ export function describirAsistencia(opciones: readonly Opcion[], a: Asistencia):
 
 /** Precio de un chico, o null si algo no tiene precio definido (días sueltos sin precio). */
 export function precioChico(opciones: readonly Opcion[], precios: Precios, a: Asistencia): number | null {
+  if (a.precioAcordado !== undefined && a.precioAcordado !== null) return a.precioAcordado;
   if (a.modalidad === "POR_DIA") return precios.dia === null ? null : precios.dia * a.dias.length;
   if (precios.coloniaCompleta !== null && esColoniaCompleta(opciones, a.opciones)) return precios.coloniaCompleta;
   return opciones.filter((o) => a.opciones.includes(o.id)).reduce((total, o) => total + o.precio, 0);
