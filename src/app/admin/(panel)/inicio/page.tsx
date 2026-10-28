@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { contenidoInicial } from "@/config/contenidoInicial";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { listarVersiones } from "@/lib/contenido/servidor";
 import { EditorInicio } from "./EditorInicio";
 
@@ -14,7 +14,7 @@ export default function PaginaEditorInicio() {
 }
 
 async function Editor() {
-  await exigirAdmin();
+  await exigirPermiso("contenido.editar");
   const versiones = await listarVersiones();
   return (
     <EditorInicio

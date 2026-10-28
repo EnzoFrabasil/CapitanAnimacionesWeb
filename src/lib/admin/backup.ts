@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 // Copia completa de la base en un JSON: configuración, inscriptos, contenido
 // de la página e imágenes (en base64). Las tablas van en orden de dependencia
 // (primero las que no dependen de otras), por si hay que restaurar a mano.
+// No incluye contraseñas, sesiones ni el registro de cambios.
 // Sin "server-only" para poder usarlo también desde scripts/backup.ts.
 
 export const VERSION_BACKUP = 1;
@@ -22,6 +23,8 @@ export async function generarBackup() {
     inscripcionDias,
     contenidoSitio,
     imagenes,
+    roles,
+    usuarios,
   ] = await prisma.$transaction([
     prisma.temporada.findMany({ orderBy: { id: "asc" } }),
     prisma.semana.findMany({ orderBy: { id: "asc" } }),
@@ -36,6 +39,9 @@ export async function generarBackup() {
     prisma.inscripcionDia.findMany(),
     prisma.contenidoSitio.findMany({ orderBy: { id: "asc" } }),
     prisma.imagen.findMany({ orderBy: { creadaEn: "asc" } }),
+    prisma.rol.findMany({ orderBy: { id: "asc" } }),
+    // Sin el hash de la contraseña: al restaurar, cada usuario necesita una nueva.
+    prisma.usuario.findMany({ orderBy: { id: "asc" }, omit: { passwordHash: true } }),
   ]);
 
   const tablas = {
@@ -51,6 +57,8 @@ export async function generarBackup() {
     inscripcionSemanas,
     inscripcionDias,
     contenidoSitio,
+    roles,
+    usuarios,
     imagenes: imagenes.map(({ datos, ...resto }) => ({ ...resto, datosBase64: Buffer.from(datos).toString("base64") })),
   };
 

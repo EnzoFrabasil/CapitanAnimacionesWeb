@@ -6,7 +6,7 @@ import { claseEtiqueta, claseInput, claseTarjeta } from "@/components/admin/esti
 import { FormAccion } from "@/components/admin/FormAccion";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
 import { IconoWhatsapp } from "@/components/marca/iconos";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { fechaAIso } from "@/lib/dominio/fechas";
 import { describirAsistencia, formatearPrecio, precioChico, totalFamilia, type Asistencia } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
@@ -82,7 +82,8 @@ function Seccion({ titulo, children, className = "" }: { titulo: string; childre
 }
 
 async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "params">) {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("inscriptos.ver");
+  const puedeEditar = usuario.permisos.has("inscriptos.editar");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const f = await buscar(id);
@@ -156,6 +157,14 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
         )}
       </div>
 
+      {!puedeEditar && (
+        <p className="rounded-xl bg-amarillo/20 px-4 py-2 text-sm text-marino">
+          Estás viendo esta ficha en modo lectura: tu rol no permite editar inscriptos.
+        </p>
+      )}
+
+      {/* Sin permiso de edición todo queda deshabilitado (el servidor igual rechaza los cambios). */}
+      <fieldset disabled={!puedeEditar} className="min-w-0 space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <Seccion titulo="Datos del niño/a">
           <FormAccion accion={actualizarNino.bind(null, nino.id)} textoBoton="Guardar datos">
@@ -398,6 +407,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
           </FormAccion>
         </div>
       </Seccion>
+      </fieldset>
     </div>
   );
 }

@@ -9,7 +9,6 @@ export function FormularioLogin({ desde }: { desde?: string }) {
   return (
     <form action={accion} className="space-y-4">
       <input type="hidden" name="desde" value={desde ?? ""} />
-      {/* TODO: por ahora el email no se valida; se va a usar cuando haya usuarios. */}
       <div>
         <label htmlFor="email" className="mb-1 block font-medium text-marino">
           Email

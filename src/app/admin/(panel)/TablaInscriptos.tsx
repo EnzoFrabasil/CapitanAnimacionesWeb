@@ -12,6 +12,8 @@ export function TablaInscriptos({
   filas,
   opciones,
   familias,
+  puedeEditar,
+  puedeBorrar,
   grupos,
 }: {
   filas: Fila[];
@@ -19,6 +21,9 @@ export function TablaInscriptos({
   opciones: Opcion[];
   /** Hermanos y total de cada familia en la temporada. */
   familias: Record<number, ResumenFamilia>;
+  /** Según el rol: sin permiso no se muestran el lápiz ni la selección para eliminar. */
+  puedeEditar: boolean;
+  puedeBorrar: boolean;
   grupos: { id: number; nombre: string }[];
 }) {
   const [seleccion, setSeleccion] = useState<ReadonlySet<number>>(new Set());
@@ -89,6 +94,7 @@ export function TablaInscriptos({
           <thead className="bg-marino/5 text-xs tracking-wide text-marino uppercase">
             <tr>
               <th scope="col" className="py-3 pl-3">
+                {puedeBorrar && (
                 <input
                   type="checkbox"
                   checked={todas}
@@ -99,6 +105,7 @@ export function TablaInscriptos({
                   aria-label="Seleccionar todos los inscriptos de la lista"
                   className="size-4 accent-marino"
                 />
+                )}
               </th>
               <th scope="col" className="py-3 pl-1">
                 <span className="sr-only">Ver ficha rápida</span>
@@ -123,6 +130,8 @@ export function TablaInscriptos({
                 fila={f}
                 opciones={opciones}
                 familia={familias[f.nino.familiaId]}
+                puedeEditar={puedeEditar}
+                puedeBorrar={puedeBorrar}
                 grupos={grupos}
                 seleccionada={seleccion.has(f.id)}
                 alternarSeleccion={(marcada) => alternar(f.id, marcada)}

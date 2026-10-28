@@ -4,7 +4,7 @@ import { claseBoton, claseEtiqueta, claseInput, claseTarjeta } from "@/component
 import { BarrasPorEstado, ColumnasPorDia, Leyenda } from "@/components/admin/Graficos";
 import { analiticasDeTemporada } from "@/lib/admin/analiticas";
 import { listarTemporadas, temporadaParaListado } from "@/lib/admin/consultas";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { formatearPrecio } from "@/lib/dominio/opciones";
 
 export default function PaginaAnaliticas({ searchParams }: PageProps<"/admin/analiticas">) {
@@ -32,7 +32,7 @@ function Punto({ clase }: { clase: string }) {
 }
 
 async function Analiticas({ searchParams }: Pick<PageProps<"/admin/analiticas">, "searchParams">) {
-  await exigirAdmin();
+  await exigirPermiso("analiticas.ver");
   const pedida = Number((await searchParams).temporada) || undefined;
   const [temporadas, temporada] = await Promise.all([listarTemporadas(), temporadaParaListado(pedida)]);
 

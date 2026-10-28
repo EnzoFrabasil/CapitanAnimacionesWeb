@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { ImportarCsv } from "./ImportarCsv";
 
 export default function PaginaImportar() {
@@ -25,6 +25,6 @@ export default function PaginaImportar() {
 }
 
 async function Contenido() {
-  await exigirAdmin();
+  await exigirPermiso("inscriptos.importar");
   return <ImportarCsv />;
 }

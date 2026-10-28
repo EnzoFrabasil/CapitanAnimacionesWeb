@@ -1,59 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { DURACION_SESION_SEGUNDOS, accesoPermitido, crearTokenSesion, estadoAuth, passwordCorrecta, tokenValido } from "./sesion";
+import { hashToken, hashearPassword, nuevoToken, passwordAleatoria, problemaPassword, verificarPassword } from "./claves";
+import { permisosDeRol, seccionInicial } from "./permisos";
+import { pareceSesion } from "./sesion";
 
-const SECRETO = "x".repeat(32);
-const env = (extra: Record<string, string | undefined>) => ({ NODE_ENV: "production", ...extra }) as NodeJS.ProcessEnv;
-const activo = env({ ADMIN_PASSWORD: "timón-123", SESSION_SECRET: SECRETO });
-
-describe("estadoAuth", () => {
-  it("sin contraseña: abierto en desarrollo, bloqueado en producción", () => {
-    expect(estadoAuth(env({ NODE_ENV: "development" }))).toBe("abierto");
-    expect(estadoAuth(env({}))).toBe("bloqueado");
+describe("contraseñas", () => {
+  it("verifica solo la contraseña correcta y cada hash es distinto", async () => {
+    const hash = await hashearPassword("timón-del-capitán");
+    expect(hash).toMatch(/^scrypt\$16384\$8\$1\$/);
+    expect(await verificarPassword("timón-del-capitán", hash)).toBe(true);
+    expect(await verificarPassword("timón-del-capitan", hash)).toBe(false);
+    expect(await verificarPassword("", hash)).toBe(false);
+    expect(await hashearPassword("timón-del-capitán")).not.toBe(hash);
   });
 
-  it("con contraseña pero sin secreto válido queda bloqueado (también en desarrollo)", () => {
-    expect(estadoAuth(env({ ADMIN_PASSWORD: "a" }))).toBe("bloqueado");
-    expect(estadoAuth(env({ NODE_ENV: "development", ADMIN_PASSWORD: "a", SESSION_SECRET: "corto" }))).toBe("bloqueado");
+  it("un hash mal formado nunca coincide", async () => {
+    expect(await verificarPassword("x", "")).toBe(false);
+    expect(await verificarPassword("x", "md5$abc")).toBe(false);
   });
 
-  it("con contraseña y secreto está activo", () => {
-    expect(estadoAuth(activo)).toBe("activo");
-  });
-});
-
-describe("passwordCorrecta", () => {
-  it("acepta solo la contraseña exacta", () => {
-    expect(passwordCorrecta("timón-123", activo)).toBe(true);
-    expect(passwordCorrecta("timón-12", activo)).toBe(false);
-    expect(passwordCorrecta("", activo)).toBe(false);
-    expect(passwordCorrecta("timón-123", env({}))).toBe(false);
-  });
-});
-
-describe("token de sesión", () => {
-  it("es válido hasta que vence", () => {
-    const ahora = 1_000_000;
-    const token = crearTokenSesion(ahora, activo);
-    expect(tokenValido(token, ahora + 1000, activo)).toBe(true);
-    expect(tokenValido(token, ahora + (DURACION_SESION_SEGUNDOS + 1) * 1000, activo)).toBe(false);
+  it("pide un largo mínimo y rechaza las obvias", () => {
+    expect(problemaPassword("corta")).toMatch(/al menos 10/);
+    expect(problemaPassword("aaaaaaaaaaaa")).toMatch(/fácil/);
+    expect(problemaPassword("1234567890abc")).toMatch(/fácil/);
+    expect(problemaPassword("ana.perez2026!", "ana.perez@example.com")).toMatch(/email/);
+    expect(problemaPassword("marinero-del-sur")).toBeNull();
   });
 
-  it("rechaza tokens alterados o firmados con otro secreto", () => {
-    const token = crearTokenSesion(Date.now(), activo);
-    const [vence, firma] = token.split(".");
-    expect(tokenValido(`${Number(vence) + 1}.${firma}`, Date.now(), activo)).toBe(false);
-    expect(tokenValido(`${vence}.${firma}x`, Date.now(), activo)).toBe(false);
-    expect(tokenValido(token, Date.now(), { ...activo, SESSION_SECRET: "y".repeat(32) })).toBe(false);
-    expect(tokenValido(undefined, Date.now(), activo)).toBe(false);
-    expect(tokenValido("basura", Date.now(), activo)).toBe(false);
+  it("genera contraseñas al azar sin caracteres confusos", () => {
+    const p = passwordAleatoria();
+    expect(p).toHaveLength(14);
+    expect(p).not.toMatch(/[0O1lI]/);
+    expect(passwordAleatoria()).not.toBe(p);
   });
 });
 
-describe("accesoPermitido", () => {
-  it("depende del estado y del token", () => {
-    expect(accesoPermitido(undefined, env({ NODE_ENV: "development" }))).toBe(true);
-    expect(accesoPermitido(undefined, env({}))).toBe(false);
-    expect(accesoPermitido(undefined, activo)).toBe(false);
-    expect(accesoPermitido(crearTokenSesion(Date.now(), activo), activo)).toBe(true);
+describe("tokens de sesión", () => {
+  it("la cookie guarda el token y la base solo su hash", () => {
+    const { token, hash } = nuevoToken();
+    expect(pareceSesion(token)).toBe(true);
+    expect(hash).toBe(hashToken(token));
+    expect(hash).not.toBe(token);
+  });
+
+  it("el proxy descarta cookies que no tienen forma de token", () => {
+    expect(pareceSesion(undefined)).toBe(false);
+    expect(pareceSesion("")).toBe(false);
+    expect(pareceSesion("1790000000000.firma-vieja")).toBe(false);
+    expect(pareceSesion("a".repeat(44))).toBe(false);
+  });
+});
+
+describe("permisos", () => {
+  it("el rol total tiene todo; los demás solo lo suyo y sin permisos inexistentes", () => {
+    expect(permisosDeRol({ esTotal: true, permisos: [] }).has("usuarios.gestionar")).toBe(true);
+    const inscripciones = permisosDeRol({ esTotal: false, permisos: ["inscriptos.ver", "algo.viejo"] });
+    expect([...inscripciones]).toEqual(["inscriptos.ver"]);
+  });
+
+  it("al entrar lleva a la primera sección permitida", () => {
+    expect(seccionInicial(new Set(["inscriptos.ver"]))).toBe("/admin");
+    expect(seccionInicial(new Set(["analiticas.ver"]))).toBe("/admin/analiticas");
+    expect(seccionInicial(new Set())).toBe("/admin/cuenta");
   });
 });

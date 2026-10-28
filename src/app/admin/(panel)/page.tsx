@@ -5,7 +5,7 @@ import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
 import { contarSinGrupo, listarInscriptos, listarTemporadas, resumenFamilias, temporadaParaListado } from "@/lib/admin/consultas";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { aOpcion, preciosDe } from "@/lib/temporada";
 import { TablaInscriptos } from "./TablaInscriptos";
 import { FiltrosListado } from "./FiltrosListado";
@@ -19,7 +19,7 @@ export default function PaginaListado({ searchParams }: PageProps<"/admin">) {
 }
 
 async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams">) {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("inscriptos.ver");
   const filtros = leerFiltros(await searchParams);
   const [temporadas, temporada] = await Promise.all([listarTemporadas(), temporadaParaListado(filtros.temporada)]);
 
@@ -56,13 +56,17 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/importar" className={claseBoton.secundario}>
-            Importar CSV
-          </Link>
+          {usuario.permisos.has("inscriptos.importar") && (
+            <Link href="/admin/importar" className={claseBoton.secundario}>
+              Importar CSV
+            </Link>
+          )}
           {/* Descarga con los filtros activos. */}
-          <a href={`/api/admin/csv?${filtrosAQuery({ ...filtros, temporada: temporada.id })}`} className={claseBoton.destacado} download>
-            Descargar CSV
-          </a>
+          {usuario.permisos.has("inscriptos.exportar") && (
+            <a href={`/api/admin/csv?${filtrosAQuery({ ...filtros, temporada: temporada.id })}`} className={claseBoton.destacado} download>
+              Descargar CSV
+            </a>
+          )}
         </div>
       </div>
 
@@ -81,7 +85,9 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           <p className="text-sm text-marino">
             <strong>{sinGrupo}</strong> {sinGrupo === 1 ? "niño/a no tiene" : "niños no tienen"} grupo asignado en esta temporada.
           </p>
-          <FormAccion accion={asignarSinGrupo.bind(null, temporada.id)} textoBoton="Asignar grupo a los niños sin grupo" textoPendiente="Asignando…" variante="secundario" />
+          {usuario.permisos.has("inscriptos.editar") && (
+            <FormAccion accion={asignarSinGrupo.bind(null, temporada.id)} textoBoton="Asignar grupo a los niños sin grupo" textoPendiente="Asignando…" variante="secundario" />
+          )}
         </div>
       )}
 
@@ -102,6 +108,8 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           filas={filas}
           opciones={opciones}
           familias={familias}
+          puedeEditar={usuario.permisos.has("inscriptos.editar")}
+          puedeBorrar={usuario.permisos.has("inscriptos.borrar")}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
         />
       )}

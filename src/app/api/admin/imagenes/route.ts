@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { COOKIE_SESION, accesoPermitido } from "@/lib/auth/sesion";
+import { usuarioConPermiso } from "@/lib/auth/usuario";
 import { TAMANO_MAXIMO_IMAGEN, detectarTipoImagen } from "@/lib/contenido/imagenes";
 import { prisma } from "@/lib/prisma";
 
@@ -11,7 +10,7 @@ function error(status: number, mensaje: string) {
 }
 
 export async function POST(request: Request) {
-  if (!accesoPermitido((await cookies()).get(COOKIE_SESION)?.value)) return error(401, "No autorizado.");
+  if (!(await usuarioConPermiso("contenido.editar"))) return error(403, "No autorizado.");
 
   let archivo: FormDataEntryValue | null;
   try {

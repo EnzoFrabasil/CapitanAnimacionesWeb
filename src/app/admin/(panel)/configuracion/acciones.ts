@@ -3,17 +3,19 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { lugaresLibres } from "@/lib/dominio/cupos";
 import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
+import { diferencias, sinSecretos } from "@/lib/registro/diferencias";
+import { registrar } from "@/lib/registro/servidor";
 import { mensajesDeError, preciosTemporadaSchema, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
 
 type Previo = ResultadoAccion | null;
 
 export async function crearTemporada(_previo: Previo, datos: FormData): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   const r = temporadaSchema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
   let id: number;
@@ -22,25 +24,33 @@ export async function crearTemporada(_previo: Previo, datos: FormData): Promise<
   } catch (e) {
     return falloPorExcepcion(e);
   }
+  await registrar({ accion: "temporada.crear", entidad: "temporada", entidadId: id, detalle: sinSecretos(r.data) }, usuario);
   redirect(`/admin/configuracion/${id}`);
 }
 
 export async function actualizarTemporada(id: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   const r = temporadaSchema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
+  let antes;
   try {
+    antes = await prisma.temporada.findUnique({ where: { id } });
+    if (!antes) return fallo("La temporada ya no existe. Recargá la página.");
     await prisma.temporada.update({ where: { id }, data: r.data });
   } catch (e) {
     return falloPorExcepcion(e);
   }
+  await registrar(
+    { accion: "temporada.editar", entidad: "temporada", entidadId: id, detalle: { temporada: antes.nombre, cambios: diferencias(antes, r.data) } },
+    usuario,
+  );
   refresh();
   return exito("Temporada guardada.");
 }
 
 /** Abre o cierra la inscripción. Solo puede haber una temporada abierta: al abrir una se cierran las demás. */
 export async function cambiarInscripcion(id: number, abrir: boolean): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   try {
     if (abrir) {
       // Con el cupo completo la primera inscripción la volvería a cerrar: primero hay que subir el cupo.
@@ -61,6 +71,7 @@ export async function cambiarInscripcion(id: number, abrir: boolean): Promise<Re
   } catch (e) {
     return falloPorExcepcion(e);
   }
+  await registrar({ accion: abrir ? "inscripcion.abrir" : "inscripcion.cerrar", entidad: "temporada", entidadId: id }, usuario);
   refresh();
   return exito(abrir ? "Inscripción abierta." : "Inscripción cerrada.");
 }
@@ -71,43 +82,63 @@ export async function guardarSemana(
   _previo: Previo,
   datos: FormData,
 ): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   const r = semanaSchema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
+  let antes = null;
+  let id = semanaId;
   try {
     if (semanaId) {
+      antes = await prisma.semana.findUnique({ where: { id: semanaId } });
       await prisma.semana.update({ where: { id: semanaId, temporadaId }, data: r.data });
     } else {
-      await prisma.semana.create({ data: { ...r.data, temporadaId } });
+      id = (await prisma.semana.create({ data: { ...r.data, temporadaId } })).id;
     }
   } catch (e) {
     return falloPorExcepcion(e, { unico: `Ya hay otra opción con el orden ${r.data.numero}. Usá otro número.` });
   }
+  await registrar(
+    {
+      accion: semanaId ? "opcion.editar" : "opcion.crear",
+      entidad: "opcion",
+      entidadId: id ?? undefined,
+      detalle: antes ? { opcion: antes.nombre, cambios: diferencias(antes, r.data) } : sinSecretos(r.data),
+    },
+    usuario,
+  );
   refresh();
   return exito(semanaId ? "Opción guardada." : "Opción agregada.");
 }
 
 /** Precios generales, descuento por hermanos y días sueltos. */
 export async function guardarPrecios(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   const r = preciosTemporadaSchema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
+  let antes;
   try {
+    antes = await prisma.temporada.findUnique({ where: { id: temporadaId } });
     await prisma.temporada.update({ where: { id: temporadaId }, data: r.data });
   } catch (e) {
     return falloPorExcepcion(e);
   }
+  await registrar(
+    { accion: "precios.editar", entidad: "temporada", entidadId: temporadaId, detalle: { cambios: diferencias(antes ?? {}, r.data) } },
+    usuario,
+  );
   refresh();
   return exito("Precios guardados.");
 }
 
 export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
+  let borrada;
   try {
-    await prisma.semana.delete({ where: { id: semanaId } });
+    borrada = await prisma.semana.delete({ where: { id: semanaId } });
   } catch (e) {
     return falloPorExcepcion(e, { enUso: "No se puede borrar: hay niños inscriptos en esa opción. Desactivala en su lugar." });
   }
+  await registrar({ accion: "opcion.eliminar", entidad: "opcion", entidadId: semanaId, detalle: sinSecretos(borrada) }, usuario);
   refresh();
   return exito("Opción eliminada.");
 }
@@ -117,7 +148,7 @@ export async function eliminarSemana(semanaId: number): Promise<ResultadoAccion>
  * NO reasigna a los niños ya inscriptos; los de un grupo borrado quedan "sin grupo".
  */
 export async function guardarGrupos(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   let crudo: unknown;
   try {
     crudo = JSON.parse(String(datos.get("grupos") ?? "[]"));
@@ -152,6 +183,15 @@ export async function guardarGrupos(temporadaId: number, _previo: Previo, datos:
       }
       return afectados;
     });
+    await registrar(
+      {
+        accion: "grupos.editar",
+        entidad: "temporada",
+        entidadId: temporadaId,
+        detalle: { grupos: grupos.map((g) => `${g.nombre} (${g.edadMin} a ${g.edadMax})`), quedaronSinGrupo: sinGrupoNuevos },
+      },
+      usuario,
+    );
     refresh();
     return exito(
       sinGrupoNuevos > 0
@@ -166,7 +206,7 @@ export async function guardarGrupos(temporadaId: number, _previo: Previo, datos:
 
 /** Asigna grupo (según la edad guardada al inscribir) solo a los niños de la temporada que no tienen. */
 export async function asignarSinGrupo(temporadaId: number): Promise<ResultadoAccion> {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("inscriptos.editar");
   try {
     const [grupos, sinGrupo] = await Promise.all([
       prisma.grupoEdad.findMany({ where: { temporadaId } }),
@@ -184,6 +224,10 @@ export async function asignarSinGrupo(temporadaId: number): Promise<ResultadoAcc
         // La condición grupoEdadId: null evita pisar un grupo asignado a mano mientras tanto.
         prisma.inscripcionNino.updateMany({ where: { id: a.id, grupoEdadId: null }, data: { grupoEdadId: a.grupoEdadId } }),
       ),
+    );
+    await registrar(
+      { accion: "grupos.asignar", entidad: "temporada", entidadId: temporadaId, detalle: { asignados: asignaciones.length, sinGrupo: sinGrupo.length } },
+      usuario,
     );
     refresh();
     const quedan = sinGrupo.length - asignaciones.length;

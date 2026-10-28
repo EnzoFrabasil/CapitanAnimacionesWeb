@@ -38,15 +38,7 @@ Completá el `.env` (nunca lo subas al repositorio; ya está en `.gitignore`):
 | --- | --- |
 | `DATABASE_URL` | Cadena **pooled** de Neon (con `-pooler`). |
 | `DIRECT_URL` | Cadena **directa** de Neon (sin `-pooler`). |
-| `ADMIN_PASSWORD` | Contraseña compartida del panel `/admin`. |
-| `SESSION_SECRET` | Texto aleatorio de **32 caracteres o más** para firmar la sesión del panel. Generalo con `openssl rand -base64 32` o `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. |
-
-**Acceso al panel según la configuración:**
-
-| `ADMIN_PASSWORD` | Desarrollo (`npm run dev`) | Producción (Vercel o `npm start`) |
-| --- | --- | --- |
-| Vacía | Se entra **sin contraseña** (con un aviso arriba). | El panel queda **bloqueado**. |
-| Cargada, con `SESSION_SECRET` válido | Pide contraseña. | Pide contraseña. |
+El panel no usa variables de entorno para el acceso: cada persona tiene su usuario (email y contraseña) guardado en la base. Ver **Usuarios del panel** más abajo.
 
 ## 4. Instalar, migrar y cargar datos de ejemplo
 
@@ -81,16 +73,15 @@ Otros comandos:
 | `npm start` | Corre la versión compilada (modo producción). |
 | `npm run db:migrate` | Crea una migración nueva si cambiás `prisma/schema.prisma` (solo en desarrollo). |
 | `npm run db:deploy` | Aplica las migraciones pendientes (para producción). |
+| `npm run usuarios:crear` | Crea un usuario del panel desde la terminal (el primero, con acceso total). |
 
 ## 6. Publicar en Vercel
 
 1. Subí el repositorio a GitHub (ya está en `github.com/EnzoFrabasil/CapitanAnimacionesWeb`).
 2. En Vercel: **Add New… → Project**, importá el repositorio. Vercel detecta Next.js solo.
-3. En **Environment Variables** cargá estas 4 variables (para *Production* y, si querés, *Preview*):
+3. En **Environment Variables** cargá estas 2 variables (para *Production* y, si querés, *Preview*):
    - `DATABASE_URL` (pooled)
    - `DIRECT_URL` (directa)
-   - `ADMIN_PASSWORD`
-   - `SESSION_SECRET`
 4. Para que cada deploy aplique las migraciones pendientes, en **Settings → Build and Deployment → Build Command** poné:
    ```
    npm run db:deploy && npm run build
@@ -103,8 +94,28 @@ Otros comandos:
 
 ### Primeros pasos en producción
 
-1. Entrá a `/admin` con la contraseña.
+1. Creá tu usuario con acceso total desde la terminal (`npm run usuarios:crear`, con el `.env` apuntando a la base de producción) y entrá a `/admin` con tu email y contraseña.
 2. En **Configuración**: creá la temporada, cargá las semanas y los grupos de edad, y tocá **Abrir inscripción**. Mientras ninguna temporada esté abierta, el formulario muestra "Las inscripciones están cerradas".
+
+## Usuarios del panel
+
+Cada persona entra con **su email y su contraseña**. Las contraseñas se guardan cifradas con scrypt (nadie puede leerlas, tampoco desde la base) y la sesión dura 7 días.
+
+**Roles iniciales** (se editan en **Panel → Usuarios → Roles y permisos**):
+
+| Rol | Qué puede hacer |
+| --- | --- |
+| Acceso total | Todo, incluidas las analíticas. Es el único que crea usuarios, cambia roles y edita permisos. Siempre tiene que quedar al menos uno activo. |
+| Administrador | Todo menos analíticas y usuarios: inscriptos (ver, editar, eliminar, importar, exportar), configuración, página de inicio, backups y registro. |
+| Inscripciones | Ver y editar inscriptos y descargar el CSV. |
+
+- **Primer usuario:** `npm run usuarios:crear` (pide email, nombre y contraseña sin mostrarla). Con `-- --rol administrador` crea uno con otro rol.
+- **Los demás:** en **Usuarios → Agregar usuario**. La contraseña la elegís vos (o se genera una al azar y se muestra una sola vez); con "Pedirle que la cambie al entrar" la persona elige la suya en su primer ingreso.
+- **Olvidó la contraseña:** alguien con acceso total se la cambia desde **Usuarios** y se le cierran las sesiones abiertas.
+- **Dar de baja:** **Desactivar** corta el acceso al instante. No se borra, para conservar su historial.
+- **Permisos nuevos:** se agregan en `src/lib/auth/permisos.ts` y se piden con `exigirPermiso("…")` en la página o acción. El rol de acceso total los recibe solo; a los demás se les marca desde el panel.
+
+**Registro de cambios** (**Panel → Registro**): queda todo lo que se hace en el panel, con quién, cuándo e IP: ingresos (también los fallidos), cambios de datos con el valor anterior y el nuevo, eliminaciones, descargas del CSV y backups, cambios de configuración, publicaciones de la página de inicio y cambios de usuarios y roles. Nunca guarda contraseñas. Después de 8 intentos fallidos con el mismo email en 15 minutos, ese email queda frenado 15 minutos.
 
 ## 7. Contenido, marca e imágenes
 

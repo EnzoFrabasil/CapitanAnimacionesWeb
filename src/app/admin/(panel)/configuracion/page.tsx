@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Campo } from "@/components/admin/Campo";
 import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { hoyEnArgentina } from "@/lib/dominio/fechas";
 import { prisma } from "@/lib/prisma";
 import { crearTemporada } from "./acciones";
@@ -20,7 +20,7 @@ export default function PaginaConfiguracion() {
 }
 
 async function Temporadas() {
-  await exigirAdmin();
+  const usuario = await exigirPermiso("configuracion.editar");
   const temporadas = await prisma.temporada.findMany({
     orderBy: [{ anio: "desc" }, { createdAt: "desc" }],
     include: { _count: { select: { semanas: true, gruposEdad: true, inscripciones: true } } },
@@ -89,6 +89,7 @@ async function Temporadas() {
         </FormAccion>
       </section>
 
+      {usuario.permisos.has("backups.descargar") && (
       <section aria-labelledby="backups-titulo" className={claseTarjeta}>
         <h2 id="backups-titulo" className="mb-2 text-lg font-semibold text-marino">
           Backups
@@ -102,6 +103,7 @@ async function Temporadas() {
           Descargar backup
         </a>
       </section>
+      )}
     </>
   );
 }

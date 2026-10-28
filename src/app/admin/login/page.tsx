@@ -3,7 +3,9 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { sitio } from "@/config/sitio";
-import { estadoAuth } from "@/lib/auth/sesion";
+import { seccionInicial } from "@/lib/auth/permisos";
+import { usuarioActual } from "@/lib/auth/usuario";
+import { prisma } from "@/lib/prisma";
 import { FormularioLogin } from "./FormularioLogin";
 
 export const metadata: Metadata = { title: `Panel | ${sitio.nombre}`, robots: { index: false } };
@@ -27,13 +29,13 @@ export default function PaginaLogin({ searchParams }: PageProps<"/admin/login">)
 async function Contenido({ searchParams }: Pick<PageProps<"/admin/login">, "searchParams">) {
   // Leer searchParams primero hace que esto se evalúe en cada request (no en el build).
   const { desde } = await searchParams;
-  const estado = estadoAuth();
-  if (estado === "abierto") redirect("/admin");
-  if (estado === "bloqueado") {
+  const usuario = await usuarioActual();
+  if (usuario) redirect(seccionInicial(usuario.permisos));
+  if ((await prisma.usuario.count()) === 0) {
     return (
-      <p role="alert" className="rounded-xl border-2 border-rojo p-4 text-sm">
-        El panel está bloqueado porque falta configurar las variables de entorno <code>ADMIN_PASSWORD</code> y{" "}
-        <code>SESSION_SECRET</code> (de al menos 32 caracteres). Ver el README.
+      <p role="alert" className="rounded-xl border-2 border-amarillo p-4 text-sm">
+        Todavía no hay usuarios. Creá el primero (con acceso total) desde la terminal del proyecto con{" "}
+        <code>npm run usuarios:crear</code>. Ver el README.
       </p>
     );
   }

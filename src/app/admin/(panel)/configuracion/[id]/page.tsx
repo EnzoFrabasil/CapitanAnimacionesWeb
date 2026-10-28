@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Campo } from "@/components/admin/Campo";
 import { claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
-import { exigirAdmin } from "@/lib/auth/admin";
+import { exigirPermiso } from "@/lib/auth/usuario";
 import { fechaAIso, sumarDias } from "@/lib/dominio/fechas";
 import { formatearPrecio, horarios, rangoDeFechas, type Opcion, type Precios } from "@/lib/dominio/opciones";
 import { formatearFecha } from "@/lib/formato";
@@ -133,7 +133,7 @@ function VistaPrevia({ opciones, precios, porDia }: { opciones: Opcion[]; precio
 }
 
 async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">, "params">) {
-  await exigirAdmin();
+  await exigirPermiso("configuracion.editar");
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
 

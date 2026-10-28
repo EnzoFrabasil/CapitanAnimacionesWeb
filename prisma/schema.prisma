@@ -261,3 +261,75 @@ model Imagen {
   tamano   Int
   creadaEn DateTime @default(now())
 }
+
+// ── Usuarios del panel ───────────────────────────────────────────────────────
+
+// Un rol agrupa permisos (ver src/lib/auth/permisos.ts). El rol con esTotal
+// tiene todos los permisos, también los que se agreguen en el futuro, y es el
+// único que puede gestionar usuarios y roles.
+model Rol {
+  id       Int      @id @default(autoincrement())
+  clave    String   @unique
+  nombre   String
+  permisos String[]
+  esTotal  Boolean  @default(false)
+  creadoEn DateTime @default(now())
+
+  usuarios Usuario[]
+}
+
+// Persona que entra al panel. La contraseña se guarda con scrypt (nunca en texto).
+model Usuario {
+  id                  Int       @id @default(autoincrement())
+  // Siempre en minúsculas.
+  email               String    @unique
+  nombre              String
+  passwordHash        String
+  rolId               Int
+  activo              Boolean   @default(true)
+  // La contraseña la eligió otra persona: se pide cambiarla al entrar.
+  debeCambiarPassword Boolean   @default(false)
+  ultimoIngreso       DateTime?
+  creadoEn            DateTime  @default(now())
+
+  rol      Rol        @relation(fields: [rolId], references: [id])
+  sesiones Sesion[]
+  registro Registro[]
+
+  @@index([rolId])
+}
+
+// Sesión abierta: el navegador guarda un token al azar y acá solo su hash.
+model Sesion {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  usuarioId Int
+  creadaEn  DateTime @default(now())
+  vence     DateTime
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+}
+
+// Registro de lo que se hace en el panel: quién, cuándo, qué y sobre qué dato.
+// Se guarda el email por si el usuario se borra. Nunca incluye contraseñas.
+model Registro {
+  id           Int      @id @default(autoincrement())
+  fecha        DateTime @default(now())
+  usuarioId    Int?
+  usuarioEmail String?
+  // "inscripto.editar", "login.fallido", "csv.descargar", etc.
+  accion       String
+  entidad      String?
+  entidadId    String?
+  // Valores anteriores y nuevos, o un resumen de lo que se hizo.
+  detalle      Json?
+  ip           String?
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([fecha])
+  @@index([usuarioId, fecha])
+  @@index([accion, fecha])
+}

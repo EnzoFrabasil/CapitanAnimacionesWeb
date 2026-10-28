@@ -43,6 +43,8 @@ export function FilaInscripto({
   fila: f,
   opciones,
   familia,
+  puedeEditar,
+  puedeBorrar,
   grupos,
   seleccionada,
   alternarSeleccion,
@@ -50,6 +52,8 @@ export function FilaInscripto({
   fila: Fila;
   opciones: Opcion[];
   familia: ResumenFamilia | undefined;
+  puedeEditar: boolean;
+  puedeBorrar: boolean;
   grupos: { id: number; nombre: string }[];
   seleccionada: boolean;
   alternarSeleccion: (marcada: boolean) => void;
@@ -128,6 +132,7 @@ export function FilaInscripto({
     <>
       <tr className={`align-top ${editando ? "bg-amarillo/10" : seleccionada ? "bg-rojo/5" : "hover:bg-crema/50"}`}>
         <td className="py-3 pl-3">
+          {puedeBorrar && (
           <input
             type="checkbox"
             checked={seleccionada}
@@ -135,6 +140,7 @@ export function FilaInscripto({
             aria-label={`Seleccionar a ${f.nino.nombre} ${f.nino.apellido}`}
             className="mt-1 size-4 accent-marino"
           />
+          )}
         </td>
         <td className="py-3 pl-1">
           <button
@@ -276,11 +282,14 @@ export function FilaInscripto({
               >
                 Cancelar
               </button>
-              <button type="button" onClick={eliminar} disabled={pendiente} className={`${claseBotonChico} text-rojo underline-offset-2 hover:underline`}>
-                Eliminar
-              </button>
+              {puedeBorrar && (
+                <button type="button" onClick={eliminar} disabled={pendiente} className={`${claseBotonChico} text-rojo underline-offset-2 hover:underline`}>
+                  Eliminar
+                </button>
+              )}
             </div>
           ) : (
+            puedeEditar && (
             <button
               type="button"
               onClick={empezar}
@@ -290,6 +299,7 @@ export function FilaInscripto({
             >
               <IconoLapiz className="size-5" />
             </button>
+            )
           )}
         </td>
       </tr>
@@ -306,7 +316,7 @@ export function FilaInscripto({
                   <h3 className={`text-xs font-semibold tracking-wide uppercase ${info ? "text-rojo" : "text-marino"}`}>
                     Información adicional
                   </h3>
-                  {!editandoInfo && (
+                  {!editandoInfo && puedeEditar && (
                     <button
                       type="button"
                       onClick={() => {
