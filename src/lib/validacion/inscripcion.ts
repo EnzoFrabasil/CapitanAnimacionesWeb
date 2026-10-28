@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LARGO_MAXIMO, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
+import { maximoNinosPorFormulario } from "@/lib/dominio/cupos";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { calcularEdad, validarFechaNacimiento, type RangoEdadPermitida } from "@/lib/dominio/edad";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
@@ -23,6 +24,8 @@ export interface ContextoInscripcion {
   precios?: Precios;
   /** Edad permitida en la temporada. Si no se indica, la de src/config/inscripcion.ts. */
   edades?: RangoEdadPermitida;
+  /** Lugares libres de la temporada: nadie puede cargar más chicos que eso (null o sin indicar = sin cupo). */
+  lugares?: number | null;
   /** Fecha de hoy (aaaa-mm-dd) en Argentina. */
   hoy: string;
 }
@@ -178,13 +181,19 @@ export function crearNinoSchema(contexto: ContextoInscripcion) {
 }
 
 export function crearInscripcionSchema(contexto: ContextoInscripcion) {
+  const maximo = maximoNinosPorFormulario(MAX_NINOS_POR_INSCRIPCION, contexto.lugares ?? null);
   return z
     .object({
       contactos: z.array(contactoSchema).min(1, "Agregá al menos un contacto."),
       ninos: z
         .array(crearNinoSchema(contexto))
         .min(1, "Agregá al menos un niño o niña.")
-        .max(MAX_NINOS_POR_INSCRIPCION, `Se pueden inscribir hasta ${MAX_NINOS_POR_INSCRIPCION} chicos por formulario.`),
+        .max(
+          maximo,
+          maximo < MAX_NINOS_POR_INSCRIPCION
+            ? `Solo ${maximo === 1 ? "queda 1 lugar" : `quedan ${maximo} lugares`}: quitá los chicos que sobran.`
+            : `Se pueden inscribir hasta ${MAX_NINOS_POR_INSCRIPCION} chicos por formulario.`,
+        ),
     })
     .superRefine(
       (datos, ctx) => {

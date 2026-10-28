@@ -8,7 +8,8 @@
 export const EDAD_MINIMA = 2;
 export const EDAD_MAXIMA = 17;
 
-export const MAX_NINOS_POR_INSCRIPCION = 10;
+/** Máximo de chicos por formulario (menos si quedan menos lugares en el cupo). */
+export const MAX_NINOS_POR_INSCRIPCION = 6;
 
 /**
  * Versión del texto de /privacidad. Se guarda con cada inscripción como

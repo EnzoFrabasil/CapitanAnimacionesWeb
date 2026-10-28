@@ -8,7 +8,8 @@ import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema } from "@/lib/validacion/
 // Respuestas posibles (nunca incluyen datos de otras inscripciones):
 //   200 { ok: true, numero }
 //   400 { ok: false, error, campos: [{ path, mensaje }] }
-//   403 inscripciones cerradas · 409 cambió la temporada · 413 · 429 · 500
+//   403 inscripciones cerradas o cupo completo { quedan: 0 }
+//   409 cambió la temporada, o no alcanzan los lugares { quedan } · 413 · 429 · 500
 
 const permitir = crearRateLimit({ maximo: 10, ventanaMs: 15 * 60 * 1000 });
 const TAMANO_MAXIMO = 100_000; // bytes
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     opciones: temporada.opciones,
     modalidades: temporada.modalidades,
     edades: temporada.edades,
+    lugares: temporada.lugares,
     hoy: fechaAIso(hoy),
   }).safeParse(datos);
   if (!resultado.success) {
@@ -77,8 +79,24 @@ export async function POST(request: Request) {
   // Un reintento si dos envíos simultáneos crean el mismo contacto nuevo.
   for (let intento = 1; ; intento++) {
     try {
-      const numero = await registrarInscripcion(resultado.data, temporada, hoy);
-      return Response.json({ ok: true, numero });
+      const r = await registrarInscripcion(resultado.data, temporada, hoy);
+      if (r.ok) return Response.json({ ok: true, numero: r.numero });
+      if (r.motivo === "cerrada" || r.quedan === 0) {
+        return Response.json(
+          { ok: false, error: "Se completó el cupo y las inscripciones se cerraron. ¡Gracias por tu interés!", quedan: 0 },
+          { status: 403 },
+        );
+      }
+      return Response.json(
+        {
+          ok: false,
+          error: `Solo ${r.quedan === 1 ? "queda 1 lugar" : `quedan ${r.quedan} lugares`}. Quitá ${
+            resultado.data.ninos.length - r.quedan === 1 ? "un chico" : `${resultado.data.ninos.length - r.quedan} chicos`
+          } del formulario para poder enviarlo.`,
+          quedan: r.quedan,
+        },
+        { status: 409 },
+      );
     } catch (e) {
       const conflicto = e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
       if (conflicto && intento < 2) continue;

@@ -45,8 +45,14 @@ interface Props {
   contexto: ContextoInscripcion;
 }
 
-export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, contexto }: Props) {
+export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, contexto: contextoInicial }: Props) {
   const PASOS = [textos.pasoContactos, textos.pasoNinos, textos.pasoRevision];
+  // Si al enviar el servidor avisa que quedan menos lugares, el formulario pasa a usar ese límite.
+  const [lugaresServidor, setLugaresServidor] = useState<number | null>(null);
+  const contexto = useMemo(
+    () => (lugaresServidor === null ? contextoInicial : { ...contextoInicial, lugares: lugaresServidor }),
+    [contextoInicial, lugaresServidor],
+  );
   const schema = useMemo(() => crearInscripcionSchema(contexto), [contexto]);
   const proximaClave = useRef(1);
 
@@ -132,6 +138,8 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
         numero?: number;
         error?: string;
         campos?: { path: string; mensaje: string }[];
+        /** Lugares libres cuando no alcanzaron para esta inscripción. */
+        quedan?: number;
       } | null;
 
       if (respuesta.ok && cuerpo?.ok && typeof cuerpo.numero === "number") {
@@ -141,6 +149,16 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
       }
 
       setErrorGeneral(cuerpo?.error ?? "No pudimos enviar la inscripción. Probá de nuevo en unos minutos.");
+      if (typeof cuerpo?.quedan === "number") {
+        setLugaresServidor(cuerpo.quedan);
+        // Con lugares para algunos, vuelve a los chicos para quitar los que sobran.
+        if (cuerpo.quedan > 0) {
+          setPasosIntentados(new Set([0, 1, 2]));
+          setPaso(1);
+        }
+        irArriba();
+        return;
+      }
       if (cuerpo?.campos?.length) {
         const mapa: Record<string, string> = {};
         for (const c of cuerpo.campos) mapa[c.path] ??= c.mensaje;

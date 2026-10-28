@@ -116,9 +116,18 @@ describe("crearInscripcionSchema", () => {
 
   it("exige entre 1 y 10 niños y al menos 1 contacto", () => {
     expect(errores({ contactos: [contacto], ninos: [] })[0]).toMatch(/al menos un niño/);
-    expect(errores({ contactos: [contacto], ninos: Array(11).fill(nino) })[0]).toMatch(/hasta 10/);
-    expect(errores({ contactos: Array(10).fill(null).map((_, i) => ({ ...contacto, whatsapp: `11 2345-67${10 + i}` })), ninos: Array(10).fill(nino) })).toEqual([]);
+    expect(errores({ contactos: [contacto], ninos: Array(7).fill(nino) })[0]).toMatch(/hasta 6/);
+    expect(errores({ contactos: Array(10).fill(null).map((_, i) => ({ ...contacto, whatsapp: `11 2345-67${10 + i}` })), ninos: Array(6).fill(nino) })).toEqual([]);
     expect(errores({ contactos: [], ninos: [nino] })[0]).toMatch(/al menos un contacto/);
+  });
+
+  it("no deja cargar más chicos que los lugares que quedan", () => {
+    const quedanDos = crearInscripcionSchema({ ...contexto, lugares: 2 });
+    const r = quedanDos.safeParse({ contactos: [contacto], ninos: [nino, nino, nino] });
+    expect(r.error?.issues.map((i) => i.message)).toEqual(["Solo quedan 2 lugares: quitá los chicos que sobran."]);
+    expect(quedanDos.safeParse({ contactos: [contacto], ninos: [nino, nino] }).success).toBe(true);
+    // Con lugares de sobra manda el máximo por formulario.
+    expect(crearInscripcionSchema({ ...contexto, lugares: 30 }).safeParse({ contactos: [contacto], ninos: Array(7).fill(nino) }).success).toBe(false);
   });
 
   it("marca WhatsApp repetidos entre contactos aunque estén escritos distinto", () => {

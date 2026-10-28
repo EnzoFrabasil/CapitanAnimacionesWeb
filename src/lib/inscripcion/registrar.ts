@@ -1,5 +1,6 @@
 import "server-only";
 import { VERSION_PRIVACIDAD } from "@/config/inscripcion";
+import { verificarCupo } from "@/lib/dominio/cupos";
 import { asignarGrupo, calcularEdad } from "@/lib/dominio/edad";
 import { elegirFamilia, type ContactoExistente } from "@/lib/dominio/familia";
 import { fechaDesdeIso } from "@/lib/dominio/fechas";
@@ -7,10 +8,19 @@ import { prisma } from "@/lib/prisma";
 import type { TemporadaAbierta } from "@/lib/temporada";
 import type { InscripcionValidada } from "@/lib/validacion/inscripcion";
 
+export type ResultadoRegistro =
+  | { ok: true; numero: number; /** Esta inscripción completó el cupo y se cerró la temporada. */ cerro: boolean }
+  | { ok: false; motivo: "cerrada" }
+  | { ok: false; motivo: "sinLugar"; quedan: number };
+
 /**
  * Guarda una inscripción ya validada en una única transacción (si algo falla,
  * no se guarda nada) y devuelve el número de inscripción.
  *
+ * - Nunca se pasa del cupo: la fila de la temporada se bloquea mientras se
+ *   cuentan los lugares, así dos envíos simultáneos no pueden ocupar el mismo
+ *   lugar. Si no alcanzan los lugares no se guarda nada; si esta inscripción
+ *   completa el cupo, la temporada se cierra en la misma transacción.
  * - Un contacto con WhatsApp ya existente se reutiliza SIN modificar sus datos.
  * - Los niños se suman a la familia de un contacto existente, si la hay.
  * - Un DNI ya inscripto en la temporada se acepta y se marca como posible duplicado.
@@ -19,9 +29,23 @@ export async function registrarInscripcion(
   datos: InscripcionValidada,
   temporada: TemporadaAbierta,
   hoy: Date,
-): Promise<number> {
+): Promise<ResultadoRegistro> {
   return prisma.$transaction(
-    async (tx) => {
+    async (tx): Promise<ResultadoRegistro> => {
+      // Bloqueo hasta el final de la transacción: las demás inscripciones de la temporada esperan acá.
+      const [bloqueada] = await tx.$queryRaw<{ cupo: number | null; inscripcionAbierta: boolean }[]>`
+        SELECT "cupo", "inscripcionAbierta" FROM "Temporada" WHERE "id" = ${temporada.id} FOR UPDATE`;
+      if (!bloqueada?.inscripcionAbierta) return { ok: false, motivo: "cerrada" };
+      const ocupados = await tx.inscripcionNino.count({
+        where: { estado: { not: "CANCELADO" }, inscripcion: { temporadaId: temporada.id } },
+      });
+      const cupo = verificarCupo(bloqueada.cupo, ocupados, datos.ninos.length);
+      if (!cupo.entra) {
+        // Cupo completo (o desbordado): se cierra para que nadie más llegue hasta acá.
+        if (cupo.quedan === 0) await tx.temporada.update({ where: { id: temporada.id }, data: { inscripcionAbierta: false } });
+        return { ok: false, motivo: "sinLugar", quedan: cupo.quedan };
+      }
+
       const responsableIds: number[] = [];
       const existentes: (ContactoExistente | null)[] = [];
 
@@ -108,7 +132,8 @@ export async function registrarInscripcion(
         });
       }
 
-      return inscripcion.numero;
+      if (cupo.cierra) await tx.temporada.update({ where: { id: temporada.id }, data: { inscripcionAbierta: false } });
+      return { ok: true, numero: inscripcion.numero, cerro: cupo.cierra };
     },
     { maxWait: 10_000, timeout: 30_000 },
   );

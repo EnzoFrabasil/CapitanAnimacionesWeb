@@ -1,6 +1,7 @@
 "use client";
 
 import { EDAD_MAXIMA, EDAD_MINIMA, MAX_NINOS_POR_INSCRIPCION } from "@/config/inscripcion";
+import { maximoNinosPorFormulario } from "@/lib/dominio/cupos";
 import { fechaAIso, fechaDesdeIso } from "@/lib/dominio/fechas";
 import {
   claveHorario,
@@ -34,6 +35,8 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
   const hoy = fechaDesdeIso(contexto.hoy);
   const fechaMinima = new Date(hoy);
   const edades = contexto.edades ?? { minima: EDAD_MINIMA, maxima: EDAD_MAXIMA };
+  const maximo = maximoNinosPorFormulario(MAX_NINOS_POR_INSCRIPCION, contexto.lugares ?? null);
+  const limitaCupo = maximo < MAX_NINOS_POR_INSCRIPCION;
   fechaMinima.setUTCFullYear(fechaMinima.getUTCFullYear() - edades.maxima - 1);
 
   return (
@@ -132,7 +135,7 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
 
       <MensajeError id="ninos-error" mensaje={errorDe("ninos")} />
 
-      {ninos.length < MAX_NINOS_POR_INSCRIPCION ? (
+      {ninos.length < maximo ? (
         <button
           type="button"
           onClick={agregar}
@@ -141,7 +144,11 @@ export function PasoNinos({ intro, ayudaInfoAdicional, ninos, contexto, cambiar,
           + Agregar otro niño/a
         </button>
       ) : (
-        <p className="text-center text-sm">Llegaste al máximo de {MAX_NINOS_POR_INSCRIPCION} chicos por inscripción.</p>
+        <p className="text-center text-sm">
+          {limitaCupo
+            ? `${maximo === 1 ? "Queda 1 lugar" : `Quedan ${maximo} lugares`} en la colonia: no se pueden sumar más chicos.`
+            : `Llegaste al máximo de ${MAX_NINOS_POR_INSCRIPCION} chicos por inscripción.`}
+        </p>
       )}
     </div>
   );

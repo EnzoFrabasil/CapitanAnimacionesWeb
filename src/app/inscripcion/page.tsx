@@ -35,7 +35,8 @@ async function Contenido() {
   await connection(); // siempre con datos frescos: si se cierra la inscripción, se ve al instante
   const [temporada, { inscripcion: textos }] = await Promise.all([buscarTemporadaAbierta(), obtenerContenido()]);
 
-  if (!temporada) {
+  // Con el cupo completo se muestra igual que cerrada (la próxima inscripción la cierra del todo).
+  if (!temporada || temporada.lugares === 0) {
     return (
       <section className="rounded-3xl bg-white p-8 text-center shadow-md">
         <h1 className="font-titulo text-3xl font-bold text-marino">{textos.cerradasTitulo}</h1>
@@ -63,6 +64,7 @@ async function Contenido() {
         modalidades: temporada.modalidades,
         edades: temporada.edades,
         precios: temporada.precios,
+        lugares: temporada.lugares,
         hoy: fechaAIso(hoyEnArgentina()),
       }}
     />

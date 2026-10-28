@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
 import { exigirAdmin } from "@/lib/auth/admin";
+import { lugaresLibres } from "@/lib/dominio/cupos";
 import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
 import { mensajesDeError, preciosTemporadaSchema, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
@@ -41,6 +42,18 @@ export async function actualizarTemporada(id: number, _previo: Previo, datos: Fo
 export async function cambiarInscripcion(id: number, abrir: boolean): Promise<ResultadoAccion> {
   await exigirAdmin();
   try {
+    if (abrir) {
+      // Con el cupo completo la primera inscripción la volvería a cerrar: primero hay que subir el cupo.
+      const temporada = await prisma.temporada.findUnique({ where: { id }, select: { cupo: true } });
+      const ocupados = await prisma.inscripcionNino.count({
+        where: { estado: { not: "CANCELADO" }, inscripcion: { temporadaId: id } },
+      });
+      if (lugaresLibres(temporada?.cupo ?? null, ocupados) === 0) {
+        return fallo(
+          `El cupo está completo (${ocupados} de ${temporada?.cupo} lugares ocupados). Subí el cupo en "Datos" o cancelá inscriptos para poder abrirla.`,
+        );
+      }
+    }
     await prisma.$transaction([
       ...(abrir ? [prisma.temporada.updateMany({ where: { id: { not: id } }, data: { inscripcionAbierta: false } })] : []),
       prisma.temporada.update({ where: { id }, data: { inscripcionAbierta: abrir } }),

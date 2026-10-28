@@ -1,4 +1,5 @@
 import "server-only";
+import { lugaresLibres } from "@/lib/dominio/cupos";
 import { fechaAIso } from "@/lib/dominio/fechas";
 import type { Opcion, Precios } from "@/lib/dominio/opciones";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +14,8 @@ export interface TemporadaAbierta {
   modalidades: NonNullable<ContextoInscripcion["modalidades"]>;
   edades: NonNullable<ContextoInscripcion["edades"]>;
   precios: Precios;
+  /** Lugares libres (null = la temporada no tiene cupo). */
+  lugares: number | null;
   grupos: { id: number; nombre: string; edadMin: number; edadMax: number }[];
 }
 
@@ -60,6 +63,12 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     },
   });
   if (!temporada) return null;
+  const ocupados =
+    temporada.cupo === null
+      ? 0
+      : await prisma.inscripcionNino.count({
+          where: { estado: { not: "CANCELADO" }, inscripcion: { temporadaId: temporada.id } },
+        });
 
   return {
     id: temporada.id,
@@ -68,6 +77,7 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     edades: { minima: temporada.edadMinima, maxima: temporada.edadMaxima },
     modalidades: temporada.permitePorDia ? ["SEMANAS", "POR_DIA"] : ["SEMANAS"],
     precios: preciosDe(temporada),
+    lugares: lugaresLibres(temporada.cupo, ocupados),
     opciones: temporada.semanas.map(aOpcion),
     grupos: temporada.gruposEdad.map(({ id, nombre, edadMin, edadMax }) => ({ id, nombre, edadMin, edadMax })),
   };

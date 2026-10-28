@@ -198,6 +198,11 @@ async function Temporada({ params }: Pick<PageProps<"/admin/configuracion/[id]">
           {!temporada.inscripcionAbierta && (
             <p className="mt-2 text-xs">Solo puede haber una temporada abierta: al abrir esta se cierran las demás.</p>
           )}
+          {temporada.cupo !== null && (
+            <p className="mt-2 text-xs">
+              Se cierra sola cuando se completa el cupo, y nunca deja inscribir más chicos que los lugares que quedan.
+            </p>
+          )}
         </Seccion>
       </div>
 
