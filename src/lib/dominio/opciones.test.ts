@@ -53,7 +53,14 @@ describe("opciones", () => {
     expect(describirAsistencia(tres, precios.paquetes, porOpciones([1, 5]))).toBe("Quincena 1 y Quincena 3 · 8:30 a 12:30 hs");
   });
 
-  it("elige la combinación de paquetes más barata, sin repetir opciones", () => {
+  it("si se eligen todas las opciones de un paquete se cobra el paquete, aunque sueltas salgan menos", () => {
+    // Preinscripción: quincenas en $0 y la colonia completa con su precio.
+    const gratis = manana.map((o) => ({ ...o, precio: 0 }));
+    expect(precioChico(gratis, precios, porOpciones([1, 2]))).toBe(230_000);
+    expect(describirAsistencia(gratis, precios.paquetes, porOpciones([1, 2]))).toBe("Colonia completa · 8:30 a 12:30 hs");
+  });
+
+  it("entre combinaciones que cubren lo mismo con paquetes, elige la más barata", () => {
     const tres = [...manana, opcion(5, "Quincena 3")];
     const paquetes: Paquete[] = [
       completaManana,

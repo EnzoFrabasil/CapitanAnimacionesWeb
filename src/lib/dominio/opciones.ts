@@ -90,8 +90,10 @@ export interface Combinacion {
 }
 
 /**
- * La forma más barata de cobrar exactamente las opciones elegidas: paquetes
- * (sin repetir opciones) más opciones sueltas. A igual precio, la que usa paquetes.
+ * Cómo se cobran exactamente las opciones elegidas: paquetes (sin repetir
+ * opciones) más opciones sueltas. Si se eligieron todas las opciones de un
+ * paquete, se cobra el paquete: primero se cubren con paquetes la mayor cantidad
+ * de opciones posible y, entre esas combinaciones, se elige la más barata.
  */
 export function combinacion(opciones: readonly Opcion[], paquetes: readonly Paquete[], ids: readonly number[]): Combinacion {
   const elegidas = opciones.filter((o) => ids.includes(o.id)).sort((a, b) => a.numero - b.numero);
@@ -101,17 +103,24 @@ export function combinacion(opciones: readonly Opcion[], paquetes: readonly Paqu
     .filter((p) => p.opciones.length > 0 && p.opciones.every((id) => bit.has(id)))
     .map((p) => ({ paquete: p, mascara: p.opciones.reduce((m, id) => m | bit.get(id)!, 0) }));
   const total = (1 << elegidas.length) - 1;
-  // mejor[m] = forma más barata de cubrir el conjunto m (programación dinámica sobre subconjuntos).
-  const mejor: { precio: number; paquetes: number; usados: Paquete[] }[] = [{ precio: 0, paquetes: 0, usados: [] }];
+  // mejor[m] = mejor forma de cubrir el conjunto m (programación dinámica sobre subconjuntos):
+  // más opciones cubiertas por paquetes y, a igualdad, menor precio.
+  type Parcial = { cubiertas: number; precio: number; usados: Paquete[] };
+  const esMejor = (a: Parcial, b: Parcial) => a.cubiertas > b.cubiertas || (a.cubiertas === b.cubiertas && a.precio < b.precio);
+  const mejor: Parcial[] = [{ cubiertas: 0, precio: 0, usados: [] }];
   for (let m = 1; m <= total; m++) {
     const i = Math.log2(m & -m); // la opción más baja que falta cubrir
     const sola = mejor[m & ~(1 << i)];
-    let candidato = { precio: sola.precio + elegidas[i].precio, paquetes: sola.paquetes, usados: sola.usados };
+    let candidato: Parcial = { cubiertas: sola.cubiertas, precio: sola.precio + elegidas[i].precio, usados: sola.usados };
     for (const u of utiles) {
       if ((u.mascara & (1 << i)) === 0 || (u.mascara & m) !== u.mascara) continue;
       const resto = mejor[m & ~u.mascara];
-      const c = { precio: resto.precio + u.paquete.precio, paquetes: resto.paquetes + 1, usados: [...resto.usados, u.paquete] };
-      if (c.precio < candidato.precio || (c.precio === candidato.precio && c.paquetes > candidato.paquetes)) candidato = c;
+      const c: Parcial = {
+        cubiertas: resto.cubiertas + u.paquete.opciones.length,
+        precio: resto.precio + u.paquete.precio,
+        usados: [...resto.usados, u.paquete],
+      };
+      if (esMejor(c, candidato)) candidato = c;
     }
     mejor[m] = candidato;
   }
