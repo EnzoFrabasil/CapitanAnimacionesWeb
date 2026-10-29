@@ -39,7 +39,7 @@ export interface ItemMenu {
 /** Menú del panel agrupado por para qué sirve cada cosa. Cada persona ve solo lo que su rol permite. */
 export const MENU: readonly { grupo: string; items: readonly ItemMenu[] }[] = [
   {
-    grupo: "Día a día",
+    grupo: "Inscriptos",
     items: [
       { href: "/admin", nombre: "Inscriptos", descripcion: "Lista, fichas, contactos y alergias", permiso: "inscriptos.ver" },
     ],
