@@ -213,7 +213,7 @@ export async function guardarGrupos(temporadaId: number, _previo: Previo, datos:
         await tx.grupoEdad.update({ where: { id }, data: { nombre: `__tmp_${id}` } });
       }
       for (const g of grupos) {
-        const data = { nombre: g.nombre, edadMin: g.edadMin, edadMax: g.edadMax };
+        const data = { nombre: g.nombre, edadMin: g.edadMin, edadMax: g.edadMax, enlaceWhatsapp: g.enlaceWhatsapp };
         if (g.id !== undefined) await tx.grupoEdad.update({ where: { id: g.id }, data });
         else await tx.grupoEdad.create({ data: { ...data, temporadaId } });
       }
@@ -224,7 +224,10 @@ export async function guardarGrupos(temporadaId: number, _previo: Previo, datos:
         accion: "grupos.editar",
         entidad: "temporada",
         entidadId: temporadaId,
-        detalle: { grupos: grupos.map((g) => `${g.nombre} (${g.edadMin} a ${g.edadMax})`), quedaronSinGrupo: sinGrupoNuevos },
+        detalle: {
+          grupos: grupos.map((g) => `${g.nombre} (${g.edadMin} a ${g.edadMax})${g.enlaceWhatsapp ? " · con grupo de WhatsApp" : ""}`),
+          quedaronSinGrupo: sinGrupoNuevos,
+        },
       },
       usuario,
     );

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
+import type { ContextoMensajes } from "@/lib/dominio/mensajes";
 import type { Opcion } from "@/lib/dominio/opciones";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { eliminarInscriptos } from "./acciones";
@@ -12,6 +13,7 @@ export function TablaInscriptos({
   filas,
   opciones,
   familias,
+  mensajes,
   puedeEditar,
   puedeBorrar,
   grupos,
@@ -21,6 +23,7 @@ export function TablaInscriptos({
   opciones: Opcion[];
   /** Hermanos y total de cada familia en la temporada. */
   familias: Record<number, ResumenFamilia>;
+  mensajes: ContextoMensajes | null;
   /** Según el rol: sin permiso no se muestran el lápiz ni la selección para eliminar. */
   puedeEditar: boolean;
   puedeBorrar: boolean;
@@ -130,6 +133,7 @@ export function TablaInscriptos({
                 fila={f}
                 opciones={opciones}
                 familia={familias[f.nino.familiaId]}
+                mensajes={mensajes}
                 puedeEditar={puedeEditar}
                 puedeBorrar={puedeBorrar}
                 grupos={grupos}

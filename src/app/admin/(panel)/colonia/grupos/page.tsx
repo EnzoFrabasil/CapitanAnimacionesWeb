@@ -43,7 +43,7 @@ async function Grupos() {
       <Seccion titulo="Grupos de edad" ayuda="Cada chico entra al grupo que corresponde a su edad al inscribirse. Cambiar los grupos no mueve a los ya inscriptos.">
         <EditorGrupos
           accion={guardarGrupos.bind(null, temporada.id)}
-          grupos={temporada.gruposEdad.map(({ id, nombre, edadMin, edadMax }) => ({ id, nombre, edadMin, edadMax }))}
+          grupos={temporada.gruposEdad.map(({ id, nombre, edadMin, edadMax, enlaceWhatsapp }) => ({ id, nombre, edadMin, edadMax, enlaceWhatsapp }))}
         />
         <div className="mt-5 border-t border-marino/10 pt-4">
           <p className="text-sm">

@@ -8,6 +8,8 @@ import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
 import { EncabezadoPagina } from "@/components/admin/Seccion";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirPermiso } from "@/lib/auth/usuario";
+import { sitio } from "@/config/sitio";
+import { obtenerMensajes } from "@/lib/mensajes/servidor";
 import { aOpcion, preciosDe } from "@/lib/temporada";
 import { TablaInscriptos } from "./TablaInscriptos";
 import { FiltrosListado } from "./FiltrosListado";
@@ -29,6 +31,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
 
   const [filas, sinGrupo] = await Promise.all([listarInscriptos(filtros, temporada), contarSinGrupo(temporada.id)]);
   const opciones = temporada.semanas.map(aOpcion);
+  const ajustesMensajes = await obtenerMensajes();
   const familias = await resumenFamilias(
     temporada.id,
     [...new Set(filas.map((f) => f.nino.familiaId))],
@@ -93,6 +96,12 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           filas={filas}
           opciones={opciones}
           familias={familias}
+          mensajes={{
+            ...ajustesMensajes,
+            marca: sitio.nombre,
+            temporada: temporada.nombre,
+            porcentajeDescuento: temporada.descuentoHermanos,
+          }}
           puedeEditar={usuario.permisos.has("inscriptos.editar")}
           puedeBorrar={usuario.permisos.has("inscriptos.borrar")}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}

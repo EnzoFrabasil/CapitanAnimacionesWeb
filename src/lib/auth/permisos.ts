@@ -12,6 +12,7 @@ export const PERMISOS = {
   "analiticas.ver": { nombre: "Ver analíticas", grupo: "Panel" },
   "configuracion.editar": { nombre: "Configurar temporadas, opciones, precios y grupos", grupo: "Panel" },
   "contenido.editar": { nombre: "Editar la página de inicio y los textos", grupo: "Panel" },
+  "mensajes.editar": { nombre: "Editar los mensajes de WhatsApp y los datos de pago", grupo: "Panel" },
   "backups.descargar": { nombre: "Descargar backups de la base", grupo: "Seguridad" },
   "registro.ver": { nombre: "Ver el registro de cambios", grupo: "Seguridad" },
   "usuarios.gestionar": { nombre: "Gestionar usuarios, roles y permisos", grupo: "Seguridad" },
@@ -58,6 +59,7 @@ export const MENU: readonly { grupo: string; items: readonly ItemMenu[] }[] = [
     items: [
       { href: "/admin/inicio", nombre: "Página de inicio", descripcion: "Textos, fotos y datos que ven las familias", permiso: "contenido.editar" },
       { href: "/admin/inicio?pestana=inscripcion", nombre: "Textos del formulario", descripcion: "Lo que dice cada paso de la inscripción", permiso: "contenido.editar" },
+      { href: "/admin/mensajes", nombre: "Mensajes de WhatsApp", descripcion: "Textos listos para escribirle a las familias", permiso: "mensajes.editar" },
     ],
   },
   {

@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
-import { IconoWhatsapp } from "@/components/marca/iconos";
+import { BotonWhatsapp } from "@/components/admin/BotonWhatsapp";
 import { LARGO_MAXIMO } from "@/config/inscripcion";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { fechaAIso } from "@/lib/dominio/fechas";
+import { textoFechas, type ContextoMensajes } from "@/lib/dominio/mensajes";
 import { describirAsistencia, formatearPrecio, type Opcion } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { ESTADOS } from "@/lib/validacion/admin";
@@ -43,6 +44,7 @@ export function FilaInscripto({
   fila: f,
   opciones,
   familia,
+  mensajes,
   puedeEditar,
   puedeBorrar,
   grupos,
@@ -52,6 +54,8 @@ export function FilaInscripto({
   fila: Fila;
   opciones: Opcion[];
   familia: ResumenFamilia | undefined;
+  /** Plantillas de WhatsApp de la temporada (null si no se pudieron cargar). */
+  mensajes: ContextoMensajes | null;
   puedeEditar: boolean;
   puedeBorrar: boolean;
   grupos: { id: number; nombre: string }[];
@@ -117,11 +121,20 @@ export function FilaInscripto({
     iniciar(async () => setResultado(await eliminarInscripto(f.id)));
   };
 
-  const asistencia = describirAsistencia(opciones, {
+  const asistenciaFila = {
     modalidad: f.modalidad,
     opciones: f.semanas.map((s) => s.semanaId),
     dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
-  });
+  };
+  const asistencia = describirAsistencia(opciones, asistenciaFila);
+  // Para los mensajes de WhatsApp si la familia no tiene chicos activos en la temporada.
+  const chicoParaMensaje = {
+    nombre: f.nino.nombre,
+    asistencia,
+    fechas: textoFechas(opciones, asistenciaFila),
+    precio: f.precioAcordado ?? null,
+    grupo: null,
+  };
   const detalleDias = f.modalidad === "POR_DIA" ? f.dias.map((d) => formatearDiaCorto(fechaAIso(d.fecha))).join(", ") : undefined;
   const nombreCompleto = `${f.nino.nombre} ${f.nino.apellido}`;
   const info = f.nino.infoAdicional?.trim();
@@ -252,16 +265,13 @@ export function FilaInscripto({
                   </div>
                 )}
               </div>
-              <a
-                href={`https://wa.me/${contacto.responsable.whatsapp.replace("+", "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Abrir WhatsApp con ${contacto.responsable.nombre} ${contacto.responsable.apellido}`}
-                title="Abrir WhatsApp"
-                className="shrink-0 rounded-lg border border-verde/50 p-1.5 text-marino transition hover:bg-verde/10"
-              >
-                <IconoWhatsapp className="size-5" />
-              </a>
+              <BotonWhatsapp
+                telefono={contacto.responsable.whatsapp}
+                contacto={contacto.responsable.nombre}
+                familia={familia}
+                chicoDeRespaldo={chicoParaMensaje}
+                contexto={mensajes}
+              />
             </div>
           )}
         </td>
@@ -385,15 +395,14 @@ export function FilaInscripto({
                           {v.responsable.email && ` · ${v.responsable.email}`}
                         </div>
                       </div>
-                      <a
-                        href={`https://wa.me/${v.responsable.whatsapp.replace("+", "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Abrir WhatsApp con ${v.responsable.nombre} ${v.responsable.apellido}`}
-                        className="shrink-0 rounded-lg border border-verde/50 p-1 text-marino hover:bg-verde/10"
-                      >
-                        <IconoWhatsapp className="size-4" />
-                      </a>
+                      <BotonWhatsapp
+                        telefono={v.responsable.whatsapp}
+                        contacto={v.responsable.nombre}
+                        familia={familia}
+                        chicoDeRespaldo={chicoParaMensaje}
+                        contexto={mensajes}
+                        tamano="chico"
+                      />
                     </li>
                   ))}
                   {f.nino.responsables.length === 0 && <li className="text-rojo">Sin contactos</li>}

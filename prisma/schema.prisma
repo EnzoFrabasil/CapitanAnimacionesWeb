@@ -147,11 +147,13 @@ model Semana {
 
 // Rangos de edad inclusivos. La no superposición se valida en la aplicación.
 model GrupoEdad {
-  id          Int    @id @default(autoincrement())
-  temporadaId Int
-  nombre      String
-  edadMin     Int
-  edadMax     Int
+  id             Int     @id @default(autoincrement())
+  temporadaId    Int
+  nombre         String
+  edadMin        Int
+  edadMax        Int
+  // Link del grupo de WhatsApp de papis (chat.whatsapp.com/...). Va en el mensaje de lugar confirmado.
+  enlaceWhatsapp String?
 
   temporada Temporada         @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
   ninos     InscripcionNino[]
@@ -332,4 +334,14 @@ model Registro {
   @@index([fecha])
   @@index([usuarioId, fecha])
   @@index([accion, fecha])
+}
+
+// ── Ajustes del panel ────────────────────────────────────────────────────────
+
+// Ajustes guardados por clave (por ejemplo "mensajesWhatsapp": plantillas y
+// datos de pago). No se muestran en el sitio público.
+model Ajuste {
+  clave         String   @id
+  valor         Json
+  actualizadoEn DateTime @updatedAt
 }

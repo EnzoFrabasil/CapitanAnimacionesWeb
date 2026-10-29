@@ -30,6 +30,7 @@ export const ACCIONES_REGISTRO: Record<string, { texto: string; grupo: string }>
   "precios.editar": { texto: "Cambió precios o descuentos", grupo: "Configuración" },
   "grupos.editar": { texto: "Editó los grupos de edad", grupo: "Configuración" },
   "contenido.publicar": { texto: "Publicó la página de inicio", grupo: "Configuración" },
+  "mensajes.editar": { texto: "Editó los mensajes de WhatsApp", grupo: "Configuración" },
   "usuario.crear": { texto: "Creó un usuario", grupo: "Usuarios" },
   "usuario.editar": { texto: "Editó un usuario", grupo: "Usuarios" },
   "usuario.rol": { texto: "Cambió el rol de un usuario", grupo: "Usuarios" },

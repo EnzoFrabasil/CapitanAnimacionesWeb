@@ -1,6 +1,7 @@
 import "server-only";
 import { fechaAIso } from "@/lib/dominio/fechas";
 import { describirAsistencia, precioChico, totalFamilia, type Asistencia, type Opcion, type Precios, type TotalFamilia } from "@/lib/dominio/opciones";
+import { textoFechas } from "@/lib/dominio/mensajes";
 import { prisma } from "@/lib/prisma";
 import { ORDEN_LISTA_ESPERA, condicionDeFiltros, type Filtros } from "./filtros";
 
@@ -56,7 +57,18 @@ export async function contarSinGrupo(temporadaId: number) {
 
 /** Chicos de una familia en la temporada (sin cancelados) y su total con el descuento por hermanos. */
 export interface ResumenFamilia {
-  chicos: { id: number; nombre: string; apellido: string; grupo: string | null; asistencia: string }[];
+  chicos: {
+    id: number;
+    nombre: string;
+    apellido: string;
+    grupo: string | null;
+    /** Link del grupo de WhatsApp de papis de su grupo (para el mensaje de lugar confirmado). */
+    enlaceGrupo: string | null;
+    asistencia: string;
+    /** Fechas y horario, para los mensajes de WhatsApp. */
+    fechas: string;
+    precio: number | null;
+  }[];
   total: TotalFamilia;
 }
 
@@ -74,7 +86,7 @@ export async function resumenFamilias(
         id: true,
         modalidad: true,
         precioAcordado: true,
-        grupoEdad: { select: { nombre: true } },
+        grupoEdad: { select: { nombre: true, enlaceWhatsapp: true } },
         semanas: { select: { semanaId: true } },
         dias: { select: { fecha: true, semanaId: true } },
         nino: { select: { nombre: true, apellido: true, familiaId: true } },
@@ -94,19 +106,19 @@ export async function resumenFamilias(
         dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
       }),
     );
+    const preciosChicos = asistencias.map((a) => precioChico(opciones, precios, a));
     resumen[f.id] = {
       chicos: chicos.map((x, i) => ({
         id: x.id,
         nombre: x.nino.nombre,
         apellido: x.nino.apellido,
         grupo: x.grupoEdad?.nombre ?? null,
+        enlaceGrupo: x.grupoEdad?.enlaceWhatsapp ?? null,
         asistencia: describirAsistencia(opciones, asistencias[i]),
+        fechas: textoFechas(opciones, asistencias[i]),
+        precio: preciosChicos[i],
       })),
-      total: totalFamilia(
-        asistencias.map((a) => precioChico(opciones, precios, a)),
-        precios.descuentoHermanos,
-        f.descuentoHermanos,
-      ),
+      total: totalFamilia(preciosChicos, precios.descuentoHermanos, f.descuentoHermanos),
     };
   }
   return resumen;
