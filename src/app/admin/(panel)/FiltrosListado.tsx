@@ -78,6 +78,17 @@ export function FiltrosListado({ filtros, temporadaId, grupos, opciones }: Props
         ],
         (v) => aplicar({ estado: (v || undefined) as Filtros["estado"] }),
       )}
+      {selector(
+        "contacto",
+        "Contacto",
+        filtros.contacto,
+        [
+          { valor: "", texto: "Todos" },
+          { valor: "no", texto: "Sin contactar" },
+          { valor: "si", texto: "Contactados" },
+        ],
+        (v) => aplicar({ contacto: (v || undefined) as Filtros["contacto"] }),
+      )}
       <div className="flex flex-col justify-end">
         <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-medium text-marino">
           <input

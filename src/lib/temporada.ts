@@ -14,6 +14,8 @@ export interface TemporadaAbierta {
   modalidades: NonNullable<ContextoInscripcion["modalidades"]>;
   edades: NonNullable<ContextoInscripcion["edades"]>;
   precios: Precios;
+  /** PREINSCRIPCION: sin precios ni pago; INSCRIPCION: con totales y pedido de pago al final. */
+  modo: "PREINSCRIPCION" | "INSCRIPCION";
   /** Lugares libres (null = la temporada no tiene cupo). */
   lugares: number | null;
   grupos: { id: number; nombre: string; edadMin: number; edadMax: number }[];
@@ -77,6 +79,7 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     edades: { minima: temporada.edadMinima, maxima: temporada.edadMaxima },
     modalidades: temporada.permitePorDia ? ["SEMANAS", "POR_DIA"] : ["SEMANAS"],
     precios: preciosDe(temporada),
+    modo: temporada.modoInscripcion,
     lugares: lugaresLibres(temporada.cupo, ocupados),
     opciones: temporada.semanas.map(aOpcion),
     grupos: temporada.gruposEdad.map(({ id, nombre, edadMin, edadMax }) => ({ id, nombre, edadMin, edadMax })),

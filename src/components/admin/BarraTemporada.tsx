@@ -47,7 +47,7 @@ export async function BarraTemporada() {
       <p className="flex items-center gap-2 text-sm">
         <span aria-hidden className={`size-2.5 rounded-full ${abierta ? "bg-verde" : "bg-marino/30"}`} />
         <span>
-          Inscripción <strong>{abierta ? "abierta" : "cerrada"}</strong>
+          {temporada.modoInscripcion === "INSCRIPCION" ? "Inscripción" : "Preinscripción"} <strong>{abierta ? "abierta" : "cerrada"}</strong>
           {temporada.cupo !== null ? (
             <>
               {" "}

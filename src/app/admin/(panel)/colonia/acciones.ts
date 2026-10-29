@@ -278,3 +278,23 @@ export async function asignarSinGrupo(temporadaId: number): Promise<ResultadoAcc
     return falloPorExcepcion(e);
   }
 }
+
+/** Preinscripción (sin precios ni pago) o inscripción (con totales y pedido de pago al terminar). */
+export async function guardarModoInscripcion(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  const usuario = await exigirPermiso("configuracion.editar");
+  const modo = datos.get("modo");
+  if (modo !== "PREINSCRIPCION" && modo !== "INSCRIPCION") return fallo("Elegí un modo.");
+  let antes;
+  try {
+    antes = await prisma.temporada.findUnique({ where: { id: temporadaId }, select: { modoInscripcion: true } });
+    await prisma.temporada.update({ where: { id: temporadaId }, data: { modoInscripcion: modo } });
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  await registrar(
+    { accion: "temporada.editar", entidad: "temporada", entidadId: temporadaId, detalle: { cambios: diferencias({ modoInscripcion: antes?.modoInscripcion }, { modoInscripcion: modo }) } },
+    usuario,
+  );
+  refresh();
+  return exito(modo === "INSCRIPCION" ? "Listo: el formulario muestra los precios y pide el pago al terminar." : "Listo: el formulario es una preinscripción, sin precios.");
+}

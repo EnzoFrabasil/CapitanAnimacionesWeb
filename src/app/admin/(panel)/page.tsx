@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { asignarSinGrupo } from "@/app/admin/(panel)/colonia/acciones";
 import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
-import { contarSinGrupo, listarInscriptos, resumenFamilias } from "@/lib/admin/consultas";
+import { contactosDeFamilias, contarSinGrupo, listarInscriptos, resumenFamilias } from "@/lib/admin/consultas";
 import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
 import { EncabezadoPagina } from "@/components/admin/Seccion";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
@@ -32,13 +32,14 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
   const [filas, sinGrupo] = await Promise.all([listarInscriptos(filtros, temporada), contarSinGrupo(temporada.id)]);
   const opciones = temporada.semanas.map(aOpcion);
   const ajustesMensajes = await obtenerMensajes();
+  const contactos = await contactosDeFamilias(temporada.id, [...new Set(filas.map((f) => f.nino.familiaId))]);
   const familias = await resumenFamilias(
     temporada.id,
     [...new Set(filas.map((f) => f.nino.familiaId))],
     opciones,
     preciosDe(temporada),
   );
-  const hayFiltros = Boolean(filtros.grupo || filtros.horario || filtros.semana || filtros.estado || filtros.duplicados || filtros.info || filtros.q);
+  const hayFiltros = Boolean(filtros.grupo || filtros.horario || filtros.semana || filtros.estado || filtros.duplicados || filtros.info || filtros.contacto || filtros.q);
 
   return (
     <div className="space-y-5">
@@ -96,6 +97,8 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
           filas={filas}
           opciones={opciones}
           familias={familias}
+          contactos={contactos}
+          temporadaId={temporada.id}
           mensajes={{
             ...ajustesMensajes,
             marca: sitio.nombre,

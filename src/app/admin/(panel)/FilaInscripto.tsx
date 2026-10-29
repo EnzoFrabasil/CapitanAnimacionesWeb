@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/components/admin/Insignias";
 import { BotonWhatsapp } from "@/components/admin/BotonWhatsapp";
+import { MarcaContactado } from "@/components/admin/MarcaContactado";
 import { LARGO_MAXIMO } from "@/config/inscripcion";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
@@ -70,6 +71,8 @@ export function FilaInscripto({
   fila: f,
   opciones,
   familia,
+  contacto: contactoFamilia,
+  temporadaId,
   mensajes,
   puedeEditar,
   puedeBorrar,
@@ -82,6 +85,9 @@ export function FilaInscripto({
   fila: Fila;
   opciones: Opcion[];
   familia: ResumenFamilia | undefined;
+  /** Si la familia ya fue contactada en la temporada (cuándo y quién). */
+  contacto: { fecha: string; por: string | null } | undefined;
+  temporadaId: number;
   /** Plantillas de WhatsApp de la temporada (null si no se pudieron cargar). */
   mensajes: ContextoMensajes | null;
   puedeEditar: boolean;
@@ -290,6 +296,9 @@ export function FilaInscripto({
                     +{otrosContactos} {otrosContactos === 1 ? "contacto" : "contactos"}
                   </div>
                 )}
+                <div className="mt-1">
+                  <MarcaContactado familiaId={f.nino.familiaId} temporadaId={temporadaId} contacto={contactoFamilia} puedeEditar={puedeEditar} />
+                </div>
               </div>
               <BotonWhatsapp
                 telefono={contacto.responsable.whatsapp}

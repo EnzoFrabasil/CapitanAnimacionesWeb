@@ -5,7 +5,7 @@ describe("leerFiltros", () => {
   it("lee valores válidos e ignora los inválidos", () => {
     expect(
       leerFiltros({ temporada: "2", grupo: "sin", horario: "8:30", estado: "NADA", semana: "x", duplicados: "1", q: "  ana  " }),
-    ).toEqual({ temporada: 2, grupo: "sin", horario: undefined, estado: undefined, semana: undefined, duplicados: "1", info: undefined, q: "ana" });
+    ).toEqual({ temporada: 2, grupo: "sin", horario: undefined, estado: undefined, semana: undefined, duplicados: "1", info: undefined, contacto: undefined, q: "ana" });
     expect(leerFiltros({ grupo: ["3", "4"], q: "" })).toMatchObject({ grupo: 3, q: undefined });
   });
 
@@ -44,6 +44,13 @@ describe("condicionDeFiltros", () => {
       { nino: { infoAdicional: { not: null } } },
       { NOT: { nino: { infoAdicional: "" } } },
     ]);
+  });
+
+  it("filtro de contacto busca familias marcadas (o no) en la temporada", () => {
+    const contactada = { contactos: { some: { temporadaId: 7 } } };
+    expect((condicionDeFiltros(leerFiltros({ contacto: "si" }), 7).AND as unknown[])[1]).toEqual({ nino: { familia: contactada } });
+    expect((condicionDeFiltros(leerFiltros({ contacto: "no" }), 7).AND as unknown[])[1]).toEqual({ NOT: { nino: { familia: contactada } } });
+    expect(leerFiltros({ contacto: "quizas" }).contacto).toBeUndefined();
   });
 
   it("filtros por opción y por horario incluyen a los que van por días sueltos", () => {

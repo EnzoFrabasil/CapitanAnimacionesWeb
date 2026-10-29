@@ -6,7 +6,7 @@ import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { prisma } from "@/lib/prisma";
 import { aOpcion, preciosDe } from "@/lib/temporada";
-import { guardarCupo, guardarPrecios } from "../acciones";
+import { guardarCupo, guardarModoInscripcion, guardarPrecios } from "../acciones";
 import { Casilla, VistaPrevia } from "../piezas";
 import { SinTemporada } from "../SinTemporada";
 
@@ -36,6 +36,35 @@ async function Precios() {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-6">
+        <Seccion
+          titulo="Modo de la inscripción"
+          ayuda="Define qué ve la familia en el formulario. Podés cambiarlo cuando quieras; no modifica a los ya inscriptos."
+        >
+          <FormAccion accion={guardarModoInscripcion.bind(null, temporada.id)} textoBoton="Guardar modo">
+            <fieldset className="grid gap-3 sm:grid-cols-2">
+              <legend className="sr-only">Modo de la inscripción</legend>
+              {(
+                [
+                  ["PREINSCRIPCION", "Preinscripción", "Sin precios ni totales. Las familias solo dejan sus datos y les escriben después."],
+                  [
+                    "INSCRIPCION",
+                    "Inscripción con pago",
+                    "Muestra precios y total, y al terminar el alias (de Mensajes de WhatsApp) con un botón para mandar el comprobante.",
+                  ],
+                ] as const
+              ).map(([valor, nombre, descripcion]) => (
+                <label key={valor} className="flex cursor-pointer gap-3 rounded-xl border-2 border-marino/15 p-3 has-[:checked]:border-marino has-[:checked]:bg-marino/5">
+                  <input type="radio" name="modo" value={valor} defaultChecked={temporada.modoInscripcion === valor} className="mt-1 size-4 accent-marino" />
+                  <span>
+                    <span className="block font-semibold text-marino">{nombre}</span>
+                    <span className="block text-xs text-texto/80">{descripcion}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          </FormAccion>
+        </Seccion>
+
         <Seccion
           titulo="Cupo"
           ayuda="Cantidad de lugares. Cada chico inscripto ocupa uno (los cancelados lo liberan). Al completarse, la inscripción se cierra sola."

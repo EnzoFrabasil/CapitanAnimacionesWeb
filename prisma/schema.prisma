@@ -28,6 +28,14 @@ enum DescuentoHermanos {
   NO
 }
 
+// PREINSCRIPCION: el formulario no muestra precios ni pide el pago.
+// INSCRIPCION: muestra los totales y, al terminar, el alias para pagar y el
+// botón para mandar el comprobante por WhatsApp.
+enum ModoInscripcion {
+  PREINSCRIPCION
+  INSCRIPCION
+}
+
 enum EstadoInscripcion {
   EN_ESPERA
   CONFIRMADO
@@ -42,6 +50,7 @@ model Familia {
 
   ninos         Nino[]
   inscripciones Inscripcion[]
+  contactos     ContactoFamilia[]
 }
 
 model Nino {
@@ -94,29 +103,31 @@ model NinoResponsable {
 }
 
 model Temporada {
-  id                    Int      @id @default(autoincrement())
+  id                    Int             @id @default(autoincrement())
   nombre                String
   anio                  Int
-  inscripcionAbierta    Boolean  @default(false)
+  inscripcionAbierta    Boolean         @default(false)
   // Cantidad total de lugares (cada niño inscripto ocupa uno, salvo los cancelados).
   // Se muestra como "quedan N lugares" en la página de inicio. Null = sin cupo.
   cupo                  Int?
   // Edad permitida para inscribirse (años cumplidos al inscribir, inclusive).
-  edadMinima            Int      @default(2)
-  edadMaxima            Int      @default(17)
+  edadMinima            Int             @default(2)
+  edadMaxima            Int             @default(17)
   // Inscripción por días sueltos (dentro de las fechas de las opciones).
-  permitePorDia         Boolean  @default(false)
+  permitePorDia         Boolean         @default(false)
   // Precios en pesos. La colonia completa se cobra cuando un chico tiene todas
   // las opciones de su horario; null = se suma el precio de cada opción.
   precioColoniaCompleta Int?
   precioDia             Int?
   // Porcentaje sobre el total de la familia cuando hay 2 o más hermanos.
-  descuentoHermanos     Int      @default(10)
-  createdAt             DateTime @default(now())
+  descuentoHermanos     Int             @default(10)
+  modoInscripcion       ModoInscripcion @default(PREINSCRIPCION)
+  createdAt             DateTime        @default(now())
 
   semanas       Semana[]
   gruposEdad    GrupoEdad[]
   inscripciones Inscripcion[]
+  contactos     ContactoFamilia[]
 }
 
 // Opción de inscripción ("Quincena 1", "Semana 2"...): nombre libre, fechas,
@@ -344,4 +355,20 @@ model Ajuste {
   clave         String   @id
   valor         Json
   actualizadoEn DateTime @updatedAt
+}
+
+// Familias a las que ya se les escribió (por WhatsApp u otro medio) en una
+// temporada. Se marca a mano desde Inscriptos; vale para todos los hermanos.
+model ContactoFamilia {
+  familiaId     Int
+  temporadaId   Int
+  contactadaEn  DateTime @default(now())
+  // Quién la marcó (se guarda el nombre por si el usuario se borra).
+  usuarioNombre String?
+
+  familia   Familia   @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+  temporada Temporada @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
+
+  @@id([familiaId, temporadaId])
+  @@index([temporadaId])
 }

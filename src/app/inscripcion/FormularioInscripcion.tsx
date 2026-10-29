@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TextosInscripcion } from "@/lib/contenido/esquema";
 import { CODIGO_PAIS_INICIAL, unirTelefono } from "@/lib/dominio/telefono";
+import { precioChico, totalFamilia } from "@/lib/dominio/opciones";
 import { MENSAJE_FALTA_ACEPTAR, crearInscripcionSchema, type ContextoInscripcion } from "@/lib/validacion/inscripcion";
 import { CasillaPrivacidad } from "./CasillaPrivacidad";
 import { Exito } from "./Exito";
@@ -43,9 +44,11 @@ interface Props {
   temporadaId: number;
   nombreTemporada: string;
   contexto: ContextoInscripcion;
+  /** En modo inscripción: datos para pagar y WhatsApp para mandar el comprobante (null en preinscripción). */
+  pago: { datosPago: string; whatsapp: string } | null;
 }
 
-export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, contexto: contextoInicial }: Props) {
+export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, contexto: contextoInicial, pago }: Props) {
   const PASOS = [textos.pasoContactos, textos.pasoNinos, textos.pasoRevision];
   // Si al enviar el servidor avisa que quedan menos lugares, el formulario pasa a usar ese límite.
   const [lugaresServidor, setLugaresServidor] = useState<number | null>(null);
@@ -174,7 +177,29 @@ export function FormularioInscripcion({ textos, temporadaId, nombreTemporada, co
     }
   };
 
-  if (numero !== null) return <Exito numero={numero} titulo={textos.exitoTitulo} texto={textos.exitoTexto} />;
+  if (numero !== null) {
+    // Total de lo que se envió (mismas reglas que el paso de revisión).
+    const enviado = resultado.success ? resultado.data : null;
+    const totalPago =
+      pago && enviado && contexto.precios
+        ? totalFamilia(
+            enviado.ninos.map((n) => precioChico(contexto.opciones, contexto.precios!, { modalidad: n.modalidad, opciones: n.semanas, dias: n.dias })),
+            contexto.precios.descuentoHermanos,
+          )
+        : null;
+    return (
+      <Exito
+        numero={numero}
+        titulo={textos.exitoTitulo}
+        texto={textos.exitoTexto}
+        pago={
+          pago && totalPago && totalPago.total > 0
+            ? { ...pago, total: totalPago, chicos: enviado?.ninos.map((n) => n.nombre) ?? [], nombreTemporada }
+            : null
+        }
+      />
+    );
+  }
 
   return (
     <div>

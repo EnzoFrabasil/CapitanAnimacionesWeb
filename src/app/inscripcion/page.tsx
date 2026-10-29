@@ -8,6 +8,7 @@ import { PiePagina } from "@/components/marca/PiePagina";
 import { sitio } from "@/config/sitio";
 import { fechaAIso, hoyEnArgentina } from "@/lib/dominio/fechas";
 import { obtenerContenido } from "@/lib/contenido/servidor";
+import { obtenerMensajes } from "@/lib/mensajes/servidor";
 import { buscarTemporadaAbierta } from "@/lib/temporada";
 import { FormularioInscripcion } from "./FormularioInscripcion";
 
@@ -33,7 +34,8 @@ export default function PaginaInscripcion() {
 
 async function Contenido() {
   await connection(); // siempre con datos frescos: si se cierra la inscripción, se ve al instante
-  const [temporada, { inscripcion: textos }] = await Promise.all([buscarTemporadaAbierta(), obtenerContenido()]);
+  const [temporada, contenido] = await Promise.all([buscarTemporadaAbierta(), obtenerContenido()]);
+  const textos = contenido.inscripcion;
 
   // Con el cupo completo se muestra igual que cerrada (la próxima inscripción la cierra del todo).
   if (!temporada || temporada.lugares === 0) {
@@ -54,19 +56,24 @@ async function Contenido() {
     );
   }
 
+  // Preinscripción: sin precios en ningún paso (aunque ya estén cargados) ni pedido de pago.
+  const conPago = temporada.modo === "INSCRIPCION";
+  const datosPago = conPago ? (await obtenerMensajes()).datosPago : "";
+
   return (
     <FormularioInscripcion
       textos={textos}
       temporadaId={temporada.id}
       nombreTemporada={temporada.nombre}
       contexto={{
-        opciones: temporada.opciones,
+        opciones: conPago ? temporada.opciones : temporada.opciones.map((o) => ({ ...o, precio: 0 })),
         modalidades: temporada.modalidades,
         edades: temporada.edades,
-        precios: temporada.precios,
+        precios: conPago ? temporada.precios : undefined,
         lugares: temporada.lugares,
         hoy: fechaAIso(hoyEnArgentina()),
       }}
+      pago={conPago ? { datosPago, whatsapp: contenido.whatsapp.numero } : null}
     />
   );
 }

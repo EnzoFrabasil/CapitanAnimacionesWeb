@@ -16,6 +16,8 @@ export const ACCIONES_REGISTRO: Record<string, { texto: string; grupo: string }>
   "familia.mover": { texto: "Movió un niño/a de familia", grupo: "Inscriptos" },
   "familia.unir": { texto: "Unió familias", grupo: "Inscriptos" },
   "familia.descuento": { texto: "Cambió el descuento por hermanos", grupo: "Inscriptos" },
+  "familia.contactada": { texto: "Marcó una familia como contactada", grupo: "Inscriptos" },
+  "familia.sinContactar": { texto: "Quitó la marca de contactada", grupo: "Inscriptos" },
   "grupos.asignar": { texto: "Asignó grupos a niños sin grupo", grupo: "Inscriptos" },
   "csv.importar": { texto: "Importó cambios desde un CSV", grupo: "Inscriptos" },
   "csv.descargar": { texto: "Descargó el CSV de inscriptos", grupo: "Descargas" },
