@@ -153,7 +153,11 @@ async function Registro({ searchParams }: Pick<PageProps<"/admin/registro">, "se
                     {e.ip && <div className="text-xs text-texto/60">IP {e.ip}</div>}
                   </td>
                   <td className="px-3 py-2">
-                    {e.usuario?.nombre ?? <span className="text-texto/70">{e.usuarioEmail ?? "—"}</span>}
+                    {e.usuario?.nombre ?? (
+                      <span className="text-texto/70">
+                        {e.usuarioEmail ?? (e.accion.startsWith("login.") ? "Sin sesión" : "Desde la terminal")}
+                      </span>
+                    )}
                     {e.usuario && <div className="text-xs text-texto/60">{e.usuarioEmail}</div>}
                   </td>
                   <td className="px-3 py-2">
