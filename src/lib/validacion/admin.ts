@@ -172,7 +172,7 @@ export const edadesTemporadaSchema = z
 // Casillas: el navegador manda "on" si están marcadas y nada si no.
 const casilla = z.preprocess((v) => v === "on", z.boolean());
 
-const pesos = (nombre: string) =>
+export const pesos = (nombre: string) =>
   z.coerce
     .number(`${nombre} inválido.`)
     .int(`${nombre}: sin centavos.`)

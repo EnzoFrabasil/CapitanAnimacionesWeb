@@ -16,6 +16,7 @@ import {
   datosTemporadaSchema,
   edadesTemporadaSchema,
   mensajesDeError,
+  pesos,
   preciosTemporadaSchema,
   semanaSchema,
 } from "@/lib/validacion/admin";
@@ -297,4 +298,36 @@ export async function guardarModoInscripcion(temporadaId: number, _previo: Previ
   );
   refresh();
   return exito(modo === "INSCRIPCION" ? "Listo: el formulario muestra los precios y pide el pago al terminar." : "Listo: el formulario es una preinscripción, sin precios.");
+}
+
+/** Precio de cada opción (quincena, semana…) de la temporada, todos juntos desde Precios y cupo. */
+export async function guardarPreciosOpciones(temporadaId: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  const usuario = await exigirPermiso("configuracion.editar");
+  const opciones = await prisma.semana.findMany({ where: { temporadaId }, select: { id: true, nombre: true, numero: true, precio: true } });
+  const nuevos: { id: number; nombre: string; antes: number; despues: number }[] = [];
+  for (const o of opciones) {
+    const crudo = datos.get(`precio-${o.id}`);
+    if (crudo === null) continue;
+    const nombre = o.nombre || `Opción ${o.numero}`;
+    const r = pesos(`Precio de ${nombre}`).safeParse(String(crudo).trim() === "" ? undefined : crudo);
+    if (!r.success) return fallo(...mensajesDeError(r.error));
+    if (r.data !== o.precio) nuevos.push({ id: o.id, nombre, antes: o.precio, despues: r.data });
+  }
+  if (nuevos.length === 0) return exito("No había precios para cambiar.");
+  try {
+    await prisma.$transaction(nuevos.map((n) => prisma.semana.update({ where: { id: n.id, temporadaId }, data: { precio: n.despues } })));
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  await registrar(
+    {
+      accion: "precios.editar",
+      entidad: "temporada",
+      entidadId: temporadaId,
+      detalle: { cambios: Object.fromEntries(nuevos.map((n) => [`precio ${n.nombre}`, { antes: n.antes, despues: n.despues }])) },
+    },
+    usuario,
+  );
+  refresh();
+  return exito(nuevos.length === 1 ? "Precio guardado." : `${nuevos.length} precios guardados.`);
 }
