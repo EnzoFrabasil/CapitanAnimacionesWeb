@@ -42,7 +42,6 @@ export const MENU: readonly { grupo: string; items: readonly ItemMenu[] }[] = [
     grupo: "Día a día",
     items: [
       { href: "/admin", nombre: "Inscriptos", descripcion: "Lista, fichas, contactos y alergias", permiso: "inscriptos.ver" },
-      { href: "/admin/analiticas", nombre: "Analíticas", descripcion: "Números de la temporada y dinero", permiso: "analiticas.ver" },
     ],
   },
   {
@@ -64,6 +63,7 @@ export const MENU: readonly { grupo: string; items: readonly ItemMenu[] }[] = [
   {
     grupo: "Administración",
     items: [
+      { href: "/admin/analiticas", nombre: "Analíticas", descripcion: "Números de la temporada y dinero", permiso: "analiticas.ver" },
       { href: "/admin/usuarios", nombre: "Usuarios", descripcion: "Quién entra al panel y qué puede hacer", permiso: "usuarios.gestionar" },
       { href: "/admin/registro", nombre: "Registro", descripcion: "Quién cambió qué y cuándo", permiso: "registro.ver" },
       { href: "/admin/backups", nombre: "Backups", descripcion: "Descargar una copia de seguridad", permiso: "backups.descargar" },
