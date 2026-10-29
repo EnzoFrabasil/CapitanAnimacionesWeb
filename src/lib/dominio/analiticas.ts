@@ -12,9 +12,9 @@ import {
 
 // Resumen de una temporada para el panel de analíticas (sin acceso a la base).
 // Todavía no hay pagos: el dinero es lo que se cobraría según los precios,
-// "confirmado" para los chicos confirmados y "pendiente" para los que están en espera.
+// "confirmado" para los chicos confirmados y "pendiente" para los que están en espera o contactados.
 
-export type EstadoInscripto = "EN_ESPERA" | "CONFIRMADO" | "CANCELADO";
+export type EstadoInscripto = "EN_ESPERA" | "CONTACTADO" | "CONFIRMADO" | "CANCELADO";
 
 export interface InscriptoAnalitica {
   id: number;
@@ -30,6 +30,7 @@ export interface InscriptoAnalitica {
 
 export interface PorEstado {
   confirmados: number;
+  contactados: number;
   enEspera: number;
 }
 
@@ -53,10 +54,11 @@ export interface Analiticas {
   porDia: { fecha: string; cantidad: number }[];
 }
 
-const vacio = (): PorEstado => ({ confirmados: 0, enEspera: 0 });
+const vacio = (): PorEstado => ({ confirmados: 0, contactados: 0, enEspera: 0 });
 
 function sumar(destino: PorEstado, estado: EstadoInscripto) {
   if (estado === "CONFIRMADO") destino.confirmados++;
+  else if (estado === "CONTACTADO") destino.contactados++;
   else if (estado === "EN_ESPERA") destino.enEspera++;
 }
 
@@ -146,7 +148,7 @@ export function calcularAnaliticas(datos: {
     familias: porFamilia.size,
     cupo: datos.cupo === null ? null : { total: datos.cupo, ocupados: activos.length, quedan: Math.max(0, datos.cupo - activos.length) },
     dinero,
-    grupos: grupos.filter((g) => g.id !== null || g.confirmados + g.enEspera > 0),
+    grupos: grupos.filter((g) => g.id !== null || g.confirmados + g.contactados + g.enEspera > 0),
     horarios: filasHorario,
     porDia,
   };

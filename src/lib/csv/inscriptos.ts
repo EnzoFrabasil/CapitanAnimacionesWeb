@@ -367,7 +367,7 @@ export function planificarImportacion(archivo: ArchivoLeido, ctx: ContextoImport
 
     if (hay("estado")) {
       const estado = leerEstado(v.estado);
-      if (!estado) errores.push(`Estado inválido: "${v.estado}" (En espera, Confirmado o Cancelado).`);
+      if (!estado) errores.push(`Estado inválido: "${v.estado}" (En espera, Contactado, Confirmado o Cancelado).`);
       else if (estado !== actual.estado) {
         datos.inscripcion.estado = estado;
         registrar("estado", ETIQUETA_ESTADO[actual.estado], ETIQUETA_ESTADO[estado], null, "");

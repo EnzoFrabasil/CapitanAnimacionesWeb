@@ -42,18 +42,25 @@ describe("calcularAnaliticas", () => {
     ]);
     // Familia 1: 360.000 − 10 % = 324.000 → 207.000 confirmado + 117.000 pendiente.
     expect(a.dinero).toEqual({ confirmado: 207000, pendiente: 117000, descuentos: 36000, aConfirmar: 0 });
-    expect(a.ninos).toEqual({ confirmados: 1, enEspera: 1, activos: 2, cancelados: 1 });
+    expect(a.ninos).toEqual({ confirmados: 1, contactados: 0, enEspera: 1, activos: 2, cancelados: 1 });
     expect(a.familias).toBe(1);
     expect(a.cupo).toEqual({ total: 40, ocupados: 2, quedan: 38 });
+  });
+
+  it("los contactados se cuentan aparte y su dinero sigue pendiente", () => {
+    const a = calcular([chico({ familiaId: 1, estado: "CONTACTADO", asistencia: { modalidad: "SEMANAS", opciones: [1], dias: [] } })]);
+    expect(a.ninos).toEqual({ confirmados: 0, contactados: 1, enEspera: 0, activos: 1, cancelados: 0 });
+    expect(a.dinero).toMatchObject({ confirmado: 0, pendiente: 130000 });
+    expect(a.grupos[0]).toMatchObject({ contactados: 1 });
   });
 
   it("cuenta chicos por grupo y estado, y agrega Sin grupo solo si hay alguno", () => {
     expect(calcular([chico({ familiaId: 1 })]).grupos.map((g) => g.nombre)).toEqual(["Grupo 1", "Grupo 2"]);
     const a = calcular([chico({ familiaId: 1, estado: "CONFIRMADO" }), chico({ familiaId: 2, grupoId: null })]);
     expect(a.grupos).toEqual([
-      { id: 10, nombre: "Grupo 1", confirmados: 1, enEspera: 0 },
-      { id: 20, nombre: "Grupo 2", confirmados: 0, enEspera: 0 },
-      { id: null, nombre: "Sin grupo", confirmados: 0, enEspera: 1 },
+      { id: 10, nombre: "Grupo 1", confirmados: 1, contactados: 0, enEspera: 0 },
+      { id: 20, nombre: "Grupo 2", confirmados: 0, contactados: 0, enEspera: 0 },
+      { id: null, nombre: "Sin grupo", confirmados: 0, contactados: 0, enEspera: 1 },
     ]);
   });
 
@@ -68,9 +75,9 @@ describe("calcularAnaliticas", () => {
         texto: "8:30 a 12:30 hs",
         total: 3,
         filas: [
-          { nombre: "Colonia completa", confirmados: 0, enEspera: 1 },
-          { nombre: "Quincena 1", confirmados: 0, enEspera: 1 },
-          { nombre: "Quincena 2", confirmados: 0, enEspera: 1 },
+          { nombre: "Colonia completa", confirmados: 0, contactados: 0, enEspera: 1 },
+          { nombre: "Quincena 1", confirmados: 0, contactados: 0, enEspera: 1 },
+          { nombre: "Quincena 2", confirmados: 0, contactados: 0, enEspera: 1 },
         ],
       },
     ]);

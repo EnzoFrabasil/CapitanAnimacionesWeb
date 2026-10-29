@@ -123,9 +123,3 @@ export async function resumenFamilias(
   }
   return resumen;
 }
-
-/** Familias marcadas como contactadas en la temporada: familiaId → cuándo y quién. */
-export async function contactosDeFamilias(temporadaId: number, familiaIds: readonly number[]): Promise<Record<number, { fecha: string; por: string | null }>> {
-  const filas = await prisma.contactoFamilia.findMany({ where: { temporadaId, familiaId: { in: [...familiaIds] } } });
-  return Object.fromEntries(filas.map((c) => [c.familiaId, { fecha: c.contactadaEn.toISOString(), por: c.usuarioNombre }]));
-}

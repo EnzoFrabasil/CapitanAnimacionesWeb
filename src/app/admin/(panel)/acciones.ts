@@ -281,27 +281,3 @@ export async function eliminarInscriptos(ids: number[]): Promise<ResultadoAccion
   refresh();
   return exito(`Se ${borrados.length === 1 ? "eliminó 1 inscripto" : `eliminaron ${borrados.length} inscriptos`}.`);
 }
-
-/** Marca (o desmarca) a una familia como contactada en la temporada; vale para todos sus hermanos. */
-export async function marcarContactado(familiaId: number, temporadaId: number, contactado: boolean): Promise<ResultadoAccion> {
-  const usuario = await exigirPermiso("inscriptos.editar");
-  try {
-    if (contactado) {
-      await prisma.contactoFamilia.upsert({
-        where: { familiaId_temporadaId: { familiaId, temporadaId } },
-        create: { familiaId, temporadaId, usuarioNombre: usuario.nombre },
-        update: { contactadaEn: new Date(), usuarioNombre: usuario.nombre },
-      });
-    } else {
-      await prisma.contactoFamilia.deleteMany({ where: { familiaId, temporadaId } });
-    }
-  } catch (e) {
-    return falloPorExcepcion(e);
-  }
-  await registrar(
-    { accion: contactado ? "familia.contactada" : "familia.sinContactar", entidad: "familia", entidadId: familiaId, detalle: { temporadaId } },
-    usuario,
-  );
-  refresh();
-  return exito(contactado ? "Marcada como contactada." : "Se quitó la marca de contactada.");
-}

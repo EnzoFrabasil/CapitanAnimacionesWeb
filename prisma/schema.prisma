@@ -36,8 +36,10 @@ enum ModoInscripcion {
   INSCRIPCION
 }
 
+// En espera → Contactado (ya se le escribió a la familia) → Confirmado (pagó).
 enum EstadoInscripcion {
   EN_ESPERA
+  CONTACTADO
   CONFIRMADO
   CANCELADO
 }
@@ -50,7 +52,6 @@ model Familia {
 
   ninos         Nino[]
   inscripciones Inscripcion[]
-  contactos     ContactoFamilia[]
 }
 
 model Nino {
@@ -127,7 +128,6 @@ model Temporada {
   semanas       Semana[]
   gruposEdad    GrupoEdad[]
   inscripciones Inscripcion[]
-  contactos     ContactoFamilia[]
 }
 
 // Opción de inscripción ("Quincena 1", "Semana 2"...): nombre libre, fechas,
@@ -355,20 +355,4 @@ model Ajuste {
   clave         String   @id
   valor         Json
   actualizadoEn DateTime @updatedAt
-}
-
-// Familias a las que ya se les escribió (por WhatsApp u otro medio) en una
-// temporada. Se marca a mano desde Inscriptos; vale para todos los hermanos.
-model ContactoFamilia {
-  familiaId     Int
-  temporadaId   Int
-  contactadaEn  DateTime @default(now())
-  // Quién la marcó (se guarda el nombre por si el usuario se borra).
-  usuarioNombre String?
-
-  familia   Familia   @relation(fields: [familiaId], references: [id], onDelete: Cascade)
-  temporada Temporada @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
-
-  @@id([familiaId, temporadaId])
-  @@index([temporadaId])
 }

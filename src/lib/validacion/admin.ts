@@ -9,7 +9,8 @@ import { MODALIDADES } from "./inscripcion";
 // Validaciones de las ediciones del panel. Son más flexibles que las del
 // formulario público (por ejemplo, no se exige el rango de edad).
 
-export const ESTADOS = ["EN_ESPERA", "CONFIRMADO", "CANCELADO"] as const;
+/** En orden: en espera → contactado (se le escribió) → confirmado (pagó); o cancelado. */
+export const ESTADOS = ["EN_ESPERA", "CONTACTADO", "CONFIRMADO", "CANCELADO"] as const;
 
 const texto = (max: number, requerido: string) => z.string().trim().min(1, requerido).max(max, `Hasta ${max} caracteres.`);
 const opcional = (max: number) =>

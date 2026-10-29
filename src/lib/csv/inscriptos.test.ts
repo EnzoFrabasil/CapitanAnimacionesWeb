@@ -122,6 +122,7 @@ describe("lectores de valores", () => {
     expect(leerEstado("confirmado")).toBe("CONFIRMADO");
     expect(leerEstado("EN_ESPERA")).toBe("EN_ESPERA");
     expect(leerEstado(" En espera ")).toBe("EN_ESPERA");
+    expect(leerEstado("Contactado")).toBe("CONTACTADO");
     expect(leerEstado("pagado")).toBeNull();
   });
 });

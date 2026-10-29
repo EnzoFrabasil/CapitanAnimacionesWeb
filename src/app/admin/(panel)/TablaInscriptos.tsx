@@ -19,8 +19,6 @@ export function TablaInscriptos({
   filas,
   opciones,
   familias,
-  contactos,
-  temporadaId,
   mensajes,
   puedeEditar,
   puedeBorrar,
@@ -31,9 +29,6 @@ export function TablaInscriptos({
   opciones: Opcion[];
   /** Hermanos y total de cada familia en la temporada. */
   familias: Record<number, ResumenFamilia>;
-  /** Familias marcadas como contactadas en la temporada. */
-  contactos: Record<number, { fecha: string; por: string | null }>;
-  temporadaId: number;
   mensajes: ContextoMensajes | null;
   /** Según el rol: sin permiso no se muestran el lápiz ni la selección para eliminar. */
   puedeEditar: boolean;
@@ -240,8 +235,6 @@ export function TablaInscriptos({
                 fila={f}
                 opciones={opciones}
                 familia={familias[f.nino.familiaId]}
-                contacto={contactos[f.nino.familiaId]}
-                temporadaId={temporadaId}
                 mensajes={mensajes}
                 puedeEditar={puedeEditar}
                 puedeBorrar={puedeBorrar}

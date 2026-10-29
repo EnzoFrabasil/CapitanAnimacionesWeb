@@ -20,6 +20,7 @@
      sobre blanco y con daltonismo (validados). */
   --color-grafico-confirmado: #0b8a71;
   --color-grafico-espera: #d4790f;
+  --color-grafico-contactado: #3b6fd1;
 
   --font-titulo: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;

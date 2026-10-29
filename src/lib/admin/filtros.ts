@@ -18,8 +18,6 @@ export const filtrosSchema = z.object({
   duplicados: z.literal("1").optional().catch(undefined),
   /** Solo los que tienen información adicional (alergias, medicación, etc.). */
   info: z.literal("1").optional().catch(undefined),
-  /** si = familias ya contactadas en la temporada; no = sin contactar. */
-  contacto: z.enum(["si", "no"]).optional().catch(undefined),
   q: z.string().trim().max(100).optional().catch(undefined).transform((v) => v || undefined),
 });
 
@@ -48,10 +46,6 @@ export function condicionDeFiltros(filtros: Filtros, temporadaId: number): Prism
   else if (filtros.grupo !== undefined) y.push({ grupoEdadId: filtros.grupo });
   if (filtros.estado) y.push({ estado: filtros.estado });
   if (filtros.duplicados) y.push({ posibleDuplicado: true });
-  if (filtros.contacto) {
-    const contactada = { contactos: { some: { temporadaId } } };
-    y.push(filtros.contacto === "si" ? { nino: { familia: contactada } } : { NOT: { nino: { familia: contactada } } });
-  }
   if (filtros.info) y.push({ nino: { infoAdicional: { not: null } } }, { NOT: { nino: { infoAdicional: "" } } });
 
   // Incluye a los que van por días sueltos dentro de la opción u horario.

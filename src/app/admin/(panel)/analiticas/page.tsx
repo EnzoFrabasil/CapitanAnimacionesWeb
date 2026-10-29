@@ -57,6 +57,9 @@ async function Analiticas() {
               <Punto clase="bg-grafico-confirmado" /> {a.ninos.confirmados} {a.ninos.confirmados === 1 ? "confirmado" : "confirmados"}
             </li>
             <li className="flex items-center gap-2">
+              <Punto clase="bg-grafico-contactado" /> {a.ninos.contactados} {a.ninos.contactados === 1 ? "contactado" : "contactados"}
+            </li>
+            <li className="flex items-center gap-2">
               <Punto clase="bg-grafico-espera" /> {a.ninos.enEspera} en espera
             </li>
             {a.ninos.cancelados > 0 && (
@@ -121,7 +124,7 @@ async function Analiticas() {
             </div>
             <div className="rounded-xl bg-grafico-espera/10 p-3">
               <dt className="flex items-center gap-2 text-sm font-medium text-marino">
-                <Punto clase="bg-grafico-espera" /> Pendiente (en espera)
+                <Punto clase="bg-grafico-espera" /> Pendiente (en espera y contactados)
               </dt>
               <dd className="mt-1 text-2xl font-semibold text-marino tabular-nums">{formatearPrecio(a.dinero.pendiente)}</dd>
             </div>

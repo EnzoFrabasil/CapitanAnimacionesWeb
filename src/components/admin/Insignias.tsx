@@ -2,6 +2,7 @@ import { ETIQUETA_ESTADO } from "@/lib/formato";
 
 const COLOR_ESTADO = {
   EN_ESPERA: "bg-amarillo",
+  CONTACTADO: "bg-grafico-contactado",
   CONFIRMADO: "bg-verde",
   CANCELADO: "bg-rojo",
 } as const;

@@ -5,11 +5,14 @@ import type { ReactNode } from "react";
 
 export const SERIES_ESTADO = [
   { clave: "confirmados", nombre: "Confirmados", clase: "bg-grafico-confirmado" },
+  { clave: "contactados", nombre: "Contactados", clase: "bg-grafico-contactado" },
   { clave: "enEspera", nombre: "En espera", clase: "bg-grafico-espera" },
 ] as const;
 
 type Clave = (typeof SERIES_ESTADO)[number]["clave"];
 export type FilaEstado = { nombre: string } & Record<Clave, number>;
+
+const totalFila = (f: FilaEstado) => SERIES_ESTADO.reduce((t, s) => t + f[s.clave], 0);
 
 /** Recuadro que aparece arriba de la marca al pasar el mouse o enfocarla. */
 function Tooltip({ children }: { children: ReactNode }) {
@@ -69,16 +72,16 @@ function TablaDatos({ titulo, columnas, filas }: { titulo: string; columnas: str
 }
 
 /**
- * Barras horizontales apiladas por estado (confirmados + en espera), con el total
+ * Barras horizontales apiladas por estado (confirmados, contactados y en espera), con el total
  * al final de cada barra. Todas comparten la misma escala.
  */
 export function BarrasPorEstado({ titulo, filas }: { titulo: string; filas: FilaEstado[] }) {
-  const maximo = Math.max(1, ...filas.map((f) => f.confirmados + f.enEspera));
+  const maximo = Math.max(1, ...filas.map(totalFila));
   return (
     <div>
       <ul className="space-y-2.5">
         {filas.map((f) => {
-          const total = f.confirmados + f.enEspera;
+          const total = totalFila(f);
           const segmentos = SERIES_ESTADO.filter((s) => f[s.clave] > 0);
           return (
             <li key={f.nombre} className="grid grid-cols-[minmax(6rem,10rem)_1fr] items-center gap-3 text-sm">
@@ -111,8 +114,8 @@ export function BarrasPorEstado({ titulo, filas }: { titulo: string; filas: Fila
       </ul>
       <TablaDatos
         titulo={titulo}
-        columnas={["", "Confirmados", "En espera", "Total"]}
-        filas={filas.map((f) => [f.nombre, f.confirmados, f.enEspera, f.confirmados + f.enEspera])}
+        columnas={["", ...SERIES_ESTADO.map((s) => s.nombre), "Total"]}
+        filas={filas.map((f) => [f.nombre, ...SERIES_ESTADO.map((s) => f[s.clave]), totalFila(f)])}
       />
     </div>
   );
