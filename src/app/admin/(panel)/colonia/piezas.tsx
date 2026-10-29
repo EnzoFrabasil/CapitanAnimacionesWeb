@@ -61,19 +61,22 @@ export function VistaPrevia({ opciones, precios, porDia }: { opciones: Opcion[];
         <div key={h.clave}>
           <p className="mb-1 font-semibold text-marino">Horario: {h.texto}</p>
           <ul className="space-y-1">
-            {h.opciones.length > 1 && (
-              <li className="flex justify-between gap-3 rounded-lg bg-amarillo/30 px-3 py-1.5 font-semibold">
-                <span>
-                  Colonia completa{" "}
-                  <span className="font-normal">
-                    ({formatearFecha(rangoDeFechas(h.opciones).desde)} al {formatearFecha(rangoDeFechas(h.opciones).hasta)})
-                  </span>
-                </span>
-                <span className="tabular-nums">
-                  {formatearPrecio(precios.coloniaCompleta ?? h.opciones.reduce((t, o) => t + o.precio, 0))}
-                </span>
-              </li>
-            )}
+            {precios.paquetes
+              .filter((p) => p.opciones.length > 0 && p.opciones.every((id) => h.opciones.some((o) => o.id === id)))
+              .map((p) => {
+                const rango = rangoDeFechas(h.opciones.filter((o) => p.opciones.includes(o.id)));
+                return (
+                  <li key={`paquete-${p.id}`} className="flex justify-between gap-3 rounded-lg bg-amarillo/30 px-3 py-1.5 font-semibold">
+                    <span>
+                      {p.nombre}{" "}
+                      <span className="font-normal">
+                        ({formatearFecha(rango.desde)} al {formatearFecha(rango.hasta)})
+                      </span>
+                    </span>
+                    <span className="tabular-nums">{formatearPrecio(p.precio)}</span>
+                  </li>
+                );
+              })}
             {h.opciones.map((o) => (
               <li key={o.id} className="flex justify-between gap-3 rounded-lg border border-marino/10 px-3 py-1.5">
                 <span>

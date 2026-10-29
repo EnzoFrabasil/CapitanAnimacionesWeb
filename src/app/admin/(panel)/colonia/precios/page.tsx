@@ -11,6 +11,7 @@ import { textoHorario } from "@/lib/dominio/opciones";
 import { formatearFecha } from "@/lib/formato";
 import { aOpcion, preciosDe } from "@/lib/temporada";
 import { guardarCupo, guardarModoInscripcion, guardarPrecios, guardarPreciosOpciones } from "../acciones";
+import { EditorPaquetes } from "../EditorPaquetes";
 import { Casilla, VistaPrevia } from "../piezas";
 import { SinTemporada } from "../SinTemporada";
 
@@ -32,6 +33,12 @@ async function Precios() {
   await exigirPermiso("configuracion.editar");
   const temporada = await temporadaDelPanel();
   if (!temporada) return <SinTemporada />;
+  // Todos los paquetes (también los desactivados) para poder editarlos.
+  const paquetes = await prisma.paquete.findMany({
+    where: { temporadaId: temporada.id },
+    orderBy: { id: "asc" },
+    include: { opciones: { select: { semanaId: true } } },
+  });
   const ocupados = await prisma.inscripcionNino.count({
     where: { estado: { not: "CANCELADO" }, inscripcion: { temporadaId: temporada.id } },
   });
@@ -121,17 +128,26 @@ async function Precios() {
           )}
         </Seccion>
 
-        <Seccion titulo="Precios y descuentos" ayuda="Precios que no son de una opción en particular: colonia completa, días sueltos y descuento por hermanos.">
+        <Seccion
+          titulo="Paquetes"
+          ayuda={
+            <>
+              Precios especiales por varias opciones juntas, por ejemplo <strong>Colonia completa</strong> = Quincena 1 + Quincena 2.
+              Si agregás una opción nueva, ningún paquete cambia hasta que la sumes. Cada chico paga la combinación más barata
+              de paquetes y opciones sueltas. A los confirmados no les cambia el precio.
+            </>
+          }
+        >
+          <EditorPaquetes
+            temporadaId={temporada.id}
+            opciones={temporada.semanas.map(aOpcion)}
+            paquetes={paquetes.map((p) => ({ id: p.id, nombre: p.nombre, precio: p.precio, activo: p.activo, opciones: p.opciones.map((o) => o.semanaId) }))}
+          />
+        </Seccion>
+
+        <Seccion titulo="Precios y descuentos" ayuda="Descuento por hermanos y días sueltos. La colonia completa y otros combos se arman en Paquetes.">
           <FormAccion accion={guardarPrecios.bind(null, temporada.id)} textoBoton="Guardar precios">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Campo
-                nombre="precioColoniaCompleta"
-                etiqueta="Precio colonia completa ($)"
-                tipo="number"
-                min={0}
-                valor={temporada.precioColoniaCompleta}
-                ayuda="Se cobra cuando un chico va a todas las opciones de su horario. Vacío = se suman los precios de cada opción."
-              />
               <Campo
                 nombre="descuentoHermanos"
                 etiqueta="Descuento por hermanos (%)"

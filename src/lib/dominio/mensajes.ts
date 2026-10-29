@@ -1,4 +1,14 @@
-import { esColoniaCompleta, formatearPrecio, rangoDeFechas, textoHorario, type Asistencia, type Opcion, type TotalFamilia } from "./opciones";
+import {
+  combinacion,
+  formatearPrecio,
+  nombreCombinacion,
+  rangoDeFechas,
+  textoHorario,
+  type Asistencia,
+  type Opcion,
+  type Paquete,
+  type TotalFamilia,
+} from "./opciones";
 
 // Mensajes de WhatsApp para las familias: plantillas editables con palabras
 // entre llaves ({contacto}, {total}, etc.) que se reemplazan con los datos de
@@ -70,25 +80,29 @@ const diaMes = (iso: string) => {
 
 /**
  * Fechas y horario de un chico para el mensaje:
- * "Colonia completa (4/1 al 29/1) · 8:30 a 12:30 hs", "Quincena 1 (4/1 al 15/1) · …" o "3 días: 5/1, 6/1 y 8/1 · …".
+ * "Colonia completa (4/1 al 29/1) · 8:30 a 12:30 hs", "Quincena 1 (4/1 al 15/1) · …",
+ * "Colonia completa + Quincena 3 (4/1 al 29/1 y 1/2 al 12/2) · …" o "3 días: 5/1, 6/1 y 8/1 · …".
  */
-export function textoFechas(opciones: readonly Opcion[], a: Asistencia): string {
+export function textoFechas(opciones: readonly Opcion[], paquetes: readonly Paquete[], a: Asistencia): string {
   if (a.modalidad === "POR_DIA") {
     const opcion = opciones.find((o) => o.id === a.dias[0]?.opcion);
     const dias = [...a.dias].map((d) => d.fecha).sort();
     const texto = `${dias.length} ${dias.length === 1 ? "día" : "días"}: ${listaNombres(dias.map(diaMes))}`;
     return opcion ? `${texto} · ${textoHorario(opcion)}` : texto;
   }
-  const elegidas = opciones.filter((o) => a.opciones.includes(o.id)).sort((x, y) => x.numero - y.numero);
-  if (elegidas.length === 0) return "sin fechas elegidas";
-  const { desde, hasta } = rangoDeFechas(elegidas);
-  const nombre = esColoniaCompleta(opciones, a.opciones) ? "Colonia completa" : listaNombres(elegidas.map((o) => o.nombre));
-  // Con opciones salteadas (Quincena 1 y 3) se muestran las fechas de cada una.
-  const fechas =
-    elegidas.length > 1 && !esColoniaCompleta(opciones, a.opciones)
-      ? elegidas.map((o) => `${diaMes(o.fechaInicio)} al ${diaMes(o.fechaFin)}`).join(" y ")
-      : `${diaMes(desde)} al ${diaMes(hasta)}`;
-  return `${nombre} (${fechas}) · ${textoHorario(elegidas[0])}`;
+  const c = combinacion(opciones, paquetes, a.opciones);
+  // Cada paquete y cada opción suelta con su rango de fechas.
+  const tramos = [
+    ...c.paquetes.map((p) => opciones.filter((o) => p.opciones.includes(o.id))),
+    ...c.sueltas.map((o) => [o]),
+  ].filter((t) => t.length > 0);
+  if (tramos.length === 0) return "sin fechas elegidas";
+  const fechas = tramos
+    .map((t) => rangoDeFechas(t))
+    .sort((x, y) => x.desde.localeCompare(y.desde))
+    .map((r) => `${diaMes(r.desde)} al ${diaMes(r.hasta)}`)
+    .join(" y ");
+  return `${nombreCombinacion(c)} (${fechas}) · ${textoHorario(tramos[0][0])}`;
 }
 
 /** Valores de cada palabra para una familia. */

@@ -70,6 +70,7 @@ async function Contenido() {
         modalidades: temporada.modalidades,
         edades: temporada.edades,
         precios: conPago ? temporada.precios : undefined,
+        paquetes: conPago ? temporada.precios.paquetes : temporada.precios.paquetes.map((p) => ({ ...p, precio: 0 })),
         lugares: temporada.lugares,
         hoy: fechaAIso(hoyEnArgentina()),
       }}

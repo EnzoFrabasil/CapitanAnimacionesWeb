@@ -95,6 +95,7 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
         <TablaInscriptos
           filas={filas}
           opciones={opciones}
+          paquetes={[...preciosDe(temporada).paquetes]}
           familias={familias}
           mensajes={{
             ...ajustesMensajes,

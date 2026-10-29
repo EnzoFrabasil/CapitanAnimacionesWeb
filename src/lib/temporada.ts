@@ -44,9 +44,20 @@ export function aOpcion(s: {
   };
 }
 
-/** Precios de una temporada. */
-export const preciosDe = (t: { precioColoniaCompleta: number | null; precioDia: number | null; descuentoHermanos: number }): Precios => ({
-  coloniaCompleta: t.precioColoniaCompleta,
+/** Paquetes activos con sus opciones: usar en el include de la temporada para preciosDe. */
+export const INCLUIR_PAQUETES = {
+  where: { activo: true },
+  orderBy: { id: "asc" as const },
+  include: { opciones: { select: { semanaId: true } } },
+};
+
+/** Precios de una temporada (cargada con paquetes: INCLUIR_PAQUETES). */
+export const preciosDe = (t: {
+  precioDia: number | null;
+  descuentoHermanos: number;
+  paquetes: { id: number; nombre: string; precio: number; opciones: { semanaId: number }[] }[];
+}): Precios => ({
+  paquetes: t.paquetes.map((p) => ({ id: p.id, nombre: p.nombre, precio: p.precio, opciones: p.opciones.map((o) => o.semanaId) })),
   dia: t.precioDia,
   descuentoHermanos: t.descuentoHermanos,
 });
@@ -62,6 +73,7 @@ export async function buscarTemporadaAbierta(): Promise<TemporadaAbierta | null>
     include: {
       semanas: { where: { activa: true }, orderBy: { numero: "asc" } },
       gruposEdad: { orderBy: { edadMin: "asc" } },
+      paquetes: INCLUIR_PAQUETES,
     },
   });
   if (!temporada) return null;

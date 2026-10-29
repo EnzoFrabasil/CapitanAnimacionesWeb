@@ -3,6 +3,7 @@ import { fechaAIso } from "@/lib/dominio/fechas";
 import { describirAsistencia, precioChico, totalFamilia, type Asistencia, type Opcion, type Precios, type TotalFamilia } from "@/lib/dominio/opciones";
 import { textoFechas } from "@/lib/dominio/mensajes";
 import { prisma } from "@/lib/prisma";
+import { INCLUIR_PAQUETES } from "@/lib/temporada";
 import { ORDEN_LISTA_ESPERA, condicionDeFiltros, type Filtros } from "./filtros";
 
 export async function listarTemporadas() {
@@ -14,6 +15,7 @@ export async function temporadaParaListado(id: number | undefined) {
   const incluir = {
     semanas: { orderBy: { numero: "asc" as const } },
     gruposEdad: { orderBy: { edadMin: "asc" as const } },
+    paquetes: INCLUIR_PAQUETES,
   };
   if (id) {
     const t = await prisma.temporada.findUnique({ where: { id }, include: incluir });
@@ -86,6 +88,7 @@ export async function resumenFamilias(
         id: true,
         modalidad: true,
         precioAcordado: true,
+        precioConfirmado: true,
         grupoEdad: { select: { nombre: true, enlaceWhatsapp: true } },
         semanas: { select: { semanaId: true } },
         dias: { select: { fecha: true, semanaId: true } },
@@ -102,6 +105,7 @@ export async function resumenFamilias(
       (x): Asistencia => ({
         modalidad: x.modalidad,
         precioAcordado: x.precioAcordado,
+        precioConfirmado: x.precioConfirmado,
         opciones: x.semanas.map((s) => s.semanaId),
         dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
       }),
@@ -114,8 +118,8 @@ export async function resumenFamilias(
         apellido: x.nino.apellido,
         grupo: x.grupoEdad?.nombre ?? null,
         enlaceGrupo: x.grupoEdad?.enlaceWhatsapp ?? null,
-        asistencia: describirAsistencia(opciones, asistencias[i]),
-        fechas: textoFechas(opciones, asistencias[i]),
+        asistencia: describirAsistencia(opciones, precios.paquetes, asistencias[i]),
+        fechas: textoFechas(opciones, precios.paquetes, asistencias[i]),
         precio: preciosChicos[i],
       })),
       total: totalFamilia(preciosChicos, precios.descuentoHermanos, f.descuentoHermanos),

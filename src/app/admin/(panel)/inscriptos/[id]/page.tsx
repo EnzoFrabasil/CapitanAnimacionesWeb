@@ -8,10 +8,10 @@ import { InsigniaDuplicado, InsigniaEstado, InsigniaSinGrupo } from "@/component
 import { IconoWhatsapp } from "@/components/marca/iconos";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { fechaAIso } from "@/lib/dominio/fechas";
-import { describirAsistencia, formatearPrecio, precioChico, totalFamilia, type Asistencia } from "@/lib/dominio/opciones";
+import { describirAsistencia, formatearPrecio, precioCalculado, precioChico, totalFamilia, type Asistencia } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { prisma } from "@/lib/prisma";
-import { aOpcion, preciosDe } from "@/lib/temporada";
+import { INCLUIR_PAQUETES, aOpcion, preciosDe } from "@/lib/temporada";
 import {
   actualizarInscripcion,
   actualizarNino,
@@ -42,7 +42,9 @@ async function buscar(id: number) {
       dias: { orderBy: { fecha: "asc" } },
       inscripcion: {
         include: {
-          temporada: { include: { semanas: { orderBy: { numero: "asc" } }, gruposEdad: { orderBy: { edadMin: "asc" } } } },
+          temporada: {
+            include: { semanas: { orderBy: { numero: "asc" } }, gruposEdad: { orderBy: { edadMin: "asc" } }, paquetes: INCLUIR_PAQUETES },
+          },
         },
       },
       nino: {
@@ -103,6 +105,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
       id: true,
       modalidad: true,
       precioAcordado: true,
+      precioConfirmado: true,
       semanas: { select: { semanaId: true } },
       dias: { select: { fecha: true, semanaId: true } },
       nino: { select: { nombre: true, apellido: true } },
@@ -114,6 +117,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
       opciones: x.semanas.map((s) => s.semanaId),
       dias: x.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
       precioAcordado: x.precioAcordado,
+      precioConfirmado: x.precioConfirmado,
     }),
   );
   const preciosChicos = asistencias.map((a) => precioChico(opciones, precios, a));
@@ -238,8 +242,20 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                   className={claseInput}
                 />
                 <p className="mt-1 text-xs">
-                  En pesos, sin puntos. Si lo cargás, reemplaza al precio calculado con los precios de la temporada (por
-                  ejemplo, lo que se acordó por WhatsApp). Dejalo vacío para usar el calculado.
+                  En pesos, sin puntos. Si lo cargás, reemplaza a cualquier otro precio (por ejemplo, lo que se acordó por
+                  WhatsApp). Dejalo vacío para usar el calculado.
+                </p>
+                <p className="mt-1 text-xs font-medium text-marino">
+                  {f.precioConfirmado !== null
+                    ? `Precio fijado al confirmar: ${formatearPrecio(f.precioConfirmado)}. Ya no cambia aunque cambien los precios; para cambiarlo, cargá un precio acordado.`
+                    : `Precio actual según la temporada: ${(() => {
+                        const p = precioCalculado(opciones, precios, {
+                          modalidad: f.modalidad,
+                          opciones: f.semanas.map((s) => s.semanaId),
+                          dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
+                        });
+                        return p === null ? "a confirmar" : formatearPrecio(p);
+                      })()}. Se actualiza solo si cambian los precios y queda fijo al confirmar.`}
                 </p>
               </div>
               <div className="sm:col-span-2">
@@ -349,7 +365,7 @@ async function Detalle({ params }: Pick<PageProps<"/admin/inscriptos/[id]">, "pa
                 <div key={x.id} className="flex justify-between gap-3">
                   <dt>
                     {x.nino.nombre} {x.nino.apellido}{" "}
-                    <span className="text-texto/80">· {describirAsistencia(opciones, asistencias[i])}</span>
+                    <span className="text-texto/80">· {describirAsistencia(opciones, precios.paquetes, asistencias[i])}</span>
                   </dt>
                   <dd className="tabular-nums">{preciosChicos[i] === null ? "A confirmar" : formatearPrecio(preciosChicos[i] ?? 0)}</dd>
                 </div>

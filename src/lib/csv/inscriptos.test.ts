@@ -28,7 +28,7 @@ const opcion = (id: number, numero: number, fechaInicio: string, fechaFin: strin
 });
 const ctxExport: ContextoExport = {
   opciones: [opcion(10, 1, "2027-01-04", "2027-01-15"), opcion(11, 2, "2027-01-18", "2027-01-29")],
-  precios: { coloniaCompleta: 230000, dia: null, descuentoHermanos: 10 },
+  precios: { paquetes: [{ id: 1, nombre: "Colonia completa", precio: 230000, opciones: [10, 11] }], dia: null, descuentoHermanos: 10 },
 };
 const csvDe = (filas: InscriptoExport[]) => generarCsvInscriptos(filas, ctxExport);
 

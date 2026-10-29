@@ -104,29 +104,29 @@ model NinoResponsable {
 }
 
 model Temporada {
-  id                    Int             @id @default(autoincrement())
-  nombre                String
-  anio                  Int
-  inscripcionAbierta    Boolean         @default(false)
+  id                 Int             @id @default(autoincrement())
+  nombre             String
+  anio               Int
+  inscripcionAbierta Boolean         @default(false)
   // Cantidad total de lugares (cada niño inscripto ocupa uno, salvo los cancelados).
   // Se muestra como "quedan N lugares" en la página de inicio. Null = sin cupo.
-  cupo                  Int?
+  cupo               Int?
   // Edad permitida para inscribirse (años cumplidos al inscribir, inclusive).
-  edadMinima            Int             @default(2)
-  edadMaxima            Int             @default(17)
+  edadMinima         Int             @default(2)
+  edadMaxima         Int             @default(17)
   // Inscripción por días sueltos (dentro de las fechas de las opciones).
-  permitePorDia         Boolean         @default(false)
-  // Precios en pesos. La colonia completa se cobra cuando un chico tiene todas
-  // las opciones de su horario; null = se suma el precio de cada opción.
-  precioColoniaCompleta Int?
-  precioDia             Int?
+  permitePorDia      Boolean         @default(false)
+  // Precio por día suelto en pesos (null = a confirmar). Los precios de cada
+  // opción están en Semana y los precios especiales en Paquete.
+  precioDia          Int?
   // Porcentaje sobre el total de la familia cuando hay 2 o más hermanos.
-  descuentoHermanos     Int             @default(10)
-  modoInscripcion       ModoInscripcion @default(PREINSCRIPCION)
-  createdAt             DateTime        @default(now())
+  descuentoHermanos  Int             @default(10)
+  modoInscripcion    ModoInscripcion @default(PREINSCRIPCION)
+  createdAt          DateTime        @default(now())
 
   semanas       Semana[]
   gruposEdad    GrupoEdad[]
+  paquetes      Paquete[]
   inscripciones Inscripcion[]
 }
 
@@ -152,8 +152,39 @@ model Semana {
   temporada     Temporada           @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
   inscripciones InscripcionSemana[]
   dias          InscripcionDia[]
+  paquetes      PaqueteOpcion[]
 
   @@unique([temporadaId, numero])
+}
+
+// Precio especial por varias opciones juntas (por ejemplo "Colonia completa" =
+// Quincena 1 + Quincena 2). Se arma a mano: agregar una opción nueva no cambia
+// ningún paquete. Un chico paga la combinación más barata de paquetes y opciones
+// sueltas que cubre lo que eligió (ver src/lib/dominio/opciones.ts).
+model Paquete {
+  id          Int      @id @default(autoincrement())
+  temporadaId Int
+  nombre      String
+  precio      Int
+  // Desactivado no se ofrece ni se aplica.
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
+
+  temporada Temporada       @relation(fields: [temporadaId], references: [id], onDelete: Cascade)
+  opciones  PaqueteOpcion[]
+
+  @@index([temporadaId])
+}
+
+model PaqueteOpcion {
+  paqueteId Int
+  semanaId  Int
+
+  paquete Paquete @relation(fields: [paqueteId], references: [id], onDelete: Cascade)
+  semana  Semana  @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+
+  @@id([paqueteId, semanaId])
+  @@index([semanaId])
 }
 
 // Rangos de edad inclusivos. La no superposición se valida en la aplicación.
@@ -211,6 +242,9 @@ model InscripcionNino {
   // Precio acordado con la familia (por ejemplo por WhatsApp). Si está cargado
   // reemplaza al que se calcula con los precios de la temporada.
   precioAcordado   Int?
+  // Precio congelado al pasar a Confirmado: los cambios de precios o paquetes
+  // posteriores no lo modifican. Se borra si deja de estar confirmado.
+  precioConfirmado Int?
 
   inscripcion Inscripcion         @relation(fields: [inscripcionId], references: [id], onDelete: Cascade)
   nino        Nino                @relation(fields: [ninoId], references: [id])

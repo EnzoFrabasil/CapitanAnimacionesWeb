@@ -1,6 +1,6 @@
 import { fechaAIso, fechaDesdeIso, sumarDias } from "@/lib/dominio/fechas";
 import {
-  esColoniaCompleta,
+  combinacion,
   horarios,
   precioChico,
   totalFamilia,
@@ -108,24 +108,34 @@ export function calcularAnaliticas(datos: {
   ];
   for (const i of activos) sumar(grupos.find((g) => g.id === i.grupoId) ?? grupos.at(-1)!, i.estado);
 
+  // Por horario: una fila por paquete (los que lo tienen entero) y una por opción suelta.
   const filasHorario = horarios(opciones).map((h) => {
-    const completa = { nombre: "Colonia completa", ...vacio() };
+    const delHorario = (ids: readonly number[]) => ids.length > 0 && ids.every((id) => h.opciones.some((o) => o.id === id));
+    const paquetes = precios.paquetes.filter((p) => delHorario(p.opciones)).map((p) => ({ id: p.id, nombre: p.nombre, ...vacio() }));
     const filas = h.opciones.map((o) => ({ id: o.id, nombre: o.nombre, ...vacio() }));
     let total = 0;
     for (const i of activos) {
       const ids = opcionesDe(i.asistencia);
       if (!ids.some((id) => h.opciones.some((o) => o.id === id))) continue;
       total++;
-      if (i.asistencia.modalidad === "SEMANAS" && esColoniaCompleta(opciones, ids)) {
-        sumar(completa, i.estado);
+      if (i.asistencia.modalidad === "POR_DIA") {
+        for (const fila of filas) if (ids.includes(fila.id)) sumar(fila, i.estado);
         continue;
       }
-      for (const fila of filas) if (ids.includes(fila.id)) sumar(fila, i.estado);
+      const c = combinacion(opciones, precios.paquetes, ids);
+      for (const p of c.paquetes) {
+        const fila = paquetes.find((x) => x.id === p.id);
+        if (fila) sumar(fila, i.estado);
+      }
+      for (const o of c.sueltas) {
+        const fila = filas.find((x) => x.id === o.id);
+        if (fila) sumar(fila, i.estado);
+      }
     }
     return {
       texto: h.texto,
       total,
-      filas: [...(h.opciones.length > 1 ? [completa] : []), ...filas.map(({ id: _id, ...f }) => f)],
+      filas: [...paquetes, ...filas].map(({ id: _id, ...f }) => f),
     };
   });
 

@@ -81,7 +81,6 @@ async function main() {
         nombre: `Colonia de verano ${anio}`,
         anio,
         inscripcionAbierta: true,
-        precioColoniaCompleta: 230000,
         semanas: {
           create: [
             { numero: 1, nombre: "Quincena 1", fechaInicio: lunes1, fechaFin: sumarDias(lunes1, 11), precio: 130000 },
@@ -97,6 +96,16 @@ async function main() {
         },
       },
       include: { semanas: true, gruposEdad: true },
+    });
+
+    // Paquete "Colonia completa" = las dos quincenas, con precio especial.
+    await tx.paquete.create({
+      data: {
+        temporadaId: temporada.id,
+        nombre: "Colonia completa",
+        precio: 230000,
+        opciones: { create: temporada.semanas.map((s) => ({ semanaId: s.id })) },
+      },
     });
 
     const semanaPorNumero = new Map(temporada.semanas.map((s) => [s.numero, s.id]));

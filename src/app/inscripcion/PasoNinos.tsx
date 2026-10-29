@@ -164,7 +164,7 @@ const fechas = (desde: string, hasta: string) => `${formatearDiaCorto(desde)} al
 /**
  * Opciones de inscripción agrupadas por horario. Se pueden elegir varias, pero
  * todas del mismo horario: las de los otros horarios quedan deshabilitadas.
- * Si un horario tiene más de una opción, "Colonia completa" las marca todas.
+ * Cada paquete del horario (por ejemplo "Colonia completa") es un atajo que marca sus opciones.
  */
 function Asistencia({
   nino,
@@ -184,7 +184,7 @@ function Asistencia({
   const base = `ninos.${indice}`;
   const modalidades = contexto.modalidades ?? ["SEMANAS"];
   const grupos = horarios(contexto.opciones);
-  const precioCompleta = contexto.precios?.coloniaCompleta;
+  const paquetes = contexto.paquetes ?? [];
   const precioDia = contexto.precios?.dia;
 
   // Horario ya elegido (por opciones o por días): los demás quedan deshabilitados.
@@ -240,33 +240,38 @@ function Asistencia({
           <div className="space-y-4">
             {avisoUnHorario}
             {grupos.map((g) => {
-              const ids = g.opciones.map((o) => o.id);
-              const todas = ids.every((oid) => nino.semanas.includes(oid));
               const bloqueado = otroHorario(g.clave);
+              const delHorario = paquetes.filter((p) => p.opciones.length > 0 && p.opciones.every((id) => g.opciones.some((o) => o.id === id)));
               return (
                 <div key={g.clave} className="space-y-2">
                   <p className="text-sm font-semibold text-marino">Horario: {g.texto}</p>
-                  {g.opciones.length > 1 && (
-                    <Casilla
-                      id={`${base}.semanas.completa.${g.clave}`}
-                      etiqueta={
-                        <>
-                          Colonia completa{" "}
-                          <span className="font-normal text-texto/80">
-                            ({fechas(rangoDeFechas(g.opciones).desde, rangoDeFechas(g.opciones).hasta)})
-                          </span>
-                        </>
-                      }
-                      extra={<Precio pesos={precioCompleta} />}
-                      destacada
-                      deshabilitada={bloqueado}
-                      marcada={todas}
-                      onCambio={(marcada) => {
-                        cambiar(indice, { semanas: marcada ? ids : [] });
-                        tocar(`${base}.semanas`);
-                      }}
-                    />
-                  )}
+                  {delHorario.map((p) => {
+                    const incluidas = g.opciones.filter((o) => p.opciones.includes(o.id));
+                    const rango = rangoDeFechas(incluidas);
+                    return (
+                      <Casilla
+                        key={`paquete-${p.id}`}
+                        id={`${base}.semanas.paquete.${p.id}`}
+                        etiqueta={
+                          <>
+                            {p.nombre} <span className="font-normal text-texto/80">({fechas(rango.desde, rango.hasta)})</span>
+                          </>
+                        }
+                        extra={<Precio pesos={p.precio} />}
+                        destacada
+                        deshabilitada={bloqueado}
+                        marcada={p.opciones.every((id) => nino.semanas.includes(id))}
+                        onCambio={(marcada) => {
+                          cambiar(indice, (actual) => ({
+                            semanas: marcada
+                              ? [...new Set([...actual.semanas, ...p.opciones])]
+                              : actual.semanas.filter((s) => !p.opciones.includes(s)),
+                          }));
+                          tocar(`${base}.semanas`);
+                        }}
+                      />
+                    );
+                  })}
                   {g.opciones.map((o: Opcion) => (
                     <Casilla
                       key={o.id}

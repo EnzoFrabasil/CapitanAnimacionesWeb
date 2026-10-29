@@ -85,7 +85,7 @@ export function PasoRevision({ textos, datos, contexto, irAPaso }: Props) {
               <Dato etiqueta="Fecha de nacimiento">
                 {formatearFecha(n.fechaNacimiento)} ({edad} años)
               </Dato>
-              <Dato etiqueta="Asistencia">{describirAsistencia(contexto.opciones, asistencias[i])}</Dato>
+              <Dato etiqueta="Asistencia">{describirAsistencia(contexto.opciones, contexto.paquetes ?? [], asistencias[i])}</Dato>
               {n.modalidad === "POR_DIA" && (
                 <Dato etiqueta="Días">{n.dias.map((d) => formatearDiaCorto(d.fecha)).join(", ")}</Dato>
               )}

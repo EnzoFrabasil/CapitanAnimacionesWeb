@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ContextoMensajes } from "@/lib/dominio/mensajes";
-import type { Opcion } from "@/lib/dominio/opciones";
+import type { Opcion, Paquete } from "@/lib/dominio/opciones";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { eliminarInscriptos, guardarEdicionesMasivas } from "./acciones";
 import { FilaInscripto, aEdicionRapida, valoresEdicion, type ValoresEdicion } from "./FilaInscripto";
@@ -18,6 +18,7 @@ const claseBotonBarra =
 export function TablaInscriptos({
   filas,
   opciones,
+  paquetes,
   familias,
   mensajes,
   puedeEditar,
@@ -27,6 +28,7 @@ export function TablaInscriptos({
   filas: Fila[];
   /** Todas las opciones de la temporada (también las desactivadas). */
   opciones: Opcion[];
+  paquetes: Paquete[];
   /** Hermanos y total de cada familia en la temporada. */
   familias: Record<number, ResumenFamilia>;
   mensajes: ContextoMensajes | null;
@@ -234,6 +236,7 @@ export function TablaInscriptos({
                 key={f.id}
                 fila={f}
                 opciones={opciones}
+                paquetes={paquetes}
                 familia={familias[f.nino.familiaId]}
                 mensajes={mensajes}
                 puedeEditar={puedeEditar}

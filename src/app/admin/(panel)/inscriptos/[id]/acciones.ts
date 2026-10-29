@@ -5,6 +5,7 @@ import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/adm
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { fechaDesdeIso } from "@/lib/dominio/fechas";
 import { diasDeOpcion, horariosElegidos, type ModoDescuento } from "@/lib/dominio/opciones";
+import { precioConfirmadoAlCambiar } from "@/lib/admin/precioConfirmado";
 import { prisma } from "@/lib/prisma";
 import { diferencias, sinSecretos } from "@/lib/registro/diferencias";
 import { registrar } from "@/lib/registro/servidor";
@@ -101,6 +102,13 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
     if (horariosElegidos(opciones, diasElegidos.map((x) => x.opcion)).length > 1) return fallo("Elegí días de un mismo horario.");
   }
 
+  // Al pasar a Confirmado el precio queda fijo (con la asistencia que se está guardando); al salir se libera.
+  const precioConfirmado = await precioConfirmadoAlCambiar(prisma, inscripcionNinoId, d.estado, {
+    modalidad: d.modalidad,
+    opciones: d.modalidad === "SEMANAS" ? semanasElegidas : [],
+    dias: d.modalidad === "POR_DIA" ? diasElegidos : [],
+  });
+
   try {
     await prisma.$transaction([
       prisma.inscripcionNino.update({
@@ -108,6 +116,7 @@ export async function actualizarInscripcion(inscripcionNinoId: number, _previo: 
         data: {
           grupoEdadId: d.grupoEdadId,
           estado: d.estado,
+          precioConfirmado,
           modalidad: d.modalidad,
           notasAdmin: d.notasAdmin,
           precioAcordado: d.precioAcordado,

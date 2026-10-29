@@ -2,7 +2,9 @@ import { diasHabilesDeSemanas } from "@/lib/dominio/dias";
 
 // Opciones de inscripción (en la base, la tabla Semana): nombre libre, fechas,
 // horario y precio. Una familia elige para cada chico una o varias opciones del
-// mismo horario; si elige todas las de su horario es "colonia completa".
+// mismo horario. Los paquetes (por ejemplo "Colonia completa" = Quincena 1 + 2)
+// tienen un precio especial y se arman a mano: agregar una opción nueva no cambia
+// ningún paquete.
 
 export interface Opcion {
   id: number;
@@ -18,9 +20,18 @@ export interface Opcion {
   precio: number;
 }
 
+/** Varias opciones (del mismo horario) con un precio especial. */
+export interface Paquete {
+  id: number;
+  nombre: string;
+  precio: number;
+  /** Ids de las opciones que incluye. */
+  opciones: readonly number[];
+}
+
 export interface Precios {
-  /** Se cobra si un chico tiene todas las opciones de su horario (null = suma de opciones). */
-  coloniaCompleta: number | null;
+  /** Paquetes activos de la temporada. */
+  paquetes: readonly Paquete[];
   /** Por día suelto (null = a confirmar). */
   dia: number | null;
   /** Porcentaje de descuento por hermanos. */
@@ -70,12 +81,50 @@ export function horariosElegidos(opciones: readonly Opcion[], ids: readonly numb
   return [...new Set(opciones.filter((o) => ids.includes(o.id)).map(claveHorario))];
 }
 
-/** true si eligió todas las opciones de su horario y ese horario tiene más de una. */
-export function esColoniaCompleta(opciones: readonly Opcion[], ids: readonly number[]): boolean {
-  const claves = horariosElegidos(opciones, ids);
-  if (claves.length !== 1) return false;
-  const delHorario = opcionesDelHorario(opciones, claves[0]);
-  return delHorario.length > 1 && delHorario.every((o) => ids.includes(o.id));
+export interface Combinacion {
+  /** Paquetes enteros que entran en lo elegido. */
+  paquetes: Paquete[];
+  /** Opciones que se cobran sueltas (las que no cubre ningún paquete). */
+  sueltas: Opcion[];
+  precio: number;
+}
+
+/**
+ * La forma más barata de cobrar exactamente las opciones elegidas: paquetes
+ * (sin repetir opciones) más opciones sueltas. A igual precio, la que usa paquetes.
+ */
+export function combinacion(opciones: readonly Opcion[], paquetes: readonly Paquete[], ids: readonly number[]): Combinacion {
+  const elegidas = opciones.filter((o) => ids.includes(o.id)).sort((a, b) => a.numero - b.numero);
+  const bit = new Map(elegidas.map((o, i) => [o.id, 1 << i]));
+  // Solo sirven los paquetes cuyas opciones están todas elegidas.
+  const utiles = paquetes
+    .filter((p) => p.opciones.length > 0 && p.opciones.every((id) => bit.has(id)))
+    .map((p) => ({ paquete: p, mascara: p.opciones.reduce((m, id) => m | bit.get(id)!, 0) }));
+  const total = (1 << elegidas.length) - 1;
+  // mejor[m] = forma más barata de cubrir el conjunto m (programación dinámica sobre subconjuntos).
+  const mejor: { precio: number; paquetes: number; usados: Paquete[] }[] = [{ precio: 0, paquetes: 0, usados: [] }];
+  for (let m = 1; m <= total; m++) {
+    const i = Math.log2(m & -m); // la opción más baja que falta cubrir
+    const sola = mejor[m & ~(1 << i)];
+    let candidato = { precio: sola.precio + elegidas[i].precio, paquetes: sola.paquetes, usados: sola.usados };
+    for (const u of utiles) {
+      if ((u.mascara & (1 << i)) === 0 || (u.mascara & m) !== u.mascara) continue;
+      const resto = mejor[m & ~u.mascara];
+      const c = { precio: resto.precio + u.paquete.precio, paquetes: resto.paquetes + 1, usados: [...resto.usados, u.paquete] };
+      if (c.precio < candidato.precio || (c.precio === candidato.precio && c.paquetes > candidato.paquetes)) candidato = c;
+    }
+    mejor[m] = candidato;
+  }
+  const usados = mejor[total].usados;
+  const cubiertas = new Set(usados.flatMap((p) => p.opciones));
+  return { paquetes: usados, sueltas: elegidas.filter((o) => !cubiertas.has(o.id)), precio: mejor[total].precio };
+}
+
+/** "Colonia completa + Quincena 3", "Quincena 1 y Quincena 2" (sin paquetes). */
+export function nombreCombinacion(c: Pick<Combinacion, "paquetes" | "sueltas">): string {
+  const sueltas = c.sueltas.map((o) => o.nombre);
+  const lista = sueltas.length > 1 ? `${sueltas.slice(0, -1).join(", ")} y ${sueltas.at(-1)}` : (sueltas[0] ?? "");
+  return [...c.paquetes.map((p) => p.nombre), ...(lista ? [lista] : [])].join(" + ");
 }
 
 /** Opción a la que pertenece un día (por fechas) dentro de las opciones elegibles. */
@@ -94,33 +143,40 @@ export interface Asistencia {
   dias: readonly { fecha: string; opcion: number }[];
   /** Precio acordado a mano desde el panel; si está, reemplaza al calculado. */
   precioAcordado?: number | null;
+  /** Precio que quedó congelado al confirmar la inscripción (no cambia con los precios nuevos). */
+  precioConfirmado?: number | null;
 }
 
 /**
- * "Colonia completa · 8:30 a 12:30 hs", "Quincena 1 y Quincena 3 · 8:30 a 12:30 hs"
- * o "3 días · 8:30 a 12:30 hs".
+ * "Colonia completa · 8:30 a 12:30 hs", "Colonia completa + Quincena 3 · …",
+ * "Quincena 1 y Quincena 3 · …" o "3 días · …".
  */
-export function describirAsistencia(opciones: readonly Opcion[], a: Asistencia): string {
+export function describirAsistencia(opciones: readonly Opcion[], paquetes: readonly Paquete[], a: Asistencia): string {
   if (a.modalidad === "POR_DIA") {
     const opcion = opciones.find((o) => o.id === a.dias[0]?.opcion);
     const cantidad = `${a.dias.length} ${a.dias.length === 1 ? "día" : "días"}`;
     return opcion ? `${cantidad} · ${textoHorario(opcion)}` : cantidad;
   }
-  const elegidas = opciones.filter((o) => a.opciones.includes(o.id)).sort((x, y) => x.numero - y.numero);
-  if (elegidas.length === 0) return "Sin opciones";
-  const horario = textoHorario(elegidas[0]);
-  if (esColoniaCompleta(opciones, a.opciones)) return `Colonia completa · ${horario}`;
-  const nombres = elegidas.map((o) => o.nombre);
-  const lista = nombres.length > 1 ? `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}` : nombres[0];
-  return `${lista} · ${horario}`;
+  const c = combinacion(opciones, paquetes, a.opciones);
+  const primera = c.paquetes.length ? opciones.find((o) => o.id === c.paquetes[0].opciones[0]) : c.sueltas[0];
+  if (!primera) return "Sin opciones";
+  return `${nombreCombinacion(c)} · ${textoHorario(primera)}`;
 }
 
-/** Precio de un chico, o null si algo no tiene precio definido (días sueltos sin precio). */
+/**
+ * Precio de un chico, o null si algo no tiene precio definido (días sueltos sin precio).
+ * Un precio acordado a mano o el congelado al confirmar reemplazan al calculado.
+ */
 export function precioChico(opciones: readonly Opcion[], precios: Precios, a: Asistencia): number | null {
   if (a.precioAcordado !== undefined && a.precioAcordado !== null) return a.precioAcordado;
+  if (a.precioConfirmado !== undefined && a.precioConfirmado !== null) return a.precioConfirmado;
+  return precioCalculado(opciones, precios, a);
+}
+
+/** Precio según las opciones, paquetes y precios actuales (sin acordado ni congelado). */
+export function precioCalculado(opciones: readonly Opcion[], precios: Precios, a: Asistencia): number | null {
   if (a.modalidad === "POR_DIA") return precios.dia === null ? null : precios.dia * a.dias.length;
-  if (precios.coloniaCompleta !== null && esColoniaCompleta(opciones, a.opciones)) return precios.coloniaCompleta;
-  return opciones.filter((o) => a.opciones.includes(o.id)).reduce((total, o) => total + o.precio, 0);
+  return combinacion(opciones, precios.paquetes, a.opciones).precio;
 }
 
 export interface TotalFamilia {

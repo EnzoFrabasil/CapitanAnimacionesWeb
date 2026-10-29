@@ -4,7 +4,7 @@ import { maximoNinosPorFormulario } from "@/lib/dominio/cupos";
 import { MENSAJE_DNI_INVALIDO, normalizarDni } from "@/lib/dominio/dni";
 import { calcularEdad, validarFechaNacimiento, type RangoEdadPermitida } from "@/lib/dominio/edad";
 import { fechaDesdeIso, fechaDesdeIsoONull } from "@/lib/dominio/fechas";
-import { diasDeOpcion, horariosElegidos, type Opcion, type Precios } from "@/lib/dominio/opciones";
+import { diasDeOpcion, horariosElegidos, type Opcion, type Paquete, type Precios } from "@/lib/dominio/opciones";
 import { normalizarWhatsapp, separarTelefono, soloCodigoDePais } from "@/lib/dominio/telefono";
 
 // El mismo esquema valida en el formulario (en vivo) y en la API.
@@ -22,6 +22,8 @@ export interface ContextoInscripcion {
   modalidades?: readonly (typeof MODALIDADES)[number][];
   /** Precios para mostrar el total estimado (no se usan para validar). */
   precios?: Precios;
+  /** Paquetes (atajos tipo "Colonia completa"); en preinscripción, con precio 0. */
+  paquetes?: readonly Paquete[];
   /** Edad permitida en la temporada. Si no se indica, la de src/config/inscripcion.ts. */
   edades?: RangoEdadPermitida;
   /** Lugares libres de la temporada: nadie puede cargar más chicos que eso (null o sin indicar = sin cupo). */

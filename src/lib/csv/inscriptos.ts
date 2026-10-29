@@ -61,6 +61,7 @@ export interface InscriptoExport {
   estado: Estado;
   modalidad: Modalidad;
   precioAcordado?: number | null;
+  precioConfirmado?: number | null;
   edadAlInscribir: number;
   posibleDuplicado: boolean;
   inscripcion: { numero: number; fechaAlta: Date };
@@ -91,11 +92,12 @@ export function filaExport(f: InscriptoExport, ctx: ContextoExport): (string | n
     opciones: f.semanas.map((s) => s.semanaId),
     dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
     precioAcordado: f.precioAcordado,
+    precioConfirmado: f.precioConfirmado,
   };
   const ids = f.modalidad === "SEMANAS" ? a.opciones : a.dias.map((d) => d.opcion);
   const opcion = ctx.opciones.find((o) => ids.includes(o.id));
   // "Colonia completa · 8:30 a 12:30 hs" → "Colonia completa" (el horario va en su columna).
-  const asistencia = describirAsistencia(ctx.opciones, a).split(" · ")[0];
+  const asistencia = describirAsistencia(ctx.opciones, ctx.precios.paquetes, a).split(" · ")[0];
   const dias = a.dias
     .map((d) => d.fecha)
     .sort()

@@ -7,6 +7,7 @@ import {
   type PlanImportacion,
 } from "@/lib/csv/inscriptos";
 import { fechaAIso, fechaDesdeIso, hoyEnArgentina } from "@/lib/dominio/fechas";
+import { precioConfirmadoAlCambiar } from "./precioConfirmado";
 import { prisma } from "@/lib/prisma";
 
 /** Lee el CSV, busca en la base los registros que menciona y arma el plan (sin modificar nada). */
@@ -100,7 +101,8 @@ export async function aplicarPlan(plan: PlanImportacion): Promise<void> {
           });
         }
         if (Object.keys(d.inscripcion).length > 0) {
-          await tx.inscripcionNino.update({ where: { id: d.inscripcionNinoId }, data: d.inscripcion });
+          const precioConfirmado = d.inscripcion.estado ? await precioConfirmadoAlCambiar(tx, d.inscripcionNinoId, d.inscripcion.estado) : undefined;
+          await tx.inscripcionNino.update({ where: { id: d.inscripcionNinoId }, data: { ...d.inscripcion, precioConfirmado } });
         }
         if (d.responsableId !== null && Object.keys(d.responsable).length > 0) {
           await tx.responsable.update({ where: { id: d.responsableId }, data: d.responsable });

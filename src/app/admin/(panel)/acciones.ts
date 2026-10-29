@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { COOKIE_TEMPORADA } from "@/lib/admin/temporadaPanel";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
 import { exigirPermiso, exigirUsuario } from "@/lib/auth/usuario";
+import { precioConfirmadoAlCambiar } from "@/lib/admin/precioConfirmado";
 import { prisma } from "@/lib/prisma";
 import { diferencias } from "@/lib/registro/diferencias";
 import { registrar, type Evento } from "@/lib/registro/servidor";
@@ -73,12 +74,14 @@ async function prepararEdicionRapida(inscripcionNinoId: number, datos: EdicionRa
   }
   const principal = actual.nino.responsables[0]?.responsableId;
   const contactoAntes = actual.nino.responsables[0]?.responsable;
+  // Al pasar a Confirmado el precio queda fijo; al salir de Confirmado se libera.
+  const precioConfirmado = await precioConfirmadoAlCambiar(prisma, inscripcionNinoId, d.estado);
 
   return {
     ok: true,
     operaciones: [
       prisma.nino.update({ where: { id: actual.ninoId }, data: d.nino }),
-      prisma.inscripcionNino.update({ where: { id: inscripcionNinoId }, data: { grupoEdadId: d.grupoEdadId, estado: d.estado } }),
+      prisma.inscripcionNino.update({ where: { id: inscripcionNinoId }, data: { grupoEdadId: d.grupoEdadId, estado: d.estado, precioConfirmado } }),
       ...(principal && d.contacto ? [prisma.responsable.update({ where: { id: principal }, data: d.contacto })] : []),
     ],
     contacto: principal && d.contacto ? { id: principal, datos: JSON.stringify(d.contacto) } : null,

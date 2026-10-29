@@ -202,7 +202,6 @@ export const semanaSchema = z
 
 /** Precios generales, descuento por hermanos y días sueltos de la temporada. */
 export const preciosTemporadaSchema = z.object({
-  precioColoniaCompleta: pesosOpcional("Precio de colonia completa"),
   precioDia: pesosOpcional("Precio por día"),
   descuentoHermanos: z.coerce
     .number("Descuento inválido.")

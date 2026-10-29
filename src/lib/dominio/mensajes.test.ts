@@ -80,12 +80,15 @@ describe("mensajes de WhatsApp", () => {
       horaFin: "12:30",
       precio: 130000,
     });
-    const opciones = [opcion(1, 1, "2027-01-04", "2027-01-15"), opcion(2, 2, "2027-01-18", "2027-01-29")];
+    const opciones = [opcion(1, 1, "2027-01-04", "2027-01-15"), opcion(2, 2, "2027-01-18", "2027-01-29"), opcion(3, 3, "2027-02-01", "2027-02-12")];
+    const paquetes = [{ id: 1, nombre: "Colonia completa", precio: 230000, opciones: [1, 2] }];
     const semanas = (ids: number[]) => ({ modalidad: "SEMANAS" as const, opciones: ids, dias: [] });
-    expect(textoFechas(opciones, semanas([1, 2]))).toBe("Colonia completa (4/1 al 29/1) · 8:30 a 12:30 hs");
-    expect(textoFechas(opciones, semanas([2]))).toBe("Quincena 2 (18/1 al 29/1) · 8:30 a 12:30 hs");
+    expect(textoFechas(opciones, paquetes, semanas([1, 2]))).toBe("Colonia completa (4/1 al 29/1) · 8:30 a 12:30 hs");
+    expect(textoFechas(opciones, paquetes, semanas([2]))).toBe("Quincena 2 (18/1 al 29/1) · 8:30 a 12:30 hs");
+    expect(textoFechas(opciones, paquetes, semanas([1, 2, 3]))).toBe("Colonia completa + Quincena 3 (4/1 al 29/1 y 1/2 al 12/2) · 8:30 a 12:30 hs");
+    expect(textoFechas(opciones, [], semanas([1, 3]))).toBe("Quincena 1 y Quincena 3 (4/1 al 15/1 y 1/2 al 12/2) · 8:30 a 12:30 hs");
     expect(
-      textoFechas(opciones, {
+      textoFechas(opciones, paquetes, {
         modalidad: "POR_DIA",
         opciones: [],
         dias: [

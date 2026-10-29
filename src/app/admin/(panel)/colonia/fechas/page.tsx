@@ -5,7 +5,7 @@ import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { sumarDias } from "@/lib/dominio/fechas";
 import { prisma } from "@/lib/prisma";
-import { aOpcion, preciosDe } from "@/lib/temporada";
+import { INCLUIR_PAQUETES, aOpcion, preciosDe } from "@/lib/temporada";
 import { eliminarSemana, guardarSemana } from "../acciones";
 import { CamposOpcion, VistaPrevia, siguienteNombre } from "../piezas";
 import { SinTemporada } from "../SinTemporada";
@@ -30,7 +30,10 @@ async function Fechas() {
   if (!base) return <SinTemporada />;
   const temporada = await prisma.temporada.findUniqueOrThrow({
     where: { id: base.id },
-    include: { semanas: { orderBy: { numero: "asc" }, include: { _count: { select: { inscripciones: true } } } } },
+    include: {
+      semanas: { orderBy: { numero: "asc" }, include: { _count: { select: { inscripciones: true } } } },
+      paquetes: INCLUIR_PAQUETES,
+    },
   });
   const ultima = temporada.semanas.at(-1);
   const proximoLunes = ultima ? sumarDias(ultima.fechaFin, 3) : null;

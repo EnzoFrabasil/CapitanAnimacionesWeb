@@ -331,3 +331,93 @@ export async function guardarPreciosOpciones(temporadaId: number, _previo: Previ
   refresh();
   return exito(nuevos.length === 1 ? "Precio guardado." : `${nuevos.length} precios guardados.`);
 }
+
+// ── Paquetes ───────────────────────────────────────────────────────────────
+
+/** Lee y valida un paquete del formulario: nombre, precio, activo y sus opciones (todas de la temporada y del mismo horario). */
+type PaqueteLeido =
+  | { ok: false; error: string }
+  | { ok: true; nombre: string; precio: number; activo: boolean; ids: number[]; nombresOpciones: string[] };
+
+async function leerPaquete(temporadaId: number, datos: FormData): Promise<PaqueteLeido> {
+  const nombre = String(datos.get("nombre") ?? "").trim();
+  if (!nombre) return { ok: false, error: "Falta el nombre del paquete." };
+  if (nombre.length > 60) return { ok: false, error: "El nombre puede tener hasta 60 caracteres." };
+  const precio = pesos("Precio del paquete").safeParse(String(datos.get("precio") ?? "").trim() === "" ? undefined : datos.get("precio"));
+  if (!precio.success) return { ok: false, error: mensajesDeError(precio.error)[0] };
+  const ids = [...new Set(datos.getAll("opciones").map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (ids.length < 2) return { ok: false, error: "Un paquete tiene que incluir al menos 2 opciones." };
+  const opciones = await prisma.semana.findMany({ where: { temporadaId, id: { in: ids } }, select: { id: true, nombre: true, horaInicio: true, horaFin: true } });
+  if (opciones.length !== ids.length) return { ok: false, error: "Alguna opción no es de esta temporada. Recargá la página." };
+  if (new Set(opciones.map((o) => `${o.horaInicio}-${o.horaFin}`)).size > 1) {
+    return { ok: false, error: "Las opciones de un paquete tienen que ser del mismo horario (un chico va a un solo horario)." };
+  }
+  return { ok: true, nombre, precio: precio.data, activo: datos.get("activo") === "on", ids, nombresOpciones: opciones.map((o) => o.nombre) };
+}
+
+export async function guardarPaquete(temporadaId: number, paqueteId: number | null, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  const usuario = await exigirPermiso("configuracion.editar");
+  const p = await leerPaquete(temporadaId, datos);
+  if (!p.ok) return fallo(p.error);
+  let id = paqueteId;
+  let antes = null;
+  try {
+    if (paqueteId) {
+      antes = await prisma.paquete.findFirst({
+        where: { id: paqueteId, temporadaId },
+        include: { opciones: { select: { semana: { select: { nombre: true } } } } },
+      });
+      if (!antes) return fallo("El paquete ya no existe. Recargá la página.");
+      await prisma.$transaction([
+        prisma.paqueteOpcion.deleteMany({ where: { paqueteId } }),
+        prisma.paquete.update({
+          where: { id: paqueteId },
+          data: { nombre: p.nombre, precio: p.precio, activo: p.activo, opciones: { create: p.ids.map((semanaId) => ({ semanaId })) } },
+        }),
+      ]);
+    } else {
+      id = (
+        await prisma.paquete.create({
+          data: { temporadaId, nombre: p.nombre, precio: p.precio, activo: true, opciones: { create: p.ids.map((semanaId) => ({ semanaId })) } },
+        })
+      ).id;
+    }
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  const despues = { nombre: p.nombre, precio: p.precio, activo: paqueteId ? p.activo : true, opciones: [...p.nombresOpciones].sort() };
+  await registrar(
+    {
+      accion: paqueteId ? "paquete.editar" : "paquete.crear",
+      entidad: "paquete",
+      entidadId: id ?? undefined,
+      detalle: antes
+        ? {
+            paquete: antes.nombre,
+            cambios: diferencias(
+              { nombre: antes.nombre, precio: antes.precio, activo: antes.activo, opciones: antes.opciones.map((o) => o.semana.nombre).sort() },
+              despues,
+            ),
+          }
+        : despues,
+    },
+    usuario,
+  );
+  refresh();
+  return exito(paqueteId ? "Paquete guardado." : `Paquete "${p.nombre}" creado.`);
+}
+
+export async function eliminarPaquete(temporadaId: number, paqueteId: number): Promise<ResultadoAccion> {
+  const usuario = await exigirPermiso("configuracion.editar");
+  let borrado;
+  try {
+    borrado = await prisma.paquete.findFirst({ where: { id: paqueteId, temporadaId } });
+    if (!borrado) return fallo("El paquete ya no existe. Recargá la página.");
+    await prisma.paquete.delete({ where: { id: paqueteId } });
+  } catch (e) {
+    return falloPorExcepcion(e);
+  }
+  await registrar({ accion: "paquete.eliminar", entidad: "paquete", entidadId: paqueteId, detalle: { paquete: borrado.nombre, precio: borrado.precio } }, usuario);
+  refresh();
+  return exito("Paquete eliminado. Los que lo tenían pasan a pagar sus opciones sueltas (salvo los confirmados, que tienen su precio fijo).");
+}

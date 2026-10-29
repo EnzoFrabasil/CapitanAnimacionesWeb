@@ -13,7 +13,7 @@ const opcion = (id: number, numero: number, horaInicio = "08:30", horaFin = "12:
   precio: 130000,
 });
 const opciones = [opcion(1, 1), opcion(2, 2)];
-const precios = { coloniaCompleta: 230000, dia: null, descuentoHermanos: 10 };
+const precios = { paquetes: [{ id: 1, nombre: "Colonia completa", precio: 230000, opciones: [1, 2] }], dia: null, descuentoHermanos: 10 };
 const grupos = [
   { id: 10, nombre: "Grupo 1" },
   { id: 20, nombre: "Grupo 2" },

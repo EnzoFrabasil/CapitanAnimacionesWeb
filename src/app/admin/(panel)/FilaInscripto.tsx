@@ -9,7 +9,7 @@ import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consulta
 import type { ResultadoAccion } from "@/lib/admin/resultado";
 import { fechaAIso } from "@/lib/dominio/fechas";
 import { textoFechas, type ContextoMensajes } from "@/lib/dominio/mensajes";
-import { describirAsistencia, formatearPrecio, type Opcion } from "@/lib/dominio/opciones";
+import { describirAsistencia, formatearPrecio, type Opcion, type Paquete } from "@/lib/dominio/opciones";
 import { ETIQUETA_ESTADO, formatearDiaCorto, formatearFechaHora, formatearWhatsapp } from "@/lib/formato";
 import { ESTADOS, type EdicionRapida } from "@/lib/validacion/admin";
 import { eliminarInscripto, guardarEdicionRapida, guardarInfoAdicional } from "./acciones";
@@ -69,6 +69,7 @@ export function aEdicionRapida(f: Fila, v: ValoresEdicion): EdicionRapida {
 export function FilaInscripto({
   fila: f,
   opciones,
+  paquetes,
   familia,
   mensajes,
   puedeEditar,
@@ -81,6 +82,8 @@ export function FilaInscripto({
 }: {
   fila: Fila;
   opciones: Opcion[];
+  /** Paquetes activos de la temporada (para nombrar la asistencia). */
+  paquetes: Paquete[];
   familia: ResumenFamilia | undefined;
   /** Plantillas de WhatsApp de la temporada (null si no se pudieron cargar). */
   mensajes: ContextoMensajes | null;
@@ -152,13 +155,13 @@ export function FilaInscripto({
     opciones: f.semanas.map((s) => s.semanaId),
     dias: f.dias.map((d) => ({ fecha: fechaAIso(d.fecha), opcion: d.semanaId })),
   };
-  const asistencia = describirAsistencia(opciones, asistenciaFila);
+  const asistencia = describirAsistencia(opciones, paquetes, asistenciaFila);
   // Para los mensajes de WhatsApp si la familia no tiene chicos activos en la temporada.
   const chicoParaMensaje = {
     nombre: f.nino.nombre,
     asistencia,
-    fechas: textoFechas(opciones, asistenciaFila),
-    precio: f.precioAcordado ?? null,
+    fechas: textoFechas(opciones, paquetes, asistenciaFila),
+    precio: f.precioAcordado ?? f.precioConfirmado ?? null,
     grupo: null,
   };
   const detalleDias = f.modalidad === "POR_DIA" ? f.dias.map((d) => formatearDiaCorto(fechaAIso(d.fecha))).join(", ") : undefined;
