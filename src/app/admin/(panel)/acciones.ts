@@ -1,14 +1,30 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { cookies } from "next/headers";
+import { COOKIE_TEMPORADA } from "@/lib/admin/temporadaPanel";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
-import { exigirPermiso } from "@/lib/auth/usuario";
+import { exigirPermiso, exigirUsuario } from "@/lib/auth/usuario";
 import { prisma } from "@/lib/prisma";
 import { diferencias } from "@/lib/registro/diferencias";
 import { registrar } from "@/lib/registro/servidor";
 import { edicionRapidaSchema, mensajesDeError, ninoAdminSchema, type EdicionRapida } from "@/lib/validacion/admin";
 
 // Acciones del listado de inscriptos (edición rápida desde la tabla).
+
+/** Elige la temporada que se mira en todo el panel (barra de arriba). */
+export async function elegirTemporadaPanel(temporadaId: number): Promise<void> {
+  await exigirUsuario();
+  if (!Number.isInteger(temporadaId) || !(await prisma.temporada.findUnique({ where: { id: temporadaId }, select: { id: true } }))) return;
+  (await cookies()).set(COOKIE_TEMPORADA, String(temporadaId), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/admin",
+    maxAge: 365 * 24 * 60 * 60,
+  });
+  refresh();
+}
 
 export async function guardarEdicionRapida(inscripcionNinoId: number, datos: EdicionRapida): Promise<ResultadoAccion> {
   const usuario = await exigirPermiso("inscriptos.editar");

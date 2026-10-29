@@ -9,12 +9,11 @@ import { horarios, type Opcion } from "@/lib/dominio/opciones";
 interface Props {
   filtros: Filtros;
   temporadaId: number;
-  temporadas: { id: number; nombre: string }[];
   grupos: { id: number; nombre: string }[];
   opciones: Opcion[];
 }
 
-export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opciones }: Props) {
+export function FiltrosListado({ filtros, temporadaId, grupos, opciones }: Props) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState(filtros.q ?? "");
 
@@ -46,14 +45,6 @@ export function FiltrosListado({ filtros, temporadaId, temporadas, grupos, opcio
 
   return (
     <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {selector(
-        "temporada",
-        "Temporada",
-        temporadaId,
-        temporadas.map((t) => ({ valor: t.id, texto: t.nombre })),
-        // Al cambiar de temporada, el grupo y la semana dejan de tener sentido.
-        (v) => aplicar({ temporada: Number(v), grupo: undefined, semana: undefined, horario: undefined }),
-      )}
       {selector(
         "grupo",
         "Grupo",

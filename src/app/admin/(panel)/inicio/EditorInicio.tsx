@@ -81,10 +81,13 @@ export function EditorInicio({
   publicado,
   versionPublicada,
   versiones,
+  pestanaInicial = "inicio",
 }: {
   publicado: Contenido;
   versionPublicada: number | null;
   versiones: VersionResumen[];
+  /** La que eligió el menú (Página de inicio o Textos del formulario). */
+  pestanaInicial?: "inicio" | "inscripcion";
 }) {
   const [base, setBase] = useState(() => ({ contenido: paraEditar(publicado), version: versionPublicada }));
   const [borrador, setBorrador] = useState(base.contenido);
@@ -92,7 +95,13 @@ export function EditorInicio({
   const [intentoPublicar, setIntentoPublicar] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [verVersiones, setVerVersiones] = useState(false);
-  const [pestana, setPestana] = useState<"inicio" | "inscripcion">("inicio");
+  const [pestana, setPestana] = useState<"inicio" | "inscripcion">(pestanaInicial);
+  // Si se elige la otra opción del menú estando acá, cambia de pestaña sin perder el borrador.
+  const [pestanaDelMenu, setPestanaDelMenu] = useState(pestanaInicial);
+  if (pestanaInicial !== pestanaDelMenu) {
+    setPestanaDelMenu(pestanaInicial);
+    setPestana(pestanaInicial);
+  }
   const [publicando, iniciarPublicacion] = useTransition();
   const router = useRouter();
 
@@ -197,7 +206,7 @@ export function EditorInicio({
       <div data-editor-ui="" className="sticky top-0 z-50 border-b-4 border-naranja bg-white px-4 py-3 shadow-md">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3">
           <div className="mr-auto">
-            <h1 className="font-titulo text-2xl font-bold text-marino">Editar página de inicio</h1>
+            <h1 className="font-titulo text-2xl font-bold text-marino">{pestana === "inicio" ? "Página de inicio" : "Textos del formulario"}</h1>
             <p className="text-sm" aria-live="polite">
               {hayCambios ? "Tenés cambios sin publicar. " : "Esto es lo que se ve en el sitio. "}
               {pestana === "inicio" ? "Hacé clic en cualquier texto para editarlo." : "Editá los textos del formulario."}
@@ -296,7 +305,7 @@ export function EditorInicio({
         {(
           [
             ["inicio", "Página de inicio"],
-            ["inscripcion", "Textos de la inscripción"],
+            ["inscripcion", "Textos del formulario"],
           ] as const
         ).map(([id, nombre]) => (
           <button

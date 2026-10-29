@@ -135,10 +135,16 @@ const edadTemporada = (nombre: string, porDefecto: number) =>
       .default(porDefecto),
   );
 
-export const temporadaSchema = z.object({
+// La temporada se edita por partes (cada una en su sección del panel).
+
+/** Nombre y año (La colonia → Temporadas). */
+export const datosTemporadaSchema = z.object({
   nombre: texto(80, "Falta el nombre."),
   anio: z.coerce.number("Año inválido.").int("Año inválido.").min(2000, "Año inválido.").max(2100, "Año inválido."),
-  // Vacío = sin cupo.
+});
+
+/** Cupo (La colonia → Precios y cupo). Vacío = sin cupo. */
+export const cupoTemporadaSchema = z.object({
   cupo: z.preprocess(
     (v) => (typeof v === "string" && v.trim() === "" ? null : v),
     z.coerce
@@ -149,12 +155,18 @@ export const temporadaSchema = z.object({
       .nullable()
       .default(null),
   ),
-  edadMinima: edadTemporada("Edad mínima", EDAD_MINIMA),
-  edadMaxima: edadTemporada("Edad máxima", EDAD_MAXIMA),
-}).refine((t) => t.edadMinima <= t.edadMaxima, {
-  message: "La edad mínima no puede ser mayor que la máxima.",
-  path: ["edadMaxima"],
 });
+
+/** Edades permitidas (La colonia → Grupos y edades). */
+export const edadesTemporadaSchema = z
+  .object({
+    edadMinima: edadTemporada("Edad mínima", EDAD_MINIMA),
+    edadMaxima: edadTemporada("Edad máxima", EDAD_MAXIMA),
+  })
+  .refine((t) => t.edadMinima <= t.edadMaxima, {
+    message: "La edad mínima no puede ser mayor que la máxima.",
+    path: ["edadMaxima"],
+  });
 
 // Casillas: el navegador manda "on" si están marcadas y nada si no.
 const casilla = z.preprocess((v) => v === "on", z.boolean());

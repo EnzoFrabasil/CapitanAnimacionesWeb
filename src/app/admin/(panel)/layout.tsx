@@ -3,8 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { cerrarSesion } from "@/app/admin/login/acciones";
+import { BarraTemporada } from "@/components/admin/BarraTemporada";
+import { MenuPanel } from "@/components/admin/MenuPanel";
 import { sitio } from "@/config/sitio";
-import { SECCIONES } from "@/lib/auth/permisos";
+import { menuPara } from "@/lib/auth/permisos";
 import { usuarioActual } from "@/lib/auth/usuario";
 
 export const metadata: Metadata = { title: `Panel | ${sitio.nombre}`, robots: { index: false } };
@@ -12,9 +14,10 @@ export const metadata: Metadata = { title: `Panel | ${sitio.nombre}`, robots: { 
 export default function LayoutPanel({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-white">
-      <header className="bg-marino text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/admin" className="flex items-center gap-2 font-titulo text-lg font-semibold">
+      {/* Por encima de las barras fijas de cada página (por ejemplo, la del editor de la página de inicio). */}
+      <header className="relative z-[60] bg-marino text-white">
+        <div className="mx-auto flex max-w-7xl items-center gap-x-4 px-4 py-2.5">
+          <Link href="/admin" className="flex shrink-0 items-center gap-2 font-titulo text-lg font-semibold">
             <Image src={sitio.logos.circular} alt="" width={512} height={512} className="size-9 rounded-full" />
             Panel
           </Link>
@@ -23,6 +26,9 @@ export default function LayoutPanel({ children }: LayoutProps<"/admin">) {
           </Suspense>
         </div>
       </header>
+      <Suspense>
+        <BarraTemporada />
+      </Suspense>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
     </div>
   );
@@ -32,23 +38,17 @@ export default function LayoutPanel({ children }: LayoutProps<"/admin">) {
 async function Navegacion() {
   const usuario = await usuarioActual();
   if (!usuario) return <div className="flex-1" />;
+  const grupos = usuario.debeCambiarPassword ? [] : menuPara(usuario.permisos).map((g) => ({ grupo: g.grupo, items: [...g.items] }));
   return (
     <>
-      <nav aria-label="Panel" className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
-        {!usuario.debeCambiarPassword &&
-          SECCIONES.filter((s) => usuario.permisos.has(s.permiso)).map((s) => (
-            <Link key={s.href} href={s.href} className="hover:text-amarillo">
-              {s.nombre}
-            </Link>
-          ))}
-      </nav>
-      <div className="flex items-center gap-4 text-sm">
+      <MenuPanel grupos={grupos} />
+      <div className="flex shrink-0 items-center gap-4 text-sm">
         <Link href="/admin/cuenta" className="hover:text-amarillo" title={`${usuario.email} · ${usuario.rol.nombre}`}>
-          {usuario.nombre} <span className="text-white/70">· Mi cuenta</span>
+          {usuario.nombre} <span className="hidden text-white/70 sm:inline">· Mi cuenta</span>
         </Link>
         <form action={cerrarSesion}>
           <button type="submit" className="font-medium hover:text-amarillo">
-            Cerrar sesión
+            Salir
           </button>
         </form>
       </div>

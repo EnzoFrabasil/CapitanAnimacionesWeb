@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { claseBoton, claseEtiqueta, claseInput, claseTarjeta } from "@/components/admin/estilos";
+import { claseTarjeta } from "@/components/admin/estilos";
+import { EncabezadoPagina } from "@/components/admin/Seccion";
 import { BarrasPorEstado, ColumnasPorDia, Leyenda } from "@/components/admin/Graficos";
 import { analiticasDeTemporada } from "@/lib/admin/analiticas";
-import { listarTemporadas, temporadaParaListado } from "@/lib/admin/consultas";
+import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { formatearPrecio } from "@/lib/dominio/opciones";
 
-export default function PaginaAnaliticas({ searchParams }: PageProps<"/admin/analiticas">) {
+export default function PaginaAnaliticas() {
   return (
     <Suspense fallback={<p className="py-12 text-center">Cargando analíticas…</p>}>
-      <Analiticas searchParams={searchParams} />
+      <Analiticas />
     </Suspense>
   );
 }
@@ -31,22 +32,11 @@ function Punto({ clase }: { clase: string }) {
   return <span aria-hidden className={`inline-block size-2.5 rounded-sm ${clase}`} />;
 }
 
-async function Analiticas({ searchParams }: Pick<PageProps<"/admin/analiticas">, "searchParams">) {
+async function Analiticas() {
   await exigirPermiso("analiticas.ver");
-  const pedida = Number((await searchParams).temporada) || undefined;
-  const [temporadas, temporada] = await Promise.all([listarTemporadas(), temporadaParaListado(pedida)]);
-
-  if (!temporada) {
-    return (
-      <p className="py-12 text-center">
-        Todavía no hay temporadas.{" "}
-        <Link href="/admin/configuracion" className="font-semibold text-marino underline">
-          Creá una en Configuración
-        </Link>
-        .
-      </p>
-    );
-  }
+  // La temporada es la elegida en la barra de arriba.
+  const temporada = await temporadaDelPanel();
+  if (!temporada) return <p className="py-12 text-center">Todavía no hay temporadas.</p>;
 
   const a = await analiticasDeTemporada(temporada);
   const total = a.dinero.confirmado + a.dinero.pendiente;
@@ -54,33 +44,10 @@ async function Analiticas({ searchParams }: Pick<PageProps<"/admin/analiticas">,
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-titulo text-3xl font-bold text-marino">Analíticas</h1>
-          <p className="text-sm">
-            {temporada.nombre} · inscripción {temporada.inscripcionAbierta ? "abierta" : "cerrada"}
-          </p>
-        </div>
-        {temporadas.length > 1 && (
-          <form className="flex items-end gap-2">
-            <div>
-              <label htmlFor="temporada" className={claseEtiqueta}>
-                Temporada
-              </label>
-              <select id="temporada" name="temporada" defaultValue={temporada.id} className={claseInput}>
-                {temporadas.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" className={claseBoton.secundario}>
-              Ver
-            </button>
-          </form>
-        )}
-      </div>
+      <EncabezadoPagina
+        titulo="Analíticas"
+        ayuda="Un resumen de la temporada elegida arriba: cuántos chicos hay, cuánta plata representa y cómo se reparten."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tarjeta titulo="Chicos inscriptos">

@@ -1,36 +1,60 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
+import { COOKIE_TEMPORADA } from "@/lib/admin/temporadaPanel";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { lugaresLibres } from "@/lib/dominio/cupos";
 import { asignarGrupo } from "@/lib/dominio/edad";
 import { prisma } from "@/lib/prisma";
 import { diferencias, sinSecretos } from "@/lib/registro/diferencias";
 import { registrar } from "@/lib/registro/servidor";
-import { mensajesDeError, preciosTemporadaSchema, semanaSchema, temporadaSchema } from "@/lib/validacion/admin";
+import {
+  cupoTemporadaSchema,
+  datosTemporadaSchema,
+  edadesTemporadaSchema,
+  mensajesDeError,
+  preciosTemporadaSchema,
+  semanaSchema,
+} from "@/lib/validacion/admin";
 import { gruposTemporadaSchema } from "@/lib/validacion/grupos";
 
 type Previo = ResultadoAccion | null;
 
 export async function crearTemporada(_previo: Previo, datos: FormData): Promise<ResultadoAccion> {
   const usuario = await exigirPermiso("configuracion.editar");
-  const r = temporadaSchema.safeParse(Object.fromEntries(datos));
+  const r = datosTemporadaSchema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
   let id: number;
   try {
-    id = (await prisma.temporada.create({ data: { ...r.data, inscripcionAbierta: false } })).id;
+    // Arranca con las edades por defecto y la inscripción cerrada.
+    id = (await prisma.temporada.create({ data: { ...r.data, ...edadesTemporadaSchema.parse({}), inscripcionAbierta: false } })).id;
   } catch (e) {
     return falloPorExcepcion(e);
   }
   await registrar({ accion: "temporada.crear", entidad: "temporada", entidadId: id, detalle: sinSecretos(r.data) }, usuario);
-  redirect(`/admin/configuracion/${id}`);
+  // La temporada nueva pasa a ser la que se mira en el panel, y se sigue cargando sus fechas.
+  (await cookies()).set(COOKIE_TEMPORADA, String(id), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/admin",
+    maxAge: 365 * 24 * 60 * 60,
+  });
+  redirect("/admin/colonia/fechas");
 }
 
-export async function actualizarTemporada(id: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+/** Guarda una parte de la temporada (cada sección del panel edita la suya) y la registra. */
+async function guardarParteTemporada<T extends Record<string, unknown>>(
+  id: number,
+  esquema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: Parameters<typeof mensajesDeError>[0] } },
+  datos: FormData,
+  mensaje: string,
+): Promise<ResultadoAccion> {
   const usuario = await exigirPermiso("configuracion.editar");
-  const r = temporadaSchema.safeParse(Object.fromEntries(datos));
+  const r = esquema.safeParse(Object.fromEntries(datos));
   if (!r.success) return fallo(...mensajesDeError(r.error));
   let antes;
   try {
@@ -45,7 +69,19 @@ export async function actualizarTemporada(id: number, _previo: Previo, datos: Fo
     usuario,
   );
   refresh();
-  return exito("Temporada guardada.");
+  return exito(mensaje);
+}
+
+export async function guardarDatosTemporada(id: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  return guardarParteTemporada(id, datosTemporadaSchema, datos, "Temporada guardada.");
+}
+
+export async function guardarCupo(id: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  return guardarParteTemporada(id, cupoTemporadaSchema, datos, "Cupo guardado.");
+}
+
+export async function guardarEdades(id: number, _previo: Previo, datos: FormData): Promise<ResultadoAccion> {
+  return guardarParteTemporada(id, edadesTemporadaSchema, datos, "Edades guardadas.");
 }
 
 /** Abre o cierra la inscripción. Solo puede haber una temporada abierta: al abrir una se cierran las demás. */

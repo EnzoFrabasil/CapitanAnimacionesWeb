@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { asignarSinGrupo } from "@/app/admin/(panel)/configuracion/acciones";
+import { asignarSinGrupo } from "@/app/admin/(panel)/colonia/acciones";
 import { claseBoton, claseTarjeta } from "@/components/admin/estilos";
 import { FormAccion } from "@/components/admin/FormAccion";
-import { contarSinGrupo, listarInscriptos, listarTemporadas, resumenFamilias, temporadaParaListado } from "@/lib/admin/consultas";
+import { contarSinGrupo, listarInscriptos, resumenFamilias } from "@/lib/admin/consultas";
+import { temporadaDelPanel } from "@/lib/admin/temporadaPanel";
+import { EncabezadoPagina } from "@/components/admin/Seccion";
 import { filtrosAQuery, leerFiltros } from "@/lib/admin/filtros";
 import { exigirPermiso } from "@/lib/auth/usuario";
 import { aOpcion, preciosDe } from "@/lib/temporada";
@@ -21,19 +23,9 @@ export default function PaginaListado({ searchParams }: PageProps<"/admin">) {
 async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams">) {
   const usuario = await exigirPermiso("inscriptos.ver");
   const filtros = leerFiltros(await searchParams);
-  const [temporadas, temporada] = await Promise.all([listarTemporadas(), temporadaParaListado(filtros.temporada)]);
-
-  if (!temporada) {
-    return (
-      <p className="py-12 text-center">
-        Todavía no hay temporadas.{" "}
-        <Link href="/admin/configuracion" className="font-semibold text-marino underline">
-          Creá una en Configuración
-        </Link>
-        .
-      </p>
-    );
-  }
+  // La temporada es la elegida en la barra de arriba.
+  const temporada = await temporadaDelPanel();
+  if (!temporada) return <p className="py-12 text-center">Todavía no hay temporadas.</p>;
 
   const [filas, sinGrupo] = await Promise.all([listarInscriptos(filtros, temporada), contarSinGrupo(temporada.id)]);
   const opciones = temporada.semanas.map(aOpcion);
@@ -47,15 +39,10 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-titulo text-3xl font-bold text-marino">Inscriptos</h1>
-          <p className="text-sm">
-            {temporada.nombre} · inscripción {temporada.inscripcionAbierta ? "abierta" : "cerrada"} · ordenados por
-            fecha de alta (lista de espera)
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <EncabezadoPagina
+        titulo="Inscriptos"
+        ayuda="Ordenados por fecha de alta (la lista de espera). Tocá la flechita de una fila para ver alergias, contactos y hermanos, o el nombre para abrir la ficha completa."
+      >
           {usuario.permisos.has("inscriptos.importar") && (
             <Link href="/admin/importar" className={claseBoton.secundario}>
               Importar CSV
@@ -67,14 +54,12 @@ async function Listado({ searchParams }: Pick<PageProps<"/admin">, "searchParams
               Descargar CSV
             </a>
           )}
-        </div>
-      </div>
+      </EncabezadoPagina>
 
       <section aria-label="Filtros" className={claseTarjeta}>
         <FiltrosListado
           filtros={filtros}
           temporadaId={temporada.id}
-          temporadas={temporadas.map((t) => ({ id: t.id, nombre: t.nombre }))}
           grupos={temporada.gruposEdad.map((g) => ({ id: g.id, nombre: g.nombre }))}
           opciones={opciones}
         />

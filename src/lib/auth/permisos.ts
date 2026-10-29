@@ -28,15 +28,56 @@ export function permisosDeRol(rol: { esTotal: boolean; permisos: readonly string
   return new Set(rol.esTotal ? LISTA_PERMISOS : rol.permisos.filter(esPermiso));
 }
 
-/** Secciones del menú, en orden, con el permiso que piden. */
-export const SECCIONES = [
-  { href: "/admin", nombre: "Inscriptos", permiso: "inscriptos.ver" },
-  { href: "/admin/analiticas", nombre: "Analíticas", permiso: "analiticas.ver" },
-  { href: "/admin/configuracion", nombre: "Configuración", permiso: "configuracion.editar" },
-  { href: "/admin/inicio", nombre: "Editar página de inicio", permiso: "contenido.editar" },
-  { href: "/admin/usuarios", nombre: "Usuarios", permiso: "usuarios.gestionar" },
-  { href: "/admin/registro", nombre: "Registro", permiso: "registro.ver" },
-] as const satisfies readonly { href: string; nombre: string; permiso: Permiso }[];
+export interface ItemMenu {
+  href: string;
+  nombre: string;
+  /** Una línea que explica para qué sirve (se muestra en el menú). */
+  descripcion: string;
+  permiso: Permiso;
+}
+
+/** Menú del panel agrupado por para qué sirve cada cosa. Cada persona ve solo lo que su rol permite. */
+export const MENU: readonly { grupo: string; items: readonly ItemMenu[] }[] = [
+  {
+    grupo: "Día a día",
+    items: [
+      { href: "/admin", nombre: "Inscriptos", descripcion: "Lista, fichas, contactos y alergias", permiso: "inscriptos.ver" },
+      { href: "/admin/analiticas", nombre: "Analíticas", descripcion: "Números de la temporada y dinero", permiso: "analiticas.ver" },
+    ],
+  },
+  {
+    grupo: "La colonia",
+    items: [
+      { href: "/admin/colonia/fechas", nombre: "Fechas y horarios", descripcion: "Quincenas o semanas que se ofrecen", permiso: "configuracion.editar" },
+      { href: "/admin/colonia/precios", nombre: "Precios y cupo", descripcion: "Cuánto se cobra y cuántos lugares hay", permiso: "configuracion.editar" },
+      { href: "/admin/colonia/grupos", nombre: "Grupos y edades", descripcion: "Edades permitidas y grupos por edad", permiso: "configuracion.editar" },
+      { href: "/admin/colonia/temporadas", nombre: "Temporadas", descripcion: "Crear una temporada nueva o renombrarla", permiso: "configuracion.editar" },
+    ],
+  },
+  {
+    grupo: "Sitio web",
+    items: [
+      { href: "/admin/inicio", nombre: "Página de inicio", descripcion: "Textos, fotos y datos que ven las familias", permiso: "contenido.editar" },
+      { href: "/admin/inicio?pestana=inscripcion", nombre: "Textos del formulario", descripcion: "Lo que dice cada paso de la inscripción", permiso: "contenido.editar" },
+    ],
+  },
+  {
+    grupo: "Administración",
+    items: [
+      { href: "/admin/usuarios", nombre: "Usuarios", descripcion: "Quién entra al panel y qué puede hacer", permiso: "usuarios.gestionar" },
+      { href: "/admin/registro", nombre: "Registro", descripcion: "Quién cambió qué y cuándo", permiso: "registro.ver" },
+      { href: "/admin/backups", nombre: "Backups", descripcion: "Descargar una copia de seguridad", permiso: "backups.descargar" },
+    ],
+  },
+];
+
+/** Todas las secciones en orden (para "a dónde puede ir" y el destino al entrar). */
+export const SECCIONES: readonly ItemMenu[] = MENU.flatMap((g) => g.items);
+
+/** El menú con solo lo que puede ver (sin grupos vacíos). */
+export function menuPara(permisos: ReadonlySet<Permiso>) {
+  return MENU.map((g) => ({ grupo: g.grupo, items: g.items.filter((i) => permisos.has(i.permiso)) })).filter((g) => g.items.length > 0);
+}
 
 /** Primera sección a la que puede entrar (para mandarlo ahí al iniciar sesión). */
 export function seccionInicial(permisos: ReadonlySet<Permiso>): string {

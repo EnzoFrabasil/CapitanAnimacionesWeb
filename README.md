@@ -90,12 +90,12 @@ Otros comandos:
 5. **Deploy**. El sitio queda en `https://<nombre-del-proyecto>.vercel.app`.
 6. Si en el futuro cambiás una variable de entorno, hacé **Redeploy** para que tome el valor nuevo.
 
-> **Base de producción:** lo más prolijo es usar en Vercel una base (o *branch* de Neon) distinta de la de desarrollo, y **no** correr el seed ahí. Creá la temporada real desde **Panel → Configuración**.
+> **Base de producción:** lo más prolijo es usar en Vercel una base (o *branch* de Neon) distinta de la de desarrollo, y **no** correr el seed ahí. Creá la temporada real desde **Panel → La colonia → Temporadas**.
 
 ### Primeros pasos en producción
 
 1. Creá tu usuario con acceso total desde la terminal (`npm run usuarios:crear`, con el `.env` apuntando a la base de producción) y entrá a `/admin` con tu email y contraseña.
-2. En **Configuración**: creá la temporada, cargá las semanas y los grupos de edad, y tocá **Abrir inscripción**. Mientras ninguna temporada esté abierta, el formulario muestra "Las inscripciones están cerradas".
+2. En **La colonia**: creá la temporada (Temporadas), cargá las fechas (Fechas y horarios), los precios y el cupo (Precios y cupo) y los grupos (Grupos y edades). Después tocá **Abrir inscripción** en la barra de la temporada, arriba de todo. Mientras ninguna temporada esté abierta, el formulario muestra "Las inscripciones están cerradas".
 
 ## Usuarios del panel
 
@@ -146,7 +146,9 @@ Cada persona entra con **su email y su contraseña**. Las contraseñas se guarda
 
 - **Inscriptos:** una fila por niño en orden de lista de espera, con filtros y búsqueda, botón de WhatsApp y **Descargar CSV** (respeta los filtros).
 - **Ficha de cada inscripto:** se puede editar todo: datos, grupo, turno, asistencia, estado, notas, contactos (agregar, quitar, cambiar el principal) y familia (mover o unir).
-- **Configuración:** temporadas (solo una abierta a la vez), semanas y grupos de edad. Editar los grupos no reasigna a los ya inscriptos; para eso está **Asignar grupo a los niños sin grupo**.
+- **Menú del panel**, agrupado en *Día a día* (Inscriptos, Analíticas), *La colonia* (Fechas y horarios, Precios y cupo, Grupos y edades, Temporadas), *Sitio web* (Página de inicio, Textos del formulario) y *Administración* (Usuarios, Registro, Backups). Cada persona ve solo lo que su rol permite.
+- **Barra de la temporada** (debajo del menú): qué temporada se está mirando en todo el panel, si la inscripción está abierta y el cupo, con el botón para abrirla o cerrarla. Solo una temporada puede estar abierta a la vez.
+- **Grupos y edades:** editar los grupos no reasigna a los ya inscriptos; para eso está **Asignar grupo a los chicos sin grupo**.
 - **Importar CSV:** se sube el archivo descargado y modificado en Excel. Primero se muestra una vista previa ("valor anterior → valor nuevo", errores y filas ignoradas) y los cambios se aplican solo al confirmar.
 
 ### Datos y privacidad
