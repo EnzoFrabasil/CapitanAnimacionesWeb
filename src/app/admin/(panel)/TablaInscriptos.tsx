@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { FilaInscripto as Fila, ResumenFamilia } from "@/lib/admin/consultas";
 import type { ContextoMensajes } from "@/lib/dominio/mensajes";
 import type { Opcion } from "@/lib/dominio/opciones";
 import type { ResultadoAccion } from "@/lib/admin/resultado";
-import { eliminarInscriptos } from "./acciones";
-import { FilaInscripto } from "./FilaInscripto";
+import { eliminarInscriptos, guardarEdicionesMasivas } from "./acciones";
+import { FilaInscripto, aEdicionRapida, valoresEdicion, type ValoresEdicion } from "./FilaInscripto";
 
-/** Tabla del listado con selección múltiple para eliminar varios inscriptos juntos. */
+const claseBotonBarra =
+  "rounded-lg border-2 border-marino/20 bg-white px-3 py-1.5 text-sm font-semibold text-marino hover:border-marino disabled:opacity-50";
+
+/**
+ * Tabla del listado: selección múltiple para eliminar, "Abrir todas las fichas"
+ * y "Editar todos" (los campos de todas las filas abiertos y un solo Guardar).
+ */
 export function TablaInscriptos({
   filas,
   opciones,
@@ -32,6 +38,58 @@ export function TablaInscriptos({
   const [seleccion, setSeleccion] = useState<ReadonlySet<number>>(new Set());
   const [resultado, setResultado] = useState<ResultadoAccion | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const [fichasAbiertas, setFichasAbiertas] = useState(false);
+  // "Editar todos": valores de las filas que se tocaron y errores por fila al guardar.
+  const [editandoTodos, setEditandoTodos] = useState(false);
+  const [ediciones, setEdiciones] = useState<Record<number, ValoresEdicion>>({});
+  const [erroresFila, setErroresFila] = useState<Record<number, string>>({});
+  const [resultadoMasivo, setResultadoMasivo] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const iniciales = (f: Fila) => valoresEdicion(f);
+  const modificada = (f: Fila) => !!ediciones[f.id] && JSON.stringify(ediciones[f.id]) !== JSON.stringify(iniciales(f));
+  const modificadas = filas.filter(modificada);
+
+  // Avisa antes de salir de la página con cambios sin guardar.
+  useEffect(() => {
+    if (!editandoTodos || modificadas.length === 0) return;
+    const avisar = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [editandoTodos, modificadas.length]);
+
+  const cambiarMasivo = (f: Fila) => (campo: keyof ValoresEdicion, valor: string) => {
+    setEdiciones((e) => ({ ...e, [f.id]: { ...(e[f.id] ?? iniciales(f)), [campo]: valor } }));
+    setErroresFila((er) => {
+      if (!(f.id in er)) return er;
+      const resto = { ...er };
+      delete resto[f.id];
+      return resto;
+    });
+  };
+
+  const salirDeEdicion = () => {
+    setEditandoTodos(false);
+    setEdiciones({});
+    setErroresFila({});
+  };
+
+  const cancelarTodos = () => {
+    if (modificadas.length > 0 && !window.confirm(`¿Descartar los cambios de ${modificadas.length === 1 ? "1 fila" : `${modificadas.length} filas`}?`)) return;
+    salirDeEdicion();
+    setResultadoMasivo(null);
+  };
+
+  const guardarTodos = () =>
+    iniciar(async () => {
+      const r = await guardarEdicionesMasivas(modificadas.map((f) => ({ id: f.id, datos: aEdicionRapida(f, ediciones[f.id]) })));
+      if (r.ok) {
+        salirDeEdicion();
+        setResultadoMasivo({ ok: true, texto: r.mensaje });
+      } else {
+        setErroresFila(r.porFila);
+        setResultadoMasivo({ ok: false, texto: r.error });
+      }
+    });
 
   // Solo cuentan las filas que siguen en pantalla (pueden cambiar con los filtros o al borrar).
   const elegidas = filas.filter((f) => seleccion.has(f.id));
@@ -63,6 +121,50 @@ export function TablaInscriptos({
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setFichasAbiertas((a) => !a)} className={claseBotonBarra}>
+          {fichasAbiertas ? "Cerrar todas las fichas" : "Abrir todas las fichas"}
+        </button>
+        {puedeEditar && !editandoTodos && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditandoTodos(true);
+              setResultadoMasivo(null);
+            }}
+            className={claseBotonBarra}
+          >
+            Editar todos
+          </button>
+        )}
+      </div>
+
+      {editandoTodos && (
+        <div className="sticky top-0 z-20 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-amarillo bg-white px-4 py-3 shadow-sm">
+          <p className="mr-auto text-sm text-marino">
+            <strong>Editando todos.</strong>{" "}
+            {modificadas.length === 0
+              ? "Cambiá lo que necesites en cualquier fila y guardá todo junto al final."
+              : `${modificadas.length === 1 ? "1 fila modificada" : `${modificadas.length} filas modificadas`} (en amarillo).`}
+          </p>
+          <button type="button" onClick={cancelarTodos} disabled={pendiente} className={claseBotonBarra}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={guardarTodos}
+            disabled={pendiente || modificadas.length === 0}
+            className="rounded-lg bg-marino px-4 py-1.5 text-sm font-semibold text-white hover:bg-marino/90 disabled:opacity-50"
+          >
+            {pendiente ? "Guardando…" : `Guardar cambios${modificadas.length ? ` (${modificadas.length})` : ""}`}
+          </button>
+        </div>
+      )}
+      {resultadoMasivo && (
+        <p role={resultadoMasivo.ok ? "status" : "alert"} className={`text-sm font-medium ${resultadoMasivo.ok ? "text-marino" : "text-rojo"}`}>
+          {resultadoMasivo.texto}
+        </p>
+      )}
       {elegidas.length > 0 && (
         <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 rounded-2xl border-2 border-rojo/40 bg-white px-4 py-3 shadow-sm">
           <p className="mr-auto text-sm font-semibold text-marino">
@@ -139,6 +241,12 @@ export function TablaInscriptos({
                 grupos={grupos}
                 seleccionada={seleccion.has(f.id)}
                 alternarSeleccion={(marcada) => alternar(f.id, marcada)}
+                fichasAbiertas={fichasAbiertas}
+                masiva={
+                  editandoTodos
+                    ? { valores: ediciones[f.id] ?? iniciales(f), cambiar: cambiarMasivo(f), error: erroresFila[f.id], modificada: modificada(f) }
+                    : undefined
+                }
               />
             ))}
           </tbody>

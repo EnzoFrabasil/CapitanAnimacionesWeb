@@ -1,13 +1,14 @@
 "use server";
 
 import { refresh } from "next/cache";
+import type { Prisma } from "@/generated/prisma/client";
 import { cookies } from "next/headers";
 import { COOKIE_TEMPORADA } from "@/lib/admin/temporadaPanel";
 import { exito, fallo, falloPorExcepcion, type ResultadoAccion } from "@/lib/admin/resultado";
 import { exigirPermiso, exigirUsuario } from "@/lib/auth/usuario";
 import { prisma } from "@/lib/prisma";
 import { diferencias } from "@/lib/registro/diferencias";
-import { registrar } from "@/lib/registro/servidor";
+import { registrar, type Evento } from "@/lib/registro/servidor";
 import { edicionRapidaSchema, mensajesDeError, ninoAdminSchema, type EdicionRapida } from "@/lib/validacion/admin";
 
 // Acciones del listado de inscriptos (edición rápida desde la tabla).
@@ -26,10 +27,23 @@ export async function elegirTemporadaPanel(temporadaId: number): Promise<void> {
   refresh();
 }
 
-export async function guardarEdicionRapida(inscripcionNinoId: number, datos: EdicionRapida): Promise<ResultadoAccion> {
-  const usuario = await exigirPermiso("inscriptos.editar");
+type Preparada =
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      operaciones: Prisma.PrismaPromise<unknown>[];
+      /** Contacto principal que se modifica (para detectar dos filas que lo cambian distinto). */
+      contacto: { id: number; datos: string } | null;
+      evento: Evento;
+    };
+
+/**
+ * Valida la edición rápida de una fila y arma las operaciones para guardarla
+ * (sin ejecutarlas), así se pueden guardar varias filas en una sola transacción.
+ */
+async function prepararEdicionRapida(inscripcionNinoId: number, datos: EdicionRapida): Promise<Preparada> {
   const r = edicionRapidaSchema.safeParse(datos);
-  if (!r.success) return fallo(...mensajesDeError(r.error));
+  if (!r.success) return { ok: false, error: mensajesDeError(r.error).join(" ") };
   const d = r.data;
 
   const actual = await prisma.inscripcionNino.findUnique({
@@ -53,27 +67,22 @@ export async function guardarEdicionRapida(inscripcionNinoId: number, datos: Edi
       },
     },
   });
-  if (!actual) return fallo("El inscripto ya no existe. Recargá la página.");
+  if (!actual) return { ok: false, error: "El inscripto ya no existe. Recargá la página." };
   if (d.grupoEdadId !== null && !actual.inscripcion.temporada.gruposEdad.some((g) => g.id === d.grupoEdadId)) {
-    return fallo("El grupo no es de esta temporada.");
+    return { ok: false, error: "El grupo no es de esta temporada." };
   }
   const principal = actual.nino.responsables[0]?.responsableId;
   const contactoAntes = actual.nino.responsables[0]?.responsable;
 
-  try {
-    await prisma.$transaction([
+  return {
+    ok: true,
+    operaciones: [
       prisma.nino.update({ where: { id: actual.ninoId }, data: d.nino }),
-      prisma.inscripcionNino.update({
-        where: { id: inscripcionNinoId },
-        data: { grupoEdadId: d.grupoEdadId, estado: d.estado },
-      }),
+      prisma.inscripcionNino.update({ where: { id: inscripcionNinoId }, data: { grupoEdadId: d.grupoEdadId, estado: d.estado } }),
       ...(principal && d.contacto ? [prisma.responsable.update({ where: { id: principal }, data: d.contacto })] : []),
-    ]);
-  } catch (e) {
-    return falloPorExcepcion(e, { unico: "Ese WhatsApp ya pertenece a otro contacto." });
-  }
-  await registrar(
-    {
+    ],
+    contacto: principal && d.contacto ? { id: principal, datos: JSON.stringify(d.contacto) } : null,
+    evento: {
       accion: "inscripto.editar",
       entidad: "inscripto",
       entidadId: inscripcionNinoId,
@@ -89,10 +98,76 @@ export async function guardarEdicionRapida(inscripcionNinoId: number, datos: Edi
         },
       },
     },
-    usuario,
-  );
+  };
+}
+
+export async function guardarEdicionRapida(inscripcionNinoId: number, datos: EdicionRapida): Promise<ResultadoAccion> {
+  const usuario = await exigirPermiso("inscriptos.editar");
+  const preparada = await prepararEdicionRapida(inscripcionNinoId, datos);
+  if (!preparada.ok) return fallo(preparada.error);
+  try {
+    await prisma.$transaction(preparada.operaciones);
+  } catch (e) {
+    return falloPorExcepcion(e, { unico: "Ese WhatsApp ya pertenece a otro contacto." });
+  }
+  await registrar(preparada.evento, usuario);
   refresh();
   return exito("Cambios guardados.");
+}
+
+export type ResultadoEdicionMasiva =
+  | { ok: true; mensaje: string }
+  | { ok: false; error: string; /** Error de cada fila con problemas (por id de la fila). */ porFila: Record<number, string> };
+
+const MAXIMO_EDICION_MASIVA = 500;
+
+/**
+ * "Editar todos": guarda varias filas juntas. Primero valida todas; si alguna
+ * tiene un error no se guarda ninguna (todo o nada, en una sola transacción).
+ */
+export async function guardarEdicionesMasivas(cambios: { id: number; datos: EdicionRapida }[]): Promise<ResultadoEdicionMasiva> {
+  const usuario = await exigirPermiso("inscriptos.editar");
+  if (!Array.isArray(cambios) || cambios.length === 0) return { ok: true, mensaje: "No había cambios para guardar." };
+  if (cambios.length > MAXIMO_EDICION_MASIVA) return { ok: false, error: `Se pueden guardar hasta ${MAXIMO_EDICION_MASIVA} filas juntas.`, porFila: {} };
+
+  const porFila: Record<number, string> = {};
+  const listas: Extract<Preparada, { ok: true }>[] = [];
+  const contactos = new Map<number, { datos: string; fila: number }>();
+  for (const c of cambios) {
+    const preparada = await prepararEdicionRapida(c.id, c.datos);
+    if (!preparada.ok) {
+      porFila[c.id] = preparada.error;
+      continue;
+    }
+    // Hermanos con el mismo contacto principal: no puede quedar cambiado de dos formas distintas.
+    if (preparada.contacto) {
+      const previo = contactos.get(preparada.contacto.id);
+      if (previo && previo.datos !== preparada.contacto.datos) {
+        porFila[c.id] = "Este contacto también está en otra fila con datos distintos: dejalos iguales.";
+        continue;
+      }
+      contactos.set(preparada.contacto.id, { datos: preparada.contacto.datos, fila: c.id });
+    }
+    listas.push(preparada);
+  }
+  const conError = Object.keys(porFila).length;
+  if (conError > 0) {
+    return {
+      ok: false,
+      error: `No se guardó nada: ${conError === 1 ? "1 fila tiene" : `${conError} filas tienen`} un error (marcadas en rojo). Corregilas y guardá de nuevo.`,
+      porFila,
+    };
+  }
+
+  try {
+    await prisma.$transaction(listas.flatMap((l) => l.operaciones));
+  } catch (e) {
+    const r = falloPorExcepcion(e, { unico: "Algún WhatsApp ya pertenece a otro contacto." });
+    return { ok: false, error: `${r.ok ? "" : r.errores[0]} No se guardó nada.`, porFila: {} };
+  }
+  for (const l of listas) await registrar(l.evento, usuario);
+  refresh();
+  return { ok: true, mensaje: `Se ${listas.length === 1 ? "guardó 1 inscripto" : `guardaron ${listas.length} inscriptos`}.` };
 }
 
 /** Cambia la información adicional (alergias, medicación, etc.) desde la ficha rápida. Vacío la borra. */
