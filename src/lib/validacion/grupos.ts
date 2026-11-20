@@ -13,14 +13,7 @@ export const grupoEdadSchema = z.object({
   enlaceWhatsapp: z
     .string()
     .optional()
-    .transform((v, ctx) => {
-      const enlace = normalizarEnlaceGrupo(v ?? "");
-      if (enlace === "invalido") {
-        ctx.addIssue({ code: "custom", message: "El link del grupo de WhatsApp tiene que empezar con https://chat.whatsapp.com/" });
-        return z.NEVER;
-      }
-      return enlace;
-    }),
+    .transform((v) => normalizarEnlaceGrupo(v ?? "")),
 });
 
 /** Lista completa de grupos de una temporada; valida además rangos y superposiciones. */

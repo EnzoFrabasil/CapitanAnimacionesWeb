@@ -153,9 +153,8 @@ export function armarMensaje(plantilla: string, variables: Record<string, string
 export const enlaceWhatsapp = (e164: string, texto?: string) =>
   `https://wa.me/${e164.replace(/\D/g, "")}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 
-/** Un link de grupo de WhatsApp válido (chat.whatsapp.com/...), o null si está vacío. */
-export function normalizarEnlaceGrupo(texto: string): string | null | "invalido" {
+/** El link del grupo de WhatsApp tal cual lo cargaron (sin espacios), o null si está vacío. */
+export function normalizarEnlaceGrupo(texto: string): string | null {
   const t = texto.trim();
-  if (!t) return null;
-  return /^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{10,40}$/.test(t) ? t : "invalido";
+  return t || null;
 }
