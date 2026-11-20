@@ -99,9 +99,12 @@ describe("mensajes de WhatsApp", () => {
     ).toBe("2 días: 5/1 y 6/1 · 8:30 a 12:30 hs");
   });
 
-  it("acepta solo links de grupos de WhatsApp", () => {
+  it("guarda el link del grupo tal cual, sin espacios", () => {
     expect(normalizarEnlaceGrupo("")).toBeNull();
+    expect(normalizarEnlaceGrupo("   ")).toBeNull();
     expect(normalizarEnlaceGrupo(" https://chat.whatsapp.com/AbCdEfGhIj12 ")).toBe("https://chat.whatsapp.com/AbCdEfGhIj12");
-    expect(normalizarEnlaceGrupo("https://estafa.com/chat.whatsapp.com")).toBe("invalido");
+    expect(normalizarEnlaceGrupo("https://chat.whatsapp.com/FKM7gI81MWn0I9?mode=ems_copy_t")).toBe(
+      "https://chat.whatsapp.com/FKM7gI81MWn0I9?mode=ems_copy_t",
+    );
   });
 });
